@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,15 +10,47 @@ import {
   CardDescription,
 } from "@/components/ui/card"
 import { Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { useToast } from "@/components/ui/toast"; // ✅ shadcn toast
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const navigate = useNavigate()
+  const { addToast: toast } = useToast()
+
+  // Hardcoded creds
+  const creds = {
+    email: "admin@medalph.com",
+    password: "Admin07@",
+  }
+
+  const handleLogin = () => {
+    if (email === creds.email && password === creds.password) {
+      setError("")
+      toast({
+        title: "Login Successful 🎉",
+        description: "Welcome back, redirecting to dashboard...",
+      })
+      setTimeout(() => navigate("/dashboard"), 1500) // delay so user sees toast
+    } else {
+      setError("Invalid email or password")
+      toast({
+        title: "Login Failed ❌",
+        description: "Please check your credentials.",
+        variant: "destructive",
+      })
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md shadow-lg p-6 sm:p-8">
         <CardHeader className="space-y-3 pb-6">
-          <CardTitle className="text-center text-2xl font-bold">Welcome Back</CardTitle>
+          <CardTitle className="text-center text-2xl font-bold">
+            Welcome Back
+          </CardTitle>
           <CardDescription className="text-center text-gray-600">
             Login to continue to your account
           </CardDescription>
@@ -29,6 +62,8 @@ export default function Login() {
             <Input
               type="email"
               placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="pl-11 py-5"
             />
           </div>
@@ -39,6 +74,8 @@ export default function Login() {
             <Input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="pl-11 pr-11 py-5"
             />
             <button
@@ -54,15 +91,24 @@ export default function Login() {
             </button>
           </div>
 
+          {/* Error message */}
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
           {/* Login Button */}
-          <Button className="w-full bg-blue-600 hover:bg-blue-700 py-5 text-base font-medium">
+          <Button
+            onClick={handleLogin}
+            className="w-full bg-blue-600 hover:bg-blue-700 py-5 text-base font-medium"
+          >
             Login
           </Button>
 
           {/* Footer Links */}
           <p className="text-center text-sm text-gray-600 pt-2">
             Don’t have an account?{" "}
-            <a href="/signup" className="text-blue-600 hover:underline font-medium">
+            <a
+              href="/signup"
+              className="text-blue-600 hover:underline font-medium"
+            >
               Sign up
             </a>
           </p>

@@ -7,8 +7,11 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useNavigate } from "react-router-dom"
+
 
 export default function Navbar() {
+    const navigate = useNavigate()
     return (
         <div className="w-full shadow-sm bg-white">
             {/* Top navbar */}
@@ -50,7 +53,7 @@ export default function Navbar() {
                             </div>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => console.log("Logout clicked")}>
+                            <DropdownMenuItem onClick={() => navigate("/")}>
                                 Logout
                             </DropdownMenuItem>
                         </DropdownMenuContent>
