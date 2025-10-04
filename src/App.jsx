@@ -6,6 +6,9 @@ import Dashboard from "./Dashboard/Dashboard"
 import Patients from "./Patients/Patients"
 import Login from "./Login/Login"
 import Signup from "./Login/Signup"
+import Doctors from "./Doctors/Doctors"
+import Appointments from "./Appointments/Appointments"
+import Reminders from "./Reminders/Reminders"
 
 function App() {
   return (
@@ -19,6 +22,9 @@ function App() {
           {/* App Routes */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/patients" element={<Patients />} />
+          <Route path="/doctors" element={<Doctors />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/reminders" element={<Reminders />} />
         </Routes>
       </div>
     </Router>
