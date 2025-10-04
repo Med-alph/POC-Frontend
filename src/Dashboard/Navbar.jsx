@@ -7,11 +7,33 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useNavigate } from "react-router-dom"
-
+import { useNavigate, useLocation } from "react-router-dom"
+import { useEffect, useState } from "react"
 
 export default function Navbar() {
     const navigate = useNavigate()
+    const location = useLocation()
+    const [activeTab, setActiveTab] = useState("")
+
+    // Update active tab when route changes
+    useEffect(() => {
+        if (location.pathname === "/patients") {
+            setActiveTab("patients")
+        } else if (location.pathname === "/doctors") {
+            setActiveTab("doctors")
+        } else if (location.pathname === "/appointments") {
+            setActiveTab("appointments")
+        } else if (location.pathname === "/reminders") {
+            setActiveTab("reminders")
+        } else {
+            setActiveTab("") // dashboard or others - empty string instead of undefined
+        }
+    }, [location.pathname])
+
+    const handleTabClick = (value, path) => {
+        navigate(path)
+    }
+
     return (
         <div className="w-full shadow-sm bg-white">
             {/* Top navbar */}
@@ -63,29 +85,37 @@ export default function Navbar() {
 
             {/* Tabs row */}
             <div className="border-t overflow-x-auto">
-                <Tabs defaultValue="patients" className="px-4 md:px-6">
+                <Tabs value={activeTab} className="px-4 md:px-6">
                     <TabsList className="flex space-x-4 sm:space-x-6 bg-transparent h-12 p-0 min-w-max">
                         <TabsTrigger
                             value="patients"
-                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-600"
+                            onClick={() => handleTabClick("patients", "/patients")}
+                            className="cursor-pointer rounded-none border-b-2 border-transparent 
+                                data-[state=active]:border-blue-500 data-[state=active]:text-blue-600"
                         >
                             Patients
                         </TabsTrigger>
                         <TabsTrigger
                             value="doctors"
-                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-600"
+                            onClick={() => handleTabClick("doctors", "/doctors")}
+                            className="cursor-pointer rounded-none border-b-2 border-transparent 
+                                data-[state=active]:border-blue-500 data-[state=active]:text-blue-600"
                         >
                             Doctors
                         </TabsTrigger>
                         <TabsTrigger
                             value="appointments"
-                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-600"
+                            onClick={() => handleTabClick("appointments", "/appointments")}
+                            className="cursor-pointer rounded-none border-b-2 border-transparent 
+                                data-[state=active]:border-blue-500 data-[state=active]:text-blue-600"
                         >
                             Appointments
                         </TabsTrigger>
                         <TabsTrigger
                             value="reminders"
-                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-600"
+                            onClick={() => handleTabClick("reminders", "/reminders")}
+                            className="cursor-pointer rounded-none border-b-2 border-transparent 
+                                data-[state=active]:border-blue-500 data-[state=active]:text-blue-600"
                         >
                             Reminders
                         </TabsTrigger>
