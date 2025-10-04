@@ -39,7 +39,7 @@ export default function Navbar() {
             {/* Top navbar */}
             <nav className="w-full flex items-center justify-between px-4 md:px-6 py-3 shadow-sm bg-white border-b border-gray-200">
                 {/* Left side - Logo */}
-                <div className="flex items-center space-x-2">
+                <div onClick={() => navigate("/dashboard")} style={{ cursor: "pointer" }} className="flex items-center space-x-2">
                     <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm md:text-base">
                         c360
                     </div>
