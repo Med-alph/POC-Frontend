@@ -1,4 +1,5 @@
 import React from "react"
+
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Search, FileText, Calendar, Plus, Filter } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
 
-export default function Patients() {
+export default function Appointments() {
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             {/* Navbar */}
@@ -25,15 +26,15 @@ export default function Patients() {
                 {/* Header Row */}
                 <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div>
-                        <h1 className="text-lg sm:text-2xl font-bold">Patients</h1>
+                        <h1 className="text-lg sm:text-2xl font-bold">Appointments</h1>
                         <p className="text-gray-600 mt-1 text-xs sm:text-base">
-                            Manage and view all patient information
+                            Manage and view all Appointments information
                         </p>
                     </div>
 
                     <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
                         <Plus className="h-4 w-4" />
-                        Add New Patient
+                        Add New Appointment
                     </Button>
                 </div>
 
@@ -46,7 +47,7 @@ export default function Patients() {
                             <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
                             <Input
                                 type="text"
-                                placeholder="Search patients..."
+                                placeholder="Search Appointments..."
                                 className="pl-9"
                             />
                         </div>
@@ -82,7 +83,7 @@ export default function Patients() {
                     {/* Right side: Filter + Count */}
                     <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                         <Filter className="h-4 w-4" />
-                        <span>8 of 8 patients</span>
+                        <span>8 of 8 Appointments</span>
                     </div>
                 </div>
 
@@ -159,7 +160,7 @@ export default function Patients() {
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
                                 <Input
                                     type="text"
-                                    placeholder="Search patients..."
+                                    placeholder="Search Appointments..."
                                     className="pl-9"
                                 />
                             </div>
@@ -189,7 +190,7 @@ export default function Patients() {
                         </div>
                         <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                             <Filter className="h-4 w-4" />
-                            <span>8 of 8 patients</span>
+                            <span>8 of 8 Appointments</span>
                         </div>
                     </div>
                 </div>
