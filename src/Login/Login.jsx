@@ -103,6 +103,16 @@ export default function Login() {
             </button>
           </div>
 
+          {/* New position for Forgot Password? */}
+          <div className="flex justify-end -mt-3"> {/* Adjust margin to reduce space above link */}
+            <a
+              href="/forgotpassword"
+              className="text-sm text-blue-600 hover:underline font-medium"
+            >
+              Forgot Password?
+            </a>
+          </div>
+
           {/* Error message */}
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
