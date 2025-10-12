@@ -1,4 +1,6 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
+import { remindersAPI } from "../API/RemindersAPI"
+import toast, { Toaster } from 'react-hot-toast'
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -17,6 +19,35 @@ import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 
 export default function Reminders() {
+    const [reminders, setReminders] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [priorityFilter, setPriorityFilter] = useState("all")
+    const [statusFilter, setStatusFilter] = useState("all")
+
+    const fetchReminders = async () => {
+        try {
+            setLoading(true)
+            const params = {}
+            if (searchTerm) params.q = searchTerm
+            if (priorityFilter !== "all") params.priority = priorityFilter
+            if (statusFilter !== "all") params.status = statusFilter
+            
+            const result = await remindersAPI.getAll(params)
+            setReminders(Array.isArray(result.data) ? result.data : [])
+        } catch (err) {
+            console.error("Error fetching reminders:", err)
+            toast.error("Failed to load reminders. Please try again.")
+            setReminders([])
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchReminders()
+    }, [searchTerm, priorityFilter, statusFilter])
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             {/* Navbar */}
@@ -24,6 +55,7 @@ export default function Reminders() {
 
             {/* Main content */}
             <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
+                <Toaster position="top-right" />
                 {/* Breadcrumbs */}
                 <Breadcrumb items={[{ label: "Reminders" }]} />
                 
@@ -53,11 +85,17 @@ export default function Reminders() {
                                 type="text"
                                 placeholder="Search Reminders..."
                                 className="pl-9"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
 
                         {/* Priority Filter */}
-                        <Select className="w-full sm:w-40 md:w-40 lg:w-48">
+                        <Select 
+                            className="w-full sm:w-40 md:w-40 lg:w-48"
+                            value={priorityFilter}
+                            onValueChange={setPriorityFilter}
+                        >
                             <SelectTrigger className="flex items-center">
                                 <FileText className="h-4 w-4 mr-2 text-gray-500" />
                                 <SelectValue placeholder="All priorities" />
@@ -71,7 +109,11 @@ export default function Reminders() {
                         </Select>
 
                         {/* Status Filter */}
-                        <Select className="w-full sm:w-40 md:w-40 lg:w-48">
+                        <Select 
+                            className="w-full sm:w-40 md:w-40 lg:w-48"
+                            value={statusFilter}
+                            onValueChange={setStatusFilter}
+                        >
                             <SelectTrigger className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                                 <SelectValue placeholder="All status" />
@@ -88,132 +130,37 @@ export default function Reminders() {
                     {/* Right side: Filter + Count */}
                     <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                         <Filter className="h-4 w-4" />
-                        <span>7 of 7 reminders</span>
+                        <span>{reminders.length} of {reminders.length} reminders</span>
                     </div>
                 </div>
 
                 {/* Table Section */}
                 <div className="mt-6 bg-white shadow rounded-lg p-4 sm:p-5 overflow-x-auto">
-                    <Table className="min-w-[700px] md:min-w-full">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Patient</TableHead>
-                                <TableHead>Reminder Type</TableHead>
-                                <TableHead>Due Date</TableHead>
-                                <TableHead>Priority</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Assigned To</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {[
-                                {
-                                    id: "R001",
-                                    patient: "Sarah Johnson",
-                                    patientInitials: "SJ",
-                                    type: "Medication Refill",
-                                    description: "Blood pressure medication needs refill",
-                                    dueDate: "Jan 18, 2025",
-                                    dueTime: "2:00 PM",
-                                    priority: "High",
-                                    priorityColor: "bg-red-100 text-red-600",
-                                    status: "Pending",
-                                    statusColor: "bg-yellow-100 text-yellow-600",
-                                    assignedTo: "Dr. Emily Watson",
-                                    assignedInitials: "EW"
-                                },
-                                {
-                                    id: "R002",
-                                    patient: "Michael Chen",
-                                    patientInitials: "MC",
-                                    type: "Lab Results Review",
-                                    description: "Review cholesterol test results",
-                                    dueDate: "Jan 20, 2025",
-                                    dueTime: "10:00 AM",
-                                    priority: "Medium",
-                                    priorityColor: "bg-yellow-100 text-yellow-600",
-                                    status: "Completed",
-                                    statusColor: "bg-green-100 text-green-600",
-                                    assignedTo: "Dr. Robert Martinez",
-                                    assignedInitials: "RM"
-                                },
-                                {
-                                    id: "R003",
-                                    patient: "Emily Rodriguez",
-                                    patientInitials: "ER",
-                                    type: "Follow-up Call",
-                                    description: "Check on skin condition progress",
-                                    dueDate: "Jan 15, 2025",
-                                    dueTime: "3:30 PM",
-                                    priority: "Medium",
-                                    priorityColor: "bg-yellow-100 text-yellow-600",
-                                    status: "Overdue",
-                                    statusColor: "bg-red-100 text-red-600",
-                                    assignedTo: "Dr. Lisa Thompson",
-                                    assignedInitials: "LT"
-                                },
-                                {
-                                    id: "R004",
-                                    patient: "Robert Williams",
-                                    patientInitials: "RW",
-                                    type: "Physical Therapy",
-                                    description: "Schedule next PT session",
-                                    dueDate: "Jan 22, 2025",
-                                    dueTime: "11:00 AM",
-                                    priority: "High",
-                                    priorityColor: "bg-red-100 text-red-600",
-                                    status: "Pending",
-                                    statusColor: "bg-yellow-100 text-yellow-600",
-                                    assignedTo: "Dr. James Wilson",
-                                    assignedInitials: "JW"
-                                },
-                                {
-                                    id: "R005",
-                                    patient: "Lisa Thompson",
-                                    patientInitials: "LT",
-                                    type: "Vaccination Reminder",
-                                    description: "Annual flu vaccination due",
-                                    dueDate: "Jan 25, 2025",
-                                    dueTime: "9:00 AM",
-                                    priority: "Low",
-                                    priorityColor: "bg-blue-100 text-blue-600",
-                                    status: "Pending",
-                                    statusColor: "bg-yellow-100 text-yellow-600",
-                                    assignedTo: "Dr. Maria Garcia",
-                                    assignedInitials: "MG"
-                                },
-                                {
-                                    id: "R006",
-                                    patient: "David Kim",
-                                    patientInitials: "DK",
-                                    type: "Insurance Verification",
-                                    description: "Verify new insurance coverage",
-                                    dueDate: "Jan 19, 2025",
-                                    dueTime: "1:00 PM",
-                                    priority: "High",
-                                    priorityColor: "bg-red-100 text-red-600",
-                                    status: "Pending",
-                                    statusColor: "bg-yellow-100 text-yellow-600",
-                                    assignedTo: "Admin Team",
-                                    assignedInitials: "AT"
-                                },
-                                {
-                                    id: "R007",
-                                    patient: "Jennifer Brown",
-                                    patientInitials: "JB",
-                                    type: "Appointment Confirmation",
-                                    description: "Confirm upcoming annual exam",
-                                    dueDate: "Jan 21, 2025",
-                                    dueTime: "4:00 PM",
-                                    priority: "Medium",
-                                    priorityColor: "bg-yellow-100 text-yellow-600",
-                                    status: "Completed",
-                                    statusColor: "bg-green-100 text-green-600",
-                                    assignedTo: "Dr. Michael Davis",
-                                    assignedInitials: "MD"
-                                }
-                            ].map((reminder) => (
+                    {loading ? (
+                        <div className="flex justify-center items-center py-8">
+                            <div className="text-gray-500">Loading reminders...</div>
+                        </div>
+                    ) : (
+                        <Table className="min-w-[700px] md:min-w-full">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Patient</TableHead>
+                                    <TableHead>Reminder Type</TableHead>
+                                    <TableHead>Due Date</TableHead>
+                                    <TableHead>Priority</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Assigned To</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {reminders.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                            No reminders found
+                                        </TableCell>
+                                    </TableRow>
+                                ) : reminders.map((reminder) => (
                                 <TableRow key={reminder.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
@@ -275,6 +222,7 @@ export default function Reminders() {
                             ))}
                         </TableBody>
                     </Table>
+                    )}
 
                     {/* Filter Container (again) */}
                     <div className="mt-6 bg-white shadow rounded-lg pt-6 sm:pt-8 pb-4 px-4 sm:px-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
@@ -285,6 +233,8 @@ export default function Reminders() {
                                     type="text"
                                     placeholder="Search Reminders..."
                                     className="pl-9"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
                             <Select className="w-full sm:w-40 md:w-40 lg:w-48">
@@ -313,7 +263,7 @@ export default function Reminders() {
                         </div>
                         <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                             <Filter className="h-4 w-4" />
-                            <span>7 of 7 reminders</span>
+                            <span>{reminders.length} of {reminders.length} reminders</span>
                         </div>
                     </div>
                 </div>

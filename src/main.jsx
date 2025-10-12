@@ -10,13 +10,11 @@ const rootElement = document.getElementById('root')
 
 if (rootElement) {
   createRoot(rootElement).render(
-    <StrictMode>
       <Provider store={store}>
         <ToastProvider>
           <App />
         </ToastProvider>
       </Provider>
-    </StrictMode>
   )
 } else {
   throw new Error(

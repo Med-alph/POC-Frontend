@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import Navbar from "./Navbar"
+import toast, { Toaster } from 'react-hot-toast'
 import { CalendarDays, Users, UserX, Stethoscope, TrendingUp, BarChart2, Clock } from "lucide-react"
 import { Line, Doughnut } from "react-chartjs-2"
 import {
@@ -35,6 +36,7 @@ export default function Dashboard() {
     cancellations: 0,
     availableDoctors: 0
   })
+
 
   // Animation for counters
   useEffect(() => {
@@ -112,6 +114,7 @@ export default function Dashboard() {
 
       {/* Main content */}
       <main className="flex-1 p-2 sm:p-6">
+        <Toaster position="top-right" />
         {/* Header */}
         <div className={`mb-4 sm:mb-6 px-2 sm:px-6 transition-all duration-700 delay-200 ${
           isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'

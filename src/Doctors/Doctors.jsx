@@ -1,4 +1,6 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
+import { staffAPI } from "../API/StaffAPI"
+import toast, { Toaster } from 'react-hot-toast'
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -17,6 +19,35 @@ import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 
 export default function Doctors() {
+    const [doctors, setDoctors] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [specialtyFilter, setSpecialtyFilter] = useState("all")
+    const [availabilityFilter, setAvailabilityFilter] = useState("all")
+
+    const fetchDoctors = async () => {
+        try {
+            setLoading(true)
+            const params = {}
+            if (searchTerm) params.q = searchTerm
+            if (specialtyFilter !== "all") params.specialty = specialtyFilter
+            if (availabilityFilter !== "all") params.availability = availabilityFilter
+            
+            const result = await staffAPI.getAll(params)
+            setDoctors(Array.isArray(result.data) ? result.data : [])
+        } catch (err) {
+            console.error("Error fetching doctors:", err)
+            toast.error("Failed to load doctors. Please try again.")
+            setDoctors([])
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchDoctors()
+    }, [searchTerm, specialtyFilter, availabilityFilter])
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             {/* Navbar */}
@@ -24,6 +55,7 @@ export default function Doctors() {
 
             {/* Main content */}
             <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
+                <Toaster position="top-right" />
                 {/* Breadcrumbs */}
                 <Breadcrumb items={[{ label: "Doctors" }]} />
                 
@@ -53,11 +85,17 @@ export default function Doctors() {
                                 type="text"
                                 placeholder="Search Doctors..."
                                 className="pl-9"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
 
                         {/* Specialty Filter */}
-                        <Select className="w-full sm:w-40 md:w-40 lg:w-48">
+                        <Select 
+                            className="w-full sm:w-40 md:w-40 lg:w-48"
+                            value={specialtyFilter}
+                            onValueChange={setSpecialtyFilter}
+                        >
                             <SelectTrigger className="flex items-center">
                                 <FileText className="h-4 w-4 mr-2 text-gray-500" />
                                 <SelectValue placeholder="All specialties" />
@@ -73,7 +111,11 @@ export default function Doctors() {
                         </Select>
 
                         {/* Availability Filter */}
-                        <Select className="w-full sm:w-40 md:w-40 lg:w-48">
+                        <Select 
+                            className="w-full sm:w-40 md:w-40 lg:w-48"
+                            value={availabilityFilter}
+                            onValueChange={setAvailabilityFilter}
+                        >
                             <SelectTrigger className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                                 <SelectValue placeholder="All availability" />
@@ -90,112 +132,38 @@ export default function Doctors() {
                     {/* Right side: Filter + Count */}
                     <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                         <Filter className="h-4 w-4" />
-                        <span>6 of 6 doctors</span>
+                        <span>{doctors.length} of {doctors.length} doctors</span>
                     </div>
                 </div>
 
                 {/* Table Section */}
                 <div className="mt-6 bg-white shadow rounded-lg p-4 sm:p-5 overflow-x-auto">
-                    <Table className="min-w-[700px] md:min-w-full">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Doctor</TableHead>
-                                <TableHead>Specialty</TableHead>
-                                <TableHead>Contact Info</TableHead>
-                                <TableHead>Experience</TableHead>
-                                <TableHead>Availability</TableHead>
-                                <TableHead>Next Available</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {[
-                                {
-                                    id: "D001",
-                                    name: "Dr. Emily Watson",
-                                    initials: "EW",
-                                    specialty: "Cardiology",
-                                    experience: "12 years",
-                                    phone: "(555) 234-5678",
-                                    email: "e.watson@clinic360.com",
-                                    availability: "Available",
-                                    nextAvailable: "Today 2:00 PM",
-                                    status: "Online",
-                                    statusColor: "bg-green-100 text-green-600",
-                                    credentials: "MD, FACC"
-                                },
-                                {
-                                    id: "D002",
-                                    name: "Dr. Robert Martinez",
-                                    initials: "RM",
-                                    specialty: "Internal Medicine",
-                                    experience: "8 years",
-                                    phone: "(555) 345-6789",
-                                    email: "r.martinez@clinic360.com",
-                                    availability: "Busy",
-                                    nextAvailable: "Tomorrow 9:00 AM",
-                                    status: "In Session",
-                                    statusColor: "bg-yellow-100 text-yellow-600",
-                                    credentials: "MD, FACP"
-                                },
-                                {
-                                    id: "D003",
-                                    name: "Dr. Lisa Thompson",
-                                    initials: "LT",
-                                    specialty: "Dermatology",
-                                    experience: "15 years",
-                                    phone: "(555) 456-7890",
-                                    email: "l.thompson@clinic360.com",
-                                    availability: "Available",
-                                    nextAvailable: "Today 3:30 PM",
-                                    status: "Online",
-                                    statusColor: "bg-green-100 text-green-600",
-                                    credentials: "MD, FAAD"
-                                },
-                                {
-                                    id: "D004",
-                                    name: "Dr. James Wilson",
-                                    initials: "JW",
-                                    specialty: "Orthopedics",
-                                    experience: "20 years",
-                                    phone: "(555) 567-8901",
-                                    email: "j.wilson@clinic360.com",
-                                    availability: "Available",
-                                    nextAvailable: "Today 4:15 PM",
-                                    status: "Online",
-                                    statusColor: "bg-green-100 text-green-600",
-                                    credentials: "MD, FAAOS"
-                                },
-                                {
-                                    id: "D005",
-                                    name: "Dr. Maria Garcia",
-                                    initials: "MG",
-                                    specialty: "Pediatrics",
-                                    experience: "10 years",
-                                    phone: "(555) 678-9012",
-                                    email: "m.garcia@clinic360.com",
-                                    availability: "Busy",
-                                    nextAvailable: "Jan 22, 2025 10:00 AM",
-                                    status: "In Session",
-                                    statusColor: "bg-yellow-100 text-yellow-600",
-                                    credentials: "MD, FAAP"
-                                },
-                                {
-                                    id: "D006",
-                                    name: "Dr. Sarah Lee",
-                                    initials: "SL",
-                                    specialty: "Neurology",
-                                    experience: "18 years",
-                                    phone: "(555) 789-0123",
-                                    email: "s.lee@clinic360.com",
-                                    availability: "Offline",
-                                    nextAvailable: "Jan 23, 2025 8:00 AM",
-                                    status: "Offline",
-                                    statusColor: "bg-gray-100 text-gray-600",
-                                    credentials: "MD, FAAN"
-                                }
-                            ].map((doctor) => (
+                    {loading ? (
+                        <div className="flex justify-center items-center py-8">
+                            <div className="text-gray-500">Loading doctors...</div>
+                        </div>
+                    ) : (
+                        <Table className="min-w-[700px] md:min-w-full">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Doctor</TableHead>
+                                    <TableHead>Specialty</TableHead>
+                                    <TableHead>Contact Info</TableHead>
+                                    <TableHead>Experience</TableHead>
+                                    <TableHead>Availability</TableHead>
+                                    <TableHead>Next Available</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {doctors.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                            No doctors found
+                                        </TableCell>
+                                    </TableRow>
+                                ) : doctors.map((doctor) => (
                                 <TableRow key={doctor.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
@@ -261,6 +229,7 @@ export default function Doctors() {
                             ))}
                         </TableBody>
                     </Table>
+                    )}
 
                     {/* Filter Container (again) */}
                     <div className="mt-6 bg-white shadow rounded-lg pt-6 sm:pt-8 pb-4 px-4 sm:px-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
@@ -271,6 +240,8 @@ export default function Doctors() {
                                     type="text"
                                     placeholder="Search Doctors..."
                                     className="pl-9"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
                             <Select className="w-full sm:w-40 md:w-40 lg:w-48">
@@ -299,7 +270,7 @@ export default function Doctors() {
                         </div>
                         <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                             <Filter className="h-4 w-4" />
-                            <span>6 of 6 doctors</span>
+                            <span>{doctors.length} of {doctors.length} doctors</span>
                         </div>
                     </div>
                 </div>
