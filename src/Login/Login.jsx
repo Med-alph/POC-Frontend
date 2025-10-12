@@ -1,5 +1,8 @@
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useDispatch } from "react-redux"
+import { setCredentials } from "../features/auth/authSlice"
+import { authAPI } from "../API/AuthAPI"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,27 +21,36 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const { addToast: toast } = useToast()
 
-  // Hardcoded creds
-  const creds = {
-    email: "admin@medalph.com",
-    password: "Admin07@",
-  }
-
-  const handleLogin = () => {
-    if (email === creds.email && password === creds.password) {
+  const handleLogin = async () => {
+    try {
       setError("")
-      toast({
-        title: "Login Successful 🎉",
-        description: "Welcome back, redirecting to dashboard...",
-      })
-      setTimeout(() => navigate("/dashboard"), 1500) // delay so user sees toast
-    } else {
+      
+      const response = await authAPI.login({ email, password })
+      
+      if (response.access_token && response.user) {
+        // Store token and user data in Redux
+        dispatch(setCredentials({
+          access_token: response.access_token,
+          user: response.user
+        }))
+        
+        toast({
+          title: "Login Successful 🎉",
+          description: `Welcome back ${response.user.name}, redirecting to dashboard...`,
+        })
+        setTimeout(() => navigate("/dashboard"), 1500)
+      } else {
+        throw new Error("Login failed - invalid response format")
+      }
+    } catch (error) {
+      console.error("Login failed:", error.message)
       setError("Invalid email or password")
       toast({
         title: "Login Failed ❌",
-        description: "Please check your credentials.",
+        description: error.message || "Please check your credentials.",
         variant: "destructive",
       })
     }

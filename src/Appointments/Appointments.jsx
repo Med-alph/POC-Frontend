@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Search, FileText, Calendar, Plus, Filter, Clock, User, Stethoscope, Loader2 } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { baseUrl } from "../constants/Constant"
+import { appointmentsAPI } from "../API/AppointmentsAPI"
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState([])
@@ -34,8 +34,7 @@ export default function Appointments() {
   const fetchAppointments = async () => {
     try {
       setLoading(true)
-      const res = await fetch(`${baseUrl}/appointments`)
-      const result = await res.json()
+      const result = await appointmentsAPI.getAll()
       
       setAppointments(Array.isArray(result.data) ? result.data : [])
     } catch (err) {
@@ -61,31 +60,8 @@ export default function Appointments() {
   setFormLoading(true);
 
   try {
-    const res = await fetch(`${baseUrl}/appointments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    let data = null;
-    if (!res.ok) {
-      // Try to get error message from response body
-      try {
-        data = await res.json();
-        // Show the error message from the API if available
-        toast.error(data.message || "Failed to create appointment. Please try again.");  
-      } catch {
-        toast.error("Failed to create appointment. Please try again.");
-      }
-      throw new Error(data?.message || "Failed to create appointment");
-    }
-
-    try {
-      data = await res.json();
-      console.log("Created appointment:", data);
-    } catch {
-      console.warn("No JSON body returned, continuing anyway");
-    }
+    const data = await appointmentsAPI.create(formData);
+    console.log("Created appointment:", data);
 
     await fetchAppointments();
     setFormData({
@@ -103,9 +79,8 @@ export default function Appointments() {
     toast.success("Appointment created successfully");
     setOpen(false);
   } catch (err) {
-    // Errors already handled above, so this is mostly for unexpected errors
     console.error(err);
-    // Optionally: toast.error(err.message);
+    toast.error(err.message || "Failed to create appointment. Please try again.");
   } finally {
     setFormLoading(false);
   }
