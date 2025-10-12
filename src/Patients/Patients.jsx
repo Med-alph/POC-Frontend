@@ -11,8 +11,9 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Search, FileText, Calendar, Plus, Filter } from "lucide-react"
+import { Search, FileText, Calendar, Plus, Filter, Phone, Mail, MapPin } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 
 export default function Patients() {
     return (
@@ -22,6 +23,9 @@ export default function Patients() {
 
             {/* Main content */}
             <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
+                {/* Breadcrumbs */}
+                <Breadcrumb items={[{ label: "Patients" }]} />
+                
                 {/* Header Row */}
                 <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div>
@@ -51,30 +55,31 @@ export default function Patients() {
                             />
                         </div>
 
-                        {/* Insurance Type Dropdown */}
+                        {/* Status Filter */}
                         <Select className="w-full sm:w-40 md:w-40 lg:w-48">
                             <SelectTrigger className="flex items-center">
                                 <FileText className="h-4 w-4 mr-2 text-gray-500" />
-                                <SelectValue placeholder="All insurance type" />
+                                <SelectValue placeholder="All status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All insurance type</SelectItem>
-                                <SelectItem value="private">Private</SelectItem>
-                                <SelectItem value="public">Public</SelectItem>
+                                <SelectItem value="all">All status</SelectItem>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="inactive">Inactive</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
                             </SelectContent>
                         </Select>
 
-                        {/* Appointments Dropdown */}
+                        {/* Age Group Filter */}
                         <Select className="w-full sm:w-40 md:w-40 lg:w-48">
                             <SelectTrigger className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                                <SelectValue placeholder="All appointments" />
+                                <SelectValue placeholder="All ages" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All appointments</SelectItem>
-                                <SelectItem value="upcoming">Upcoming</SelectItem>
-                                <SelectItem value="past">Past</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                                <SelectItem value="all">All ages</SelectItem>
+                                <SelectItem value="pediatric">Pediatric (0-17)</SelectItem>
+                                <SelectItem value="adult">Adult (18-64)</SelectItem>
+                                <SelectItem value="senior">Senior (65+)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -82,7 +87,7 @@ export default function Patients() {
                     {/* Right side: Filter + Count */}
                     <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                         <Filter className="h-4 w-4" />
-                        <span>8 of 8 patients</span>
+                        <span>12 of 12 patients</span>
                     </div>
                 </div>
 
@@ -93,50 +98,149 @@ export default function Patients() {
                             <TableRow>
                                 <TableHead>Patient Name</TableHead>
                                 <TableHead>DOB / Age</TableHead>
-                                <TableHead>Phone Number</TableHead>
+                                <TableHead>Contact Info</TableHead>
                                 <TableHead>Insurance Provider</TableHead>
-                                <TableHead>Last Appointment</TableHead>
-                                <TableHead>Upcoming Appointment</TableHead>
+                                <TableHead>Last Visit</TableHead>
+                                <TableHead>Next Appointment</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {[1, 2].map((i) => (
-                                <TableRow key={i}>
+                            {[
+                                {
+                                    id: "P001",
+                                    name: "Sarah Johnson",
+                                    initials: "SJ",
+                                    dob: "Mar 15, 1985",
+                                    age: 39,
+                                    phone: "(555) 234-5678",
+                                    email: "sarah.johnson@email.com",
+                                    insurance: "Blue Cross Blue Shield",
+                                    lastVisit: "Dec 15, 2024",
+                                    nextAppointment: "Jan 20, 2025",
+                                    status: "Active",
+                                    statusColor: "bg-green-100 text-green-600"
+                                },
+                                {
+                                    id: "P002",
+                                    name: "Michael Chen",
+                                    initials: "MC",
+                                    dob: "Aug 22, 1972",
+                                    age: 52,
+                                    phone: "(555) 345-6789",
+                                    email: "m.chen@email.com",
+                                    insurance: "Aetna",
+                                    lastVisit: "Dec 10, 2024",
+                                    nextAppointment: "Jan 25, 2025",
+                                    status: "Active",
+                                    statusColor: "bg-green-100 text-green-600"
+                                },
+                                {
+                                    id: "P003",
+                                    name: "Emily Rodriguez",
+                                    initials: "ER",
+                                    dob: "Nov 8, 1995",
+                                    age: 29,
+                                    phone: "(555) 456-7890",
+                                    email: "emily.r@email.com",
+                                    insurance: "Cigna",
+                                    lastVisit: "Dec 5, 2024",
+                                    nextAppointment: "Pending",
+                                    status: "Follow-up Required",
+                                    statusColor: "bg-yellow-100 text-yellow-600"
+                                },
+                                {
+                                    id: "P004",
+                                    name: "Robert Williams",
+                                    initials: "RW",
+                                    dob: "Feb 14, 1960",
+                                    age: 64,
+                                    phone: "(555) 567-8901",
+                                    email: "r.williams@email.com",
+                                    insurance: "Medicare",
+                                    lastVisit: "Nov 28, 2024",
+                                    nextAppointment: "Jan 15, 2025",
+                                    status: "Active",
+                                    statusColor: "bg-green-100 text-green-600"
+                                },
+                                {
+                                    id: "P005",
+                                    name: "Lisa Thompson",
+                                    initials: "LT",
+                                    dob: "Jun 3, 1988",
+                                    age: 36,
+                                    phone: "(555) 678-9012",
+                                    email: "lisa.t@email.com",
+                                    insurance: "UnitedHealth",
+                                    lastVisit: "Dec 20, 2024",
+                                    nextAppointment: "Feb 1, 2025",
+                                    status: "Active",
+                                    statusColor: "bg-green-100 text-green-600"
+                                },
+                                {
+                                    id: "P006",
+                                    name: "David Kim",
+                                    initials: "DK",
+                                    dob: "Sep 12, 1978",
+                                    age: 46,
+                                    phone: "(555) 789-0123",
+                                    email: "d.kim@email.com",
+                                    insurance: "Kaiser Permanente",
+                                    lastVisit: "Nov 15, 2024",
+                                    nextAppointment: "Jan 30, 2025",
+                                    status: "Pending Review",
+                                    statusColor: "bg-orange-100 text-orange-600"
+                                }
+                            ].map((patient) => (
+                                <TableRow key={patient.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-8 w-8">
-                                                <AvatarFallback>JD</AvatarFallback>
+                                                <AvatarFallback>{patient.initials}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <p className="font-medium">John Doe</p>
-                                                <p className="text-xs text-gray-500">ID: 6054</p>
+                                                <p className="font-medium">{patient.name}</p>
+                                                <p className="text-xs text-gray-500">ID: {patient.id}</p>
                                             </div>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
-                                            <span>Apr 24, 1975</span>
-                                            <span className="text-xs text-gray-500">50 years old</span>
+                                            <span>{patient.dob}</span>
+                                            <span className="text-xs text-gray-500">{patient.age} years old</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                                <path d="M3 5a2 2 0 012-2h3l2 5-2 2c1 3 3 5 6 6l2-2 5 2v3a2 2 0 01-2 2h-1C9.163 21 3 14.837 3 7V5z" />
-                                            </svg>
-                                            <span>(555) 123-4567</span>
+                                        <div className="flex flex-col space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <Phone className="h-3 w-3 text-gray-500" />
+                                                <span className="text-sm">{patient.phone}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Mail className="h-3 w-3 text-gray-500" />
+                                                <span className="text-xs text-gray-500">{patient.email}</span>
+                                            </div>
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge className="bg-blue-100 text-blue-600">Blue Cross Blue Shield</Badge>
+                                        <Badge className="bg-blue-100 text-blue-600">{patient.insurance}</Badge>
                                     </TableCell>
-                                    <TableCell>Jan 12, 2024</TableCell>
+                                    <TableCell>
+                                        <span className="text-sm">{patient.lastVisit}</span>
+                                    </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
-                                            <span>Feb 3, 2024</span>
-                                            <span className="text-xs text-gray-500">566 days ago</span>
+                                            <span className="text-sm">{patient.nextAppointment}</span>
+                                            {patient.nextAppointment !== "Pending" && (
+                                                <span className="text-xs text-gray-500">In 2 weeks</span>
+                                            )}
                                         </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge className={patient.statusColor}>
+                                            {patient.status}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
@@ -189,7 +293,7 @@ export default function Patients() {
                         </div>
                         <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                             <Filter className="h-4 w-4" />
-                            <span>8 of 8 patients</span>
+                            <span>6 of 6 patients</span>
                         </div>
                     </div>
                 </div>

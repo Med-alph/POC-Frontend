@@ -12,8 +12,9 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Search, FileText, Calendar, Plus, Filter } from "lucide-react"
+import { Search, FileText, Calendar, Plus, Filter, Bell, Clock, AlertCircle, CheckCircle, User } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 
 export default function Reminders() {
     return (
@@ -23,6 +24,9 @@ export default function Reminders() {
 
             {/* Main content */}
             <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
+                {/* Breadcrumbs */}
+                <Breadcrumb items={[{ label: "Reminders" }]} />
+                
                 {/* Header Row */}
                 <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div>
@@ -52,30 +56,31 @@ export default function Reminders() {
                             />
                         </div>
 
-                        {/* Insurance Type Dropdown */}
+                        {/* Priority Filter */}
                         <Select className="w-full sm:w-40 md:w-40 lg:w-48">
                             <SelectTrigger className="flex items-center">
                                 <FileText className="h-4 w-4 mr-2 text-gray-500" />
-                                <SelectValue placeholder="All insurance type" />
+                                <SelectValue placeholder="All priorities" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All insurance type</SelectItem>
-                                <SelectItem value="private">Private</SelectItem>
-                                <SelectItem value="public">Public</SelectItem>
+                                <SelectItem value="all">All priorities</SelectItem>
+                                <SelectItem value="high">High Priority</SelectItem>
+                                <SelectItem value="medium">Medium Priority</SelectItem>
+                                <SelectItem value="low">Low Priority</SelectItem>
                             </SelectContent>
                         </Select>
 
-                        {/* Appointments Dropdown */}
+                        {/* Status Filter */}
                         <Select className="w-full sm:w-40 md:w-40 lg:w-48">
                             <SelectTrigger className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                                <SelectValue placeholder="All appointments" />
+                                <SelectValue placeholder="All status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All appointments</SelectItem>
-                                <SelectItem value="upcoming">Upcoming</SelectItem>
-                                <SelectItem value="past">Past</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                                <SelectItem value="all">All status</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="overdue">Overdue</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -83,7 +88,7 @@ export default function Reminders() {
                     {/* Right side: Filter + Count */}
                     <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                         <Filter className="h-4 w-4" />
-                        <span>8 of 8 Reminders</span>
+                        <span>7 of 7 reminders</span>
                     </div>
                 </div>
 
@@ -92,51 +97,169 @@ export default function Reminders() {
                     <Table className="min-w-[700px] md:min-w-full">
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Patient Name</TableHead>
-                                <TableHead>DOB / Age</TableHead>
-                                <TableHead>Phone Number</TableHead>
-                                <TableHead>Insurance Provider</TableHead>
-                                <TableHead>Last Appointment</TableHead>
-                                <TableHead>Upcoming Appointment</TableHead>
+                                <TableHead>Patient</TableHead>
+                                <TableHead>Reminder Type</TableHead>
+                                <TableHead>Due Date</TableHead>
+                                <TableHead>Priority</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Assigned To</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {[1, 2].map((i) => (
-                                <TableRow key={i}>
+                            {[
+                                {
+                                    id: "R001",
+                                    patient: "Sarah Johnson",
+                                    patientInitials: "SJ",
+                                    type: "Medication Refill",
+                                    description: "Blood pressure medication needs refill",
+                                    dueDate: "Jan 18, 2025",
+                                    dueTime: "2:00 PM",
+                                    priority: "High",
+                                    priorityColor: "bg-red-100 text-red-600",
+                                    status: "Pending",
+                                    statusColor: "bg-yellow-100 text-yellow-600",
+                                    assignedTo: "Dr. Emily Watson",
+                                    assignedInitials: "EW"
+                                },
+                                {
+                                    id: "R002",
+                                    patient: "Michael Chen",
+                                    patientInitials: "MC",
+                                    type: "Lab Results Review",
+                                    description: "Review cholesterol test results",
+                                    dueDate: "Jan 20, 2025",
+                                    dueTime: "10:00 AM",
+                                    priority: "Medium",
+                                    priorityColor: "bg-yellow-100 text-yellow-600",
+                                    status: "Completed",
+                                    statusColor: "bg-green-100 text-green-600",
+                                    assignedTo: "Dr. Robert Martinez",
+                                    assignedInitials: "RM"
+                                },
+                                {
+                                    id: "R003",
+                                    patient: "Emily Rodriguez",
+                                    patientInitials: "ER",
+                                    type: "Follow-up Call",
+                                    description: "Check on skin condition progress",
+                                    dueDate: "Jan 15, 2025",
+                                    dueTime: "3:30 PM",
+                                    priority: "Medium",
+                                    priorityColor: "bg-yellow-100 text-yellow-600",
+                                    status: "Overdue",
+                                    statusColor: "bg-red-100 text-red-600",
+                                    assignedTo: "Dr. Lisa Thompson",
+                                    assignedInitials: "LT"
+                                },
+                                {
+                                    id: "R004",
+                                    patient: "Robert Williams",
+                                    patientInitials: "RW",
+                                    type: "Physical Therapy",
+                                    description: "Schedule next PT session",
+                                    dueDate: "Jan 22, 2025",
+                                    dueTime: "11:00 AM",
+                                    priority: "High",
+                                    priorityColor: "bg-red-100 text-red-600",
+                                    status: "Pending",
+                                    statusColor: "bg-yellow-100 text-yellow-600",
+                                    assignedTo: "Dr. James Wilson",
+                                    assignedInitials: "JW"
+                                },
+                                {
+                                    id: "R005",
+                                    patient: "Lisa Thompson",
+                                    patientInitials: "LT",
+                                    type: "Vaccination Reminder",
+                                    description: "Annual flu vaccination due",
+                                    dueDate: "Jan 25, 2025",
+                                    dueTime: "9:00 AM",
+                                    priority: "Low",
+                                    priorityColor: "bg-blue-100 text-blue-600",
+                                    status: "Pending",
+                                    statusColor: "bg-yellow-100 text-yellow-600",
+                                    assignedTo: "Dr. Maria Garcia",
+                                    assignedInitials: "MG"
+                                },
+                                {
+                                    id: "R006",
+                                    patient: "David Kim",
+                                    patientInitials: "DK",
+                                    type: "Insurance Verification",
+                                    description: "Verify new insurance coverage",
+                                    dueDate: "Jan 19, 2025",
+                                    dueTime: "1:00 PM",
+                                    priority: "High",
+                                    priorityColor: "bg-red-100 text-red-600",
+                                    status: "Pending",
+                                    statusColor: "bg-yellow-100 text-yellow-600",
+                                    assignedTo: "Admin Team",
+                                    assignedInitials: "AT"
+                                },
+                                {
+                                    id: "R007",
+                                    patient: "Jennifer Brown",
+                                    patientInitials: "JB",
+                                    type: "Appointment Confirmation",
+                                    description: "Confirm upcoming annual exam",
+                                    dueDate: "Jan 21, 2025",
+                                    dueTime: "4:00 PM",
+                                    priority: "Medium",
+                                    priorityColor: "bg-yellow-100 text-yellow-600",
+                                    status: "Completed",
+                                    statusColor: "bg-green-100 text-green-600",
+                                    assignedTo: "Dr. Michael Davis",
+                                    assignedInitials: "MD"
+                                }
+                            ].map((reminder) => (
+                                <TableRow key={reminder.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-8 w-8">
-                                                <AvatarFallback>JD</AvatarFallback>
+                                                <AvatarFallback>{reminder.patientInitials}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <p className="font-medium">John Doe</p>
-                                                <p className="text-xs text-gray-500">ID: 6054</p>
+                                                <p className="font-medium">{reminder.patient}</p>
+                                                <p className="text-xs text-gray-500">ID: {reminder.id}</p>
                                             </div>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
-                                            <span>Apr 24, 1975</span>
-                                            <span className="text-xs text-gray-500">50 years old</span>
+                                            <span className="font-medium">{reminder.type}</span>
+                                            <span className="text-xs text-gray-500">{reminder.description}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                                <path d="M3 5a2 2 0 012-2h3l2 5-2 2c1 3 3 5 6 6l2-2 5 2v3a2 2 0 01-2 2h-1C9.163 21 3 14.837 3 7V5z" />
-                                            </svg>
-                                            <span>(555) 123-4567</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className="bg-blue-100 text-blue-600">Blue Cross Blue Shield</Badge>
-                                    </TableCell>
-                                    <TableCell>Jan 12, 2024</TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
-                                            <span>Feb 3, 2024</span>
-                                            <span className="text-xs text-gray-500">566 days ago</span>
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="h-4 w-4 text-gray-500" />
+                                                <span className="font-medium">{reminder.dueDate}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Clock className="h-4 w-4 text-gray-500" />
+                                                <span className="text-sm text-gray-600">{reminder.dueTime}</span>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge className={reminder.priorityColor}>
+                                            {reminder.priority}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge className={reminder.statusColor}>
+                                            {reminder.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarFallback className="text-xs">{reminder.assignedInitials}</AvatarFallback>
+                                            </Avatar>
+                                            <span className="text-sm">{reminder.assignedTo}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
@@ -190,7 +313,7 @@ export default function Reminders() {
                         </div>
                         <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
                             <Filter className="h-4 w-4" />
-                            <span>8 of 8 Reminders</span>
+                            <span>7 of 7 reminders</span>
                         </div>
                     </div>
                 </div>
