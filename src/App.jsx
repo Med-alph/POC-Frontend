@@ -9,6 +9,7 @@ import Signup from "./Login/Signup"
 import Doctors from "./Doctors/Doctors"
 import Appointments from "./Appointments/Appointments"
 import Reminders from "./Reminders/Reminders"
+import ForgotPassword from "./Login/ForgotPassword"
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/doctors" element={<Doctors />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/reminders" element={<Reminders />} />
+          <Route path="/forgotpassword" element={<ForgotPassword />} />
         </Routes>
       </div>
     </Router>
