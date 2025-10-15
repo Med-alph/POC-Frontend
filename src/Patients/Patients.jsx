@@ -31,7 +31,7 @@ export default function Patients() {
             if (searchTerm) params.q = searchTerm
             if (statusFilter !== "all") params.status = statusFilter
             if (ageGroupFilter !== "all") params.ageGroup = ageGroupFilter
-            
+
             const result = await patientsAPI.getAll(params)
             setPatients(Array.isArray(result.data) ? result.data : [])
         } catch (err) {
@@ -49,15 +49,14 @@ export default function Patients() {
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
-            {/* Navbar */}
-            <Navbar />
+
 
             {/* Main content */}
             <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
                 <Toaster position="top-right" />
                 {/* Breadcrumbs */}
                 <Breadcrumb items={[{ label: "Patients" }]} />
-                
+
                 {/* Header Row */}
                 <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div>
@@ -90,7 +89,7 @@ export default function Patients() {
                         </div>
 
                         {/* Status Filter */}
-                        <Select 
+                        <Select
                             className="w-full sm:w-40 md:w-40 lg:w-48"
                             value={statusFilter}
                             onValueChange={setStatusFilter}
@@ -108,7 +107,7 @@ export default function Patients() {
                         </Select>
 
                         {/* Age Group Filter */}
-                        <Select 
+                        <Select
                             className="w-full sm:w-40 md:w-40 lg:w-48"
                             value={ageGroupFilter}
                             onValueChange={setAgeGroupFilter}
@@ -161,68 +160,68 @@ export default function Patients() {
                                         </TableCell>
                                     </TableRow>
                                 ) : patients.map((patient) => (
-                                <TableRow key={patient.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarFallback>{patient.initials}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{patient.name}</p>
-                                                <p className="text-xs text-gray-500">ID: {patient.id}</p>
+                                    <TableRow key={patient.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarFallback>{patient.initials}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-medium">{patient.name}</p>
+                                                    <p className="text-xs text-gray-500">ID: {patient.id}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span>{patient.dob}</span>
-                                            <span className="text-xs text-gray-500">{patient.age} years old</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <Phone className="h-3 w-3 text-gray-500" />
-                                                <span className="text-sm">{patient.phone}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span>{patient.dob}</span>
+                                                <span className="text-xs text-gray-500">{patient.age} years old</span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <Mail className="h-3 w-3 text-gray-500" />
-                                                <span className="text-xs text-gray-500">{patient.email}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Phone className="h-3 w-3 text-gray-500" />
+                                                    <span className="text-sm">{patient.phone}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Mail className="h-3 w-3 text-gray-500" />
+                                                    <span className="text-xs text-gray-500">{patient.email}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className="bg-blue-100 text-blue-600">{patient.insurance}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="text-sm">{patient.lastVisit}</span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="text-sm">{patient.nextAppointment}</span>
-                                            {patient.nextAppointment !== "Pending" && (
-                                                <span className="text-xs text-gray-500">In 2 weeks</span>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className={patient.statusColor}>
-                                            {patient.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
-                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>
-                                            <span className="text-sm">View</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className="bg-blue-100 text-blue-600">{patient.insurance}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm">{patient.lastVisit}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm">{patient.nextAppointment}</span>
+                                                {patient.nextAppointment !== "Pending" && (
+                                                    <span className="text-xs text-gray-500">In 2 weeks</span>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className={patient.statusColor}>
+                                                {patient.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                                    <circle cx="12" cy="12" r="3" />
+                                                </svg>
+                                                <span className="text-sm">View</span>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     )}
 
                     {/* Filter Container (again) */}

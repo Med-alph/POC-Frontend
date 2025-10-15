@@ -41,7 +41,7 @@ export default function Dashboard() {
   // Animation for counters
   useEffect(() => {
     setIsLoaded(true)
-    
+
     const animateCounters = () => {
       const targetValues = {
         appointments: 24,
@@ -49,31 +49,31 @@ export default function Dashboard() {
         cancellations: 3,
         availableDoctors: 12
       }
-      
+
       const duration = 2000 // 2 seconds
       const steps = 60
       const stepDuration = duration / steps
-      
+
       let step = 0
       const timer = setInterval(() => {
         step++
         const progress = step / steps
         const easeOutCubic = 1 - Math.pow(1 - progress, 3)
-        
+
         setAnimatedValues({
           appointments: Math.round(targetValues.appointments * easeOutCubic),
           newPatients: Math.round(targetValues.newPatients * easeOutCubic),
           cancellations: Math.round(targetValues.cancellations * easeOutCubic),
           availableDoctors: Math.round(targetValues.availableDoctors * easeOutCubic)
         })
-        
+
         if (step >= steps) {
           clearInterval(timer)
           setAnimatedValues(targetValues)
         }
       }, stepDuration)
     }
-    
+
     const timer = setTimeout(animateCounters, 300) // Start after page loads
     return () => clearTimeout(timer)
   }, [])
@@ -106,19 +106,16 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col bg-gray-50 transition-all duration-1000 ${
-      isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-    }`}>
-      {/* Navbar */}
-      <Navbar />
+    <div className={`min-h-screen flex flex-col bg-gray-50 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      }`}>
+
 
       {/* Main content */}
       <main className="flex-1 p-2 sm:p-6">
         <Toaster position="top-right" />
         {/* Header */}
-        <div className={`mb-4 sm:mb-6 px-2 sm:px-6 transition-all duration-700 delay-200 ${
-          isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}>
+        <div className={`mb-4 sm:mb-6 px-2 sm:px-6 transition-all duration-700 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}>
           <h1 className="text-lg sm:text-2xl font-bold">Good Morning, Care Coordinator</h1>
           <p className="text-gray-600 mt-1 text-xs sm:text-base">
             Here's your clinic overview for today
@@ -128,9 +125,8 @@ export default function Dashboard() {
         {/* Dashboard cards */}
         <div className="mt-2 sm:mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 px-1 sm:px-6">
           {/* Card 1 - Today's Appointments */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-blue-500 transition-all duration-700 delay-300 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
+          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-blue-500 transition-all duration-700 delay-300 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-xs sm:text-base font-semibold text-gray-700">Today's Appointments</h2>
               <CalendarDays className="h-4 w-4 sm:h-6 sm:w-6 text-blue-500" />
@@ -156,11 +152,10 @@ export default function Dashboard() {
           </div>
 
           {/* Card 2 - New Patients Today */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-green-500 transition-all duration-700 delay-400 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-           style={{ cursor: "pointer" }}
-           onClick={() => navigate("/patients")}>
+          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-green-500 transition-all duration-700 delay-400 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate("/patients")}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-xs sm:text-base font-semibold text-gray-700">New Patients Today</h2>
               <Users className="h-4 w-4 sm:h-6 sm:w-6 text-green-500" />
@@ -170,9 +165,8 @@ export default function Dashboard() {
           </div>
 
           {/* Card 3 - Cancellations */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-red-500 transition-all duration-700 delay-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
+          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-red-500 transition-all duration-700 delay-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-xs sm:text-base font-semibold text-gray-700">Cancellations Today</h2>
               <UserX className="h-4 w-4 sm:h-6 sm:w-6 text-red-500" />
@@ -182,9 +176,8 @@ export default function Dashboard() {
           </div>
 
           {/* Card 4 - Available Doctors now */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-purple-500 transition-all duration-700 delay-600 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
+          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-purple-500 transition-all duration-700 delay-600 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-xs sm:text-base font-semibold text-gray-700">Available Doctors Now</h2>
               <Stethoscope className="h-4 w-4 sm:h-6 sm:w-6 text-purple-500" />
@@ -197,9 +190,8 @@ export default function Dashboard() {
         {/* Additional larger cards */}
         <div className="mt-4 sm:mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 px-1 sm:px-6">
           {/* Card 1 - Weekly Patient Visits */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col transition-all duration-700 delay-700 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
+          <div className={`bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col transition-all duration-700 delay-700 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}>
             <div className="flex items-center mb-1 sm:mb-3">
               <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-blue-500 mr-2" />
               <h3 className="text-xs sm:text-lg font-semibold text-gray-700">Weekly Patient Visits</h3>
@@ -211,9 +203,8 @@ export default function Dashboard() {
           </div>
 
           {/* Card 2 - Appointments Per Department */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col transition-all duration-700 delay-800 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
+          <div className={`bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col transition-all duration-700 delay-800 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}>
             <div className="flex items-center mb-1 sm:mb-3">
               <BarChart2 className="h-4 w-4 sm:h-6 sm:w-6 text-green-500 mr-2" />
               <h3 className="text-xs sm:text-lg font-semibold text-gray-700">Appointments per Department</h3>
@@ -240,9 +231,8 @@ export default function Dashboard() {
           </div>
 
           {/* Card 3 - Appointment Status */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col items-center justify-start transition-all duration-700 delay-900 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}>
+          <div className={`bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col items-center justify-start transition-all duration-700 delay-900 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}>
             <div className="w-full mb-2 sm:mb-4">
               <div className="flex items-center">
                 <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-purple-500 mr-2" />
@@ -263,8 +253,8 @@ export default function Dashboard() {
                     },
                   ],
                 }}
-                options={{ 
-                  plugins: { legend: { display: false } }, 
+                options={{
+                  plugins: { legend: { display: false } },
                   maintainAspectRatio: false,
                   animation: {
                     duration: 2000,

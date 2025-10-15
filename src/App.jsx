@@ -11,10 +11,17 @@ import Appointments from "./Appointments/Appointments"
 import Reminders from "./Reminders/Reminders"
 import ForgotPassword from "./Login/ForgotPassword"
 
+import TenantListPage from "./Owner/TenantList/TenantList"
+import Navbar from "./Dashboard/Navbar"
+import StaffListPage from "./Staff/StaffList"
+import DoctorDashboard from "./Dashboard/DoctorDashboard"
+import DoctorPatientRecord from "./Patients/PatientRecords/DoctorPatientRecord"
+import DoctorConsultation from "./Doctors/DoctorConsultation"
 function App() {
   return (
     <Router>
       <div className="min-h-svh flex flex-col">
+        <Navbar />
         <Routes>
           {/* Auth Routes */}
           <Route path="/" element={<Login />} />
@@ -27,6 +34,17 @@ function App() {
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/forgotpassword" element={<ForgotPassword />} />
+          <Route path="/TenantListPage" element={<TenantListPage />} />
+          <Route path="/Staffs" element={<StaffListPage />} />
+
+          {/* one doctor view */}
+          <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+          <Route path="/doctor-patient-record/:id" element={<DoctorPatientRecord />} />
+          <Route path="/consultation/:id" element={<DoctorConsultation />} />
+
+          {/* one doctor view */}
+
+
         </Routes>
       </div>
     </Router>

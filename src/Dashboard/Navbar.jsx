@@ -19,6 +19,8 @@ const navigationItems = [
     { id: "doctors", label: "Doctors", path: "/doctors", icon: Stethoscope },
     { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar },
     { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock },
+
+    { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Clock },
 ]
 
 export default function Navbar() {
@@ -50,8 +52,8 @@ export default function Navbar() {
             {/* Top navbar */}
             <nav className="w-full flex items-center justify-between px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
                 {/* Left side - Logo */}
-                <div 
-                    onClick={() => navigate("/dashboard")} 
+                <div
+                    onClick={() => navigate("/dashboard")}
                     className="flex items-center space-x-3 cursor-pointer group"
                 >
                     <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-lg group-hover:bg-white/30 transition-all duration-200">
@@ -144,16 +146,15 @@ export default function Navbar() {
                         {navigationItems.map((item) => {
                             const IconComponent = item.icon
                             const isActive = activeTab === item.id
-                            
+
                             return (
                                 <button
                                     key={item.id}
                                     onClick={() => handleTabClick(item.path)}
-                                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap ${
-                                        isActive
-                                            ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
-                                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                                    }`}
+                                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap ${isActive
+                                        ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                                        }`}
                                 >
                                     <IconComponent className={`h-4 w-4 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
                                     <span>{item.label}</span>
