@@ -32,7 +32,7 @@ export default function Reminders() {
             if (searchTerm) params.q = searchTerm
             if (priorityFilter !== "all") params.priority = priorityFilter
             if (statusFilter !== "all") params.status = statusFilter
-            
+
             const result = await remindersAPI.getAll(params)
             setReminders(Array.isArray(result.data) ? result.data : [])
         } catch (err) {
@@ -51,14 +51,14 @@ export default function Reminders() {
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             {/* Navbar */}
-            <Navbar/>
+            {/* <Navbar/> */}
 
             {/* Main content */}
             <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
                 <Toaster position="top-right" />
                 {/* Breadcrumbs */}
                 <Breadcrumb items={[{ label: "Reminders" }]} />
-                
+
                 {/* Header Row */}
                 <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div>
@@ -91,7 +91,7 @@ export default function Reminders() {
                         </div>
 
                         {/* Priority Filter */}
-                        <Select 
+                        <Select
                             className="w-full sm:w-40 md:w-40 lg:w-48"
                             value={priorityFilter}
                             onValueChange={setPriorityFilter}
@@ -109,7 +109,7 @@ export default function Reminders() {
                         </Select>
 
                         {/* Status Filter */}
-                        <Select 
+                        <Select
                             className="w-full sm:w-40 md:w-40 lg:w-48"
                             value={statusFilter}
                             onValueChange={setStatusFilter}
@@ -161,67 +161,67 @@ export default function Reminders() {
                                         </TableCell>
                                     </TableRow>
                                 ) : reminders.map((reminder) => (
-                                <TableRow key={reminder.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarFallback>{reminder.patientInitials}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{reminder.patient}</p>
-                                                <p className="text-xs text-gray-500">ID: {reminder.id}</p>
+                                    <TableRow key={reminder.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarFallback>{reminder.patientInitials}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-medium">{reminder.patient}</p>
+                                                    <p className="text-xs text-gray-500">ID: {reminder.id}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">{reminder.type}</span>
-                                            <span className="text-xs text-gray-500">{reminder.description}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="h-4 w-4 text-gray-500" />
-                                                <span className="font-medium">{reminder.dueDate}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{reminder.type}</span>
+                                                <span className="text-xs text-gray-500">{reminder.description}</span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <Clock className="h-4 w-4 text-gray-500" />
-                                                <span className="text-sm text-gray-600">{reminder.dueTime}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="h-4 w-4 text-gray-500" />
+                                                    <span className="font-medium">{reminder.dueDate}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className="h-4 w-4 text-gray-500" />
+                                                    <span className="text-sm text-gray-600">{reminder.dueTime}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className={reminder.priorityColor}>
-                                            {reminder.priority}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className={reminder.statusColor}>
-                                            {reminder.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-6 w-6">
-                                                <AvatarFallback className="text-xs">{reminder.assignedInitials}</AvatarFallback>
-                                            </Avatar>
-                                            <span className="text-sm">{reminder.assignedTo}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
-                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>
-                                            <span className="text-sm">View</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className={reminder.priorityColor}>
+                                                {reminder.priority}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className={reminder.statusColor}>
+                                                {reminder.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-6 w-6">
+                                                    <AvatarFallback className="text-xs">{reminder.assignedInitials}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="text-sm">{reminder.assignedTo}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                                    <circle cx="12" cy="12" r="3" />
+                                                </svg>
+                                                <span className="text-sm">View</span>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     )}
 
                     {/* Filter Container (again) */}

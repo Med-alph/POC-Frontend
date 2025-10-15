@@ -35,7 +35,7 @@ export default function Appointments() {
     try {
       setLoading(true)
       const result = await appointmentsAPI.getAll()
-      
+
       setAppointments(Array.isArray(result.data) ? result.data : [])
     } catch (err) {
       console.error("Error fetching appointments:", err)
@@ -55,36 +55,36 @@ export default function Appointments() {
     setFormData({ ...formData, [name]: value })
   }
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setFormLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
 
-  try {
-    const data = await appointmentsAPI.create(formData);
-    console.log("Created appointment:", data);
+    try {
+      const data = await appointmentsAPI.create(formData);
+      console.log("Created appointment:", data);
 
-    await fetchAppointments();
-    setFormData({
-      hospital_id: "",
-      patient_id: "",
-      staff_id: "",
-      appointment_type: "",
-      appointment_date: "",
-      appointment_time: "",
-      duration: 30,
-      reason: "",
-      notes: "",
-    });
+      await fetchAppointments();
+      setFormData({
+        hospital_id: "",
+        patient_id: "",
+        staff_id: "",
+        appointment_type: "",
+        appointment_date: "",
+        appointment_time: "",
+        duration: 30,
+        reason: "",
+        notes: "",
+      });
 
-    toast.success("Appointment created successfully");
-    setOpen(false);
-  } catch (err) {
-    console.error(err);
-    toast.error(err.message || "Failed to create appointment. Please try again.");
-  } finally {
-    setFormLoading(false);
+      toast.success("Appointment created successfully");
+      setOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Failed to create appointment. Please try again.");
+    } finally {
+      setFormLoading(false);
+    }
   }
-}
 
 
   const formatDate = (dateString) => {
@@ -97,20 +97,20 @@ export default function Appointments() {
     const date = new Date()
     date.setHours(parseInt(hours, 10))
     date.setMinutes(parseInt(minutes, 10))
-    return date.toLocaleTimeString(undefined, { 
-      hour: 'numeric', 
+    return date.toLocaleTimeString(undefined, {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     })
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar />
+
 
       <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
         <Toaster position="top-right" />
-        
+
         <Breadcrumb items={[{ label: "Appointments" }]} />
 
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
@@ -200,17 +200,17 @@ export default function Appointments() {
 
                 <div className="flex justify-end">
                   <DialogClose asChild>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       className="mr-2"
                       disabled={formLoading}
                     >
                       Cancel
                     </Button>
                   </DialogClose>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     disabled={formLoading}
                   >
@@ -294,10 +294,10 @@ export default function Appointments() {
                     <TableCell>
                       <Badge className={
                         a.status === 'Scheduled' || a.status === 'booked' ? 'bg-blue-100 text-blue-600' :
-                        a.status === 'Completed' ? 'bg-green-100 text-green-600' :
-                        a.status === 'Cancelled' || a.status === 'cancelled' ? 'bg-red-100 text-red-600' :
-                        a.status === 'Rescheduled' ? 'bg-orange-100 text-orange-600' :
-                        'bg-yellow-100 text-yellow-600'
+                          a.status === 'Completed' ? 'bg-green-100 text-green-600' :
+                            a.status === 'Cancelled' || a.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                              a.status === 'Rescheduled' ? 'bg-orange-100 text-orange-600' :
+                                'bg-yellow-100 text-yellow-600'
                       }>
                         {a.status}
                       </Badge>

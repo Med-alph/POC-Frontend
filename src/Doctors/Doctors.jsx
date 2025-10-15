@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import { Search, FileText, Calendar, Plus, Filter, Phone, Mail, MapPin, Award, Clock } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import CreateStaffDialog from "../Staff/AddStaff"
 
 export default function Doctors() {
     const [doctors, setDoctors] = useState([])
@@ -25,6 +26,18 @@ export default function Doctors() {
     const [specialtyFilter, setSpecialtyFilter] = useState("all")
     const [availabilityFilter, setAvailabilityFilter] = useState("all")
 
+
+    const hospitalId = "HSP001" // Example: passed from tenant selection
+
+    const [staffList, setStaffList] = useState([])
+    const [openDialog, setOpenDialog] = useState(false)
+
+    const handleAddStaff = (newStaff) => {
+        setStaffList(prev => [...prev, newStaff])
+        toast.success(`Staff "${newStaff.staff_name}" added!`)
+    }
+
+
     const fetchDoctors = async () => {
         try {
             setLoading(true)
@@ -32,7 +45,7 @@ export default function Doctors() {
             if (searchTerm) params.q = searchTerm
             if (specialtyFilter !== "all") params.specialty = specialtyFilter
             if (availabilityFilter !== "all") params.availability = availabilityFilter
-            
+
             const result = await staffAPI.getAll(params)
             setDoctors(Array.isArray(result.data) ? result.data : [])
         } catch (err) {
@@ -50,15 +63,14 @@ export default function Doctors() {
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
-            {/* Navbar */}
-            <Navbar/>
+
 
             {/* Main content */}
             <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
                 <Toaster position="top-right" />
                 {/* Breadcrumbs */}
                 <Breadcrumb items={[{ label: "Doctors" }]} />
-                
+
                 {/* Header Row */}
                 <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                     <div>
@@ -67,6 +79,16 @@ export default function Doctors() {
                             Manage and view all Doctors information
                         </p>
                     </div>
+
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        <CreateStaffDialog
+                            hospitalId={hospitalId}
+                            onAdd={handleAddStaff}
+                            open={openDialog}
+                            setOpen={setOpenDialog}
+                        />
+                    </Button>
 
                     <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
                         <Plus className="h-4 w-4" />
@@ -91,7 +113,7 @@ export default function Doctors() {
                         </div>
 
                         {/* Specialty Filter */}
-                        <Select 
+                        <Select
                             className="w-full sm:w-40 md:w-40 lg:w-48"
                             value={specialtyFilter}
                             onValueChange={setSpecialtyFilter}
@@ -111,7 +133,7 @@ export default function Doctors() {
                         </Select>
 
                         {/* Availability Filter */}
-                        <Select 
+                        <Select
                             className="w-full sm:w-40 md:w-40 lg:w-48"
                             value={availabilityFilter}
                             onValueChange={setAvailabilityFilter}
@@ -164,71 +186,71 @@ export default function Doctors() {
                                         </TableCell>
                                     </TableRow>
                                 ) : doctors.map((doctor) => (
-                                <TableRow key={doctor.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8">
-                                                <AvatarFallback>{doctor.initials}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{doctor.name}</p>
-                                                <p className="text-xs text-gray-500">{doctor.credentials}</p>
+                                    <TableRow key={doctor.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarFallback>{doctor.initials}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-medium">{doctor.name}</p>
+                                                    <p className="text-xs text-gray-500">{doctor.credentials}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className="bg-blue-100 text-blue-600">
-                                            {doctor.specialty}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col space-y-1">
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className="bg-blue-100 text-blue-600">
+                                                {doctor.specialty}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Phone className="h-3 w-3 text-gray-500" />
+                                                    <span className="text-sm">{doctor.phone}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Mail className="h-3 w-3 text-gray-500" />
+                                                    <span className="text-xs text-gray-500">{doctor.email}</span>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <Phone className="h-3 w-3 text-gray-500" />
-                                                <span className="text-sm">{doctor.phone}</span>
+                                                <Award className="h-4 w-4 text-gray-500" />
+                                                <span>{doctor.experience}</span>
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium">{doctor.availability}</span>
+                                                <span className="text-xs text-gray-500">{doctor.nextAvailable}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <Mail className="h-3 w-3 text-gray-500" />
-                                                <span className="text-xs text-gray-500">{doctor.email}</span>
+                                                <Clock className="h-4 w-4 text-gray-500" />
+                                                <span className="text-sm">{doctor.nextAvailable}</span>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Award className="h-4 w-4 text-gray-500" />
-                                            <span>{doctor.experience}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium">{doctor.availability}</span>
-                                            <span className="text-xs text-gray-500">{doctor.nextAvailable}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Clock className="h-4 w-4 text-gray-500" />
-                                            <span className="text-sm">{doctor.nextAvailable}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className={doctor.statusColor}>
-                                            {doctor.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
-                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>
-                                            <span className="text-sm">View</span>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className={doctor.statusColor}>
+                                                {doctor.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                                                    <circle cx="12" cy="12" r="3" />
+                                                </svg>
+                                                <span className="text-sm">View</span>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     )}
 
                     {/* Filter Container (again) */}
