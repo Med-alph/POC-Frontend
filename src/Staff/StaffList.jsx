@@ -5,7 +5,7 @@ import CreateStaffDialog from "./AddStaff"
 import { toast } from "react-hot-toast"
 
 export default function StaffListPage() {
-    const hospitalId = "HSP001" // Example: passed from tenant selection
+    const hospitalId = "HSP001"
 
     const [staffList, setStaffList] = useState([])
     const [openDialog, setOpenDialog] = useState(false)
