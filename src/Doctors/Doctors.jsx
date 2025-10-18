@@ -36,7 +36,6 @@ import {
     UserCheck,
     Activity
 } from "lucide-react"
-import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import CreateStaffDialog from "../Staff/AddStaff"
 import {
@@ -62,7 +61,6 @@ export default function Doctors() {
     const [openDialog, setOpenDialog] = useState(false)
     const [viewModalOpen, setViewModalOpen] = useState(false)
     const [selectedDoctor, setSelectedDoctor] = useState(null)
-
 
     // Computed values
     const filteredAndSortedDoctors = useMemo(() => {
@@ -130,18 +128,6 @@ export default function Doctors() {
         
         return { total, active, inactive, senior }
     }, [doctors])
-
-
-    const hospitalId = "HSP001" // Example: passed from tenant selection
-
-    const [staffList, setStaffList] = useState([])
-    const [openDialog, setOpenDialog] = useState(false)
-
-    const handleAddStaff = (newStaff) => {
-        setStaffList(prev => [...prev, newStaff])
-        toast.success(`Staff "${newStaff.staff_name}" added!`)
-    }
-
 
     const fetchDoctors = async () => {
         try {
@@ -219,7 +205,6 @@ export default function Doctors() {
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
-
             {/* Main Content */}
             <main className="flex-1 p-2 sm:p-6">
                 <Toaster position="top-right" />
@@ -258,7 +243,7 @@ export default function Doctors() {
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border">
                             <div className="flex items-center justify-between">
-                    <div>
+                                <div>
                                     <p className="text-sm font-medium text-gray-600">Inactive</p>
                                     <p className="text-2xl font-bold text-gray-600">{stats.inactive}</p>
                                 </div>
@@ -275,17 +260,17 @@ export default function Doctors() {
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         {/* Left side: Search and Filters */}
                         <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                        {/* Search */}
+                            {/* Search */}
                             <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
-                            <Input
-                                type="text"
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
+                                <Input
+                                    type="text"
                                     placeholder="Search doctors, department, contact..."
                                     className="pl-10"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
+                                />
+                            </div>
 
                             {/* Department Filter */}
                             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
@@ -318,28 +303,28 @@ export default function Doctors() {
                             <Select value={experienceFilter} onValueChange={setExperienceFilter}>
                                 <SelectTrigger className="w-full sm:w-40">
                                     <SelectValue placeholder="Experience" />
-                            </SelectTrigger>
-                            <SelectContent>
+                                </SelectTrigger>
+                                <SelectContent>
                                     <SelectItem value="all">All Experience</SelectItem>
                                     <SelectItem value="0-5">0-5 years</SelectItem>
                                     <SelectItem value="6-10">6-10 years</SelectItem>
                                     <SelectItem value="11-15">11-15 years</SelectItem>
                                     <SelectItem value="15+">15+ years</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                </SelectContent>
+                            </Select>
 
                             {/* Sort Options */}
                             <Select value={sortBy} onValueChange={setSortBy}>
                                 <SelectTrigger className="w-full sm:w-40">
                                     <SelectValue placeholder="Sort by" />
-                            </SelectTrigger>
-                            <SelectContent>
+                                </SelectTrigger>
+                                <SelectContent>
                                     <SelectItem value="name">Name</SelectItem>
                                     <SelectItem value="experience">Experience</SelectItem>
                                     <SelectItem value="department">Department</SelectItem>
                                     <SelectItem value="status">Status</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                </SelectContent>
+                            </Select>
 
                             {/* Sort Order */}
                             <Button
@@ -349,12 +334,12 @@ export default function Doctors() {
                             >
                                 {sortOrder === "asc" ? "↑" : "↓"}
                             </Button>
-                    </div>
+                        </div>
 
                         {/* Right side: Actions and Count */}
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <div className="flex items-center gap-2 text-gray-600 text-sm">
-                        <Filter className="h-4 w-4" />
+                                <Filter className="h-4 w-4" />
                                 <span>{filteredAndSortedDoctors.length} of {doctors.length} doctors</span>
                             </div>
                             
@@ -395,19 +380,19 @@ export default function Doctors() {
                             <div className="text-gray-500">Loading doctors...</div>
                         </div>
                     ) : (
-                    <Table className="min-w-[700px] md:min-w-full">
-                        <TableHeader>
-                            <TableRow>
+                        <Table className="min-w-[700px] md:min-w-full">
+                            <TableHeader>
+                                <TableRow>
                                     <TableHead>Doctor Name</TableHead>
                                     <TableHead>Department</TableHead>
-                                <TableHead>Contact Info</TableHead>
-                                <TableHead>Experience</TableHead>
-                                <TableHead>Availability</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                                    <TableHead>Contact Info</TableHead>
+                                    <TableHead>Experience</TableHead>
+                                    <TableHead>Availability</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {filteredAndSortedDoctors.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={7} className="text-center py-8 text-gray-500">
@@ -441,53 +426,45 @@ export default function Doctors() {
                                     }
                                     
                                     return (
-                                <TableRow key={doctor.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-8 w-8">
+                                        <TableRow key={doctor.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-8 w-8">
                                                         <AvatarFallback>{initials}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
+                                                    </Avatar>
+                                                    <div>
                                                         <p className="font-medium">{doctor.staff_name}</p>
                                                         <p className="text-xs text-gray-500">ID: {doctor.id.slice(0, 8)}...</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge className="bg-blue-100 text-blue-600">
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className="bg-blue-100 text-blue-600">
                                                     {doctor.department}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col space-y-1">
-                                            <div className="flex items-center gap-2">
-                                                <Phone className="h-3 w-3 text-gray-500" />
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="h-3 w-3 text-gray-500" />
                                                         <span className="text-sm">{doctor.contact_info}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium">{doctor.availability}</span>
-                                                <span className="text-xs text-gray-500">{doctor.nextAvailable}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Clock className="h-4 w-4 text-gray-500" />
-                                                <span className="text-sm">{doctor.nextAvailable}</span>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Mail className="h-3 w-3 text-gray-500" />
+                                                        <span className="text-xs text-gray-500">{doctor.email}</span>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-medium">{doctor.experience} years</span>
                                                     <span className="text-xs text-gray-500">
                                                         {doctor.experience >= 10 ? 'Senior' : doctor.experience >= 5 ? 'Experienced' : 'Junior'}
                                                     </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
                                                     {Object.keys(availability).length > 0 ? (
                                                         <div className="text-sm">
                                                             {Object.entries(availability).slice(0, 2).map(([day, time]) => (
@@ -498,18 +475,18 @@ export default function Doctors() {
                                                             {Object.keys(availability).length > 2 && (
                                                                 <div className="text-xs text-gray-500">+{Object.keys(availability).length - 2} more</div>
                                                             )}
-                                        </div>
+                                                        </div>
                                                     ) : (
                                                         <span className="text-sm text-gray-500">Not set</span>
                                                     )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
                                                 <Badge className={getStatusColor(doctor.status)}>
-                                            {doctor.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
+                                                    {doctor.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     <Button
                                                         variant="ghost"
@@ -552,13 +529,13 @@ export default function Doctors() {
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
                                     )
                                 })}
-                        </TableBody>
-                    </Table>
+                            </TableBody>
+                        </Table>
                     )}
 
                     {/* Footer with pagination and summary */}
@@ -580,7 +557,7 @@ export default function Doctors() {
                                 <Button variant="outline" size="sm" disabled>
                                     Next
                                 </Button>
-                        </div>
+                            </div>
                         </div>
                     </div>
                 </div>
