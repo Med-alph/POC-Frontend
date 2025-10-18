@@ -44,11 +44,12 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="max-w-[600px] overflow-y-auto">
-                <DialogHeader>
+            <DialogContent className="max-w-[600px] h-[85vh] sm:h-[90vh] flex flex-col modal-content">
+                <DialogHeader className="flex-shrink-0">
                     <DialogTitle>Create New Staff</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
+                    <form id="staff-form" onSubmit={handleSubmit} className="space-y-4">
                     <Input
                         name="staff_name"
                         placeholder="Staff Name"
@@ -114,12 +115,16 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
                         <p className="text-xs text-gray-500">Enter time slots separated by commas if multiple per day</p>
                     </div>
 
-                    <div className="flex justify-end">
-                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-                            Add Staff
-                        </Button>
-                    </div>
-                </form>
+                    </form>
+                </div>
+                <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" form="staff-form" className="bg-blue-600 hover:bg-blue-700 text-white">
+                        Add Staff
+                    </Button>
+                </div>
             </DialogContent>
         </Dialog>
     )

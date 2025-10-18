@@ -14,9 +14,16 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Search, FileText, Calendar, Plus, Filter, Bell, Clock, AlertCircle, CheckCircle, User } from "lucide-react"
+import { Search, FileText, Calendar, Plus, Filter, Bell, Clock, AlertCircle, CheckCircle, User, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import ViewModal from "@/components/ui/view-modal"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function Reminders() {
     const [reminders, setReminders] = useState([])
@@ -24,6 +31,8 @@ export default function Reminders() {
     const [searchTerm, setSearchTerm] = useState("")
     const [priorityFilter, setPriorityFilter] = useState("all")
     const [statusFilter, setStatusFilter] = useState("all")
+    const [viewModalOpen, setViewModalOpen] = useState(false)
+    const [selectedReminder, setSelectedReminder] = useState(null)
 
     const fetchReminders = async () => {
         try {
@@ -47,6 +56,11 @@ export default function Reminders() {
     useEffect(() => {
         fetchReminders()
     }, [searchTerm, priorityFilter, statusFilter])
+
+    const handleViewReminder = (reminder) => {
+        setSelectedReminder(reminder)
+        setViewModalOpen(true)
+    }
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
@@ -210,12 +224,44 @@ export default function Reminders() {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
-                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-                                                    <circle cx="12" cy="12" r="3" />
-                                                </svg>
-                                                <span className="text-sm">View</span>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0"
+                                                    onClick={() => handleViewReminder(reminder)}
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0"
+                                                    onClick={() => toast.success(`Editing reminder ${reminder.id}`)}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem>
+                                                            <CheckCircle className="h-4 w-4 mr-2" />
+                                                            Mark Complete
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem>
+                                                            <Clock className="h-4 w-4 mr-2" />
+                                                            Reschedule
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-red-600">
+                                                            <Trash2 className="h-4 w-4 mr-2" />
+                                                            Delete Reminder
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -267,6 +313,14 @@ export default function Reminders() {
                         </div>
                     </div>
                 </div>
+
+                {/* View Modal */}
+                <ViewModal
+                    isOpen={viewModalOpen}
+                    onClose={() => setViewModalOpen(false)}
+                    data={selectedReminder}
+                    type="reminder"
+                />
             </main>
         </div>
     )
