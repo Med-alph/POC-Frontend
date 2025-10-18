@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { patientsAPI } from "../API/PatientsAPI"
 import toast, { Toaster } from 'react-hot-toast'
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,34 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Search, FileText, Calendar, Plus, Filter, Phone, Mail, MapPin } from "lucide-react"
+import { 
+    Search, 
+    FileText, 
+    Calendar, 
+    Plus, 
+    Filter, 
+    Phone, 
+    Mail, 
+    MapPin, 
+    Users, 
+    UserPlus, 
+    Download,
+    RefreshCw,
+    Eye,
+    Edit,
+    Trash2,
+    MoreHorizontal
+} from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import ViewModal from "@/components/ui/view-modal"
+import AddPatientDialog from "./AddPatient"
 
 export default function Patients() {
     const [patients, setPatients] = useState([])
@@ -23,14 +48,87 @@ export default function Patients() {
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState("all")
     const [ageGroupFilter, setAgeGroupFilter] = useState("all")
+    const [sortBy, setSortBy] = useState("name")
+    const [sortOrder, setSortOrder] = useState("asc")
+    const [selectedPatients, setSelectedPatients] = useState([])
+    const [viewMode, setViewMode] = useState("table") // table or grid
+    const [showFilters, setShowFilters] = useState(false)
+    const [viewModalOpen, setViewModalOpen] = useState(false)
+    const [selectedPatient, setSelectedPatient] = useState(null)
+    const [openDialog, setOpenDialog] = useState(false) // Add Patient Dialog state
+
+    // Computed values
+    const filteredAndSortedPatients = useMemo(() => {
+        let filtered = patients.filter(patient => {
+            const matchesSearch = !searchTerm || 
+                patient.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                patient.contact_info?.includes(searchTerm) ||
+                patient.insurance_provider?.toLowerCase().includes(searchTerm.toLowerCase())
+            
+            const matchesStatus = statusFilter === "all" || patient.status === statusFilter
+            
+            const matchesAgeGroup = ageGroupFilter === "all" || 
+                (ageGroupFilter === "0-18" && patient.age <= 18) ||
+                (ageGroupFilter === "19-35" && patient.age >= 19 && patient.age <= 35) ||
+                (ageGroupFilter === "36-50" && patient.age >= 36 && patient.age <= 50) ||
+                (ageGroupFilter === "50+" && patient.age > 50)
+            
+            return matchesSearch && matchesStatus && matchesAgeGroup
+        })
+
+        // Sort patients
+        filtered.sort((a, b) => {
+            let aValue, bValue
+            
+            switch (sortBy) {
+                case "name":
+                    aValue = a.patient_name || ""
+                    bValue = b.patient_name || ""
+                    break
+                case "age":
+                    aValue = a.age || 0
+                    bValue = b.age || 0
+                    break
+                case "status":
+                    aValue = a.status || ""
+                    bValue = b.status || ""
+                    break
+                case "lastVisit":
+                    aValue = new Date(a.last_visit || 0)
+                    bValue = new Date(b.last_visit || 0)
+                    break
+                default:
+                    aValue = a.patient_name || ""
+                    bValue = b.patient_name || ""
+            }
+            
+            if (sortOrder === "asc") {
+                return aValue > bValue ? 1 : -1
+            } else {
+                return aValue < bValue ? 1 : -1
+            }
+        })
+
+        return filtered
+    }, [patients, searchTerm, statusFilter, ageGroupFilter, sortBy, sortOrder])
+
+    // Statistics
+    const stats = useMemo(() => {
+        const total = patients.length
+        const active = patients.filter(p => p.status === 'active').length
+        const inactive = patients.filter(p => p.status === 'inactive').length
+        const withAppointments = patients.filter(p => p.next_appointment).length
+        
+        return { total, active, inactive, withAppointments }
+    }, [patients])
 
     const fetchPatients = async () => {
         try {
             setLoading(true)
             const params = {}
-            if (searchTerm) params.q = searchTerm
+            if (searchTerm) params.search = searchTerm
             if (statusFilter !== "all") params.status = statusFilter
-            if (ageGroupFilter !== "all") params.ageGroup = ageGroupFilter
+            if (ageGroupFilter !== "all") params.age_group = ageGroupFilter
 
             const result = await patientsAPI.getAll(params)
             setPatients(Array.isArray(result.data) ? result.data : [])
@@ -47,35 +145,121 @@ export default function Patients() {
         fetchPatients()
     }, [searchTerm, statusFilter, ageGroupFilter])
 
+    // Utility functions
+    const handleRefresh = () => {
+        fetchPatients()
+        toast.success("Patients data refreshed")
+    }
+
+    const handleExport = () => {
+        // Simple CSV export
+        const csvContent = [
+            ['Name', 'Age', 'Contact', 'Insurance', 'Status', 'Last Visit', 'Next Appointment'],
+            ...filteredAndSortedPatients.map(patient => [
+                patient.patient_name,
+                patient.age,
+                patient.contact_info,
+                patient.insurance_provider,
+                patient.status,
+                patient.last_visit || 'N/A',
+                patient.next_appointment || 'N/A'
+            ])
+        ].map(row => row.join(',')).join('\n')
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'patients.csv'
+        a.click()
+        window.URL.revokeObjectURL(url)
+        toast.success("Patients data exported")
+    }
+
+    const handleSelectPatient = (patientId) => {
+        setSelectedPatients(prev => 
+            prev.includes(patientId) 
+                ? prev.filter(id => id !== patientId)
+                : [...prev, patientId]
+        )
+    }
+
+    const handleSelectAll = () => {
+        if (selectedPatients.length === filteredAndSortedPatients.length) {
+            setSelectedPatients([])
+        } else {
+            setSelectedPatients(filteredAndSortedPatients.map(p => p.id))
+        }
+    }
+
+    const handleViewPatient = (patient) => {
+        setSelectedPatient(patient)
+        setViewModalOpen(true)
+    }
+
+    const handleAddPatient = (newPatient) => {
+        setPatients(prev => [...prev, newPatient])
+        toast.success(`Patient "${newPatient.patient_name}" added!`)
+    }
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
 
-
-            {/* Main content */}
-            <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
+            {/* Main Content */}
+            <main className="flex-1 p-2 sm:p-6">
                 <Toaster position="top-right" />
-                {/* Breadcrumbs */}
-                <Breadcrumb items={[{ label: "Patients" }]} />
-
-                {/* Header Row */}
-                <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-                    <div>
-                        <h1 className="text-lg sm:text-2xl font-bold">Patients</h1>
-                        <p className="text-gray-600 mt-1 text-xs sm:text-base">
-                            Manage and view all patient information
-                        </p>
+                
+                {/* Statistics Cards */}
+                <div className="mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Total Patients</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                                </div>
+                                <Users className="h-8 w-8 text-blue-600" />
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Active</p>
+                                    <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                                </div>
+                                <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                                    <div className="h-3 w-3 bg-green-600 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">With Appointments</p>
+                                    <p className="text-2xl font-bold text-blue-600">{stats.withAppointments}</p>
+                                </div>
+                                <Calendar className="h-8 w-8 text-blue-600" />
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Inactive</p>
+                                    <p className="text-2xl font-bold text-gray-600">{stats.inactive}</p>
+                                </div>
+                                <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <div className="h-3 w-3 bg-gray-600 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        Add New Patient
-                    </Button>
                 </div>
 
-                {/* Filters container */}
-                <div className="bg-white shadow rounded-lg pt-6 sm:pt-8 pb-4 px-4 sm:px-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
-                    {/* Left side: Search + Dropdowns */}
-                    <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 w-full md:w-auto flex-wrap">
+                {/* Filters and Actions container */}
+                <div className="bg-white shadow rounded-lg p-4 mb-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        {/* Left side: Search and Filters */}
+                        <div className="flex flex-col sm:flex-row gap-3 flex-1">
                         {/* Search */}
                         <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
@@ -125,10 +309,40 @@ export default function Patients() {
                         </Select>
                     </div>
 
-                    {/* Right side: Filter + Count */}
-                    <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
-                        <Filter className="h-4 w-4" />
-                        <span>{patients.length} of {patients.length} patients</span>
+                        {/* Right side: Actions and Count */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <div className="flex items-center gap-2 text-gray-600 text-sm">
+                                <Filter className="h-4 w-4" />
+                                <span>{filteredAndSortedPatients.length} of {patients.length} patients</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={handleRefresh}
+                                    disabled={loading}
+                                    className="flex items-center gap-2"
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    onClick={handleExport}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Export
+                                </Button>
+                                <Button 
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() => setOpenDialog(true)}
+                                >
+                                    <UserPlus className="h-4 w-4 mr-2" />
+                                    Add Patient
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -153,120 +367,191 @@ export default function Patients() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {patients.length === 0 ? (
+                                {filteredAndSortedPatients.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                            No patients found
+                                            {patients.length === 0 ? 'No patients found' : 'No patients match your filters'}
                                         </TableCell>
                                     </TableRow>
-                                ) : patients.map((patient) => (
-                                    <TableRow key={patient.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarFallback>{patient.initials}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-medium">{patient.name}</p>
-                                                    <p className="text-xs text-gray-500">ID: {patient.id}</p>
+                                ) : filteredAndSortedPatients.map((patient) => {
+                                    // Generate initials from patient_name
+                                    const initials = patient.patient_name
+                                        ?.split(' ')
+                                        .map(name => name.charAt(0))
+                                        .join('')
+                                        .toUpperCase() || 'P'
+                                    
+                                    // Format date of birth
+                                    const formatDate = (dateString) => {
+                                        if (!dateString) return 'N/A'
+                                        const date = new Date(dateString)
+                                        return date.toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric'
+                                        })
+                                    }
+                                    
+                                    // Status color mapping
+                                    const getStatusColor = (status) => {
+                                        switch (status) {
+                                            case 'active':
+                                                return 'bg-green-100 text-green-600'
+                                            case 'inactive':
+                                                return 'bg-gray-100 text-gray-600'
+                                            case 'pending':
+                                                return 'bg-yellow-100 text-yellow-600'
+                                            default:
+                                                return 'bg-blue-100 text-blue-600'
+                                        }
+                                    }
+                                    
+                                    return (
+                                        <TableRow key={patient.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarFallback>{initials}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-medium">{patient.patient_name}</p>
+                                                        <p className="text-xs text-gray-500">ID: {patient.id.slice(0, 8)}...</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span>{patient.dob}</span>
-                                                <span className="text-xs text-gray-500">{patient.age} years old</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col space-y-1">
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span>{formatDate(patient.dob)}</span>
+                                                    <span className="text-xs text-gray-500">{patient.age} years old</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="h-3 w-3 text-gray-500" />
+                                                        <span className="text-sm">{patient.contact_info}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Mail className="h-3 w-3 text-gray-500" />
+                                                        <span className="text-xs text-gray-500">No email provided</span>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className="bg-blue-100 text-blue-600">
+                                                    {patient.insurance_provider}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-sm">
+                                                    {patient.last_visit ? formatDate(patient.last_visit) : 'No visits yet'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm">
+                                                        {patient.next_appointment ? formatDate(patient.next_appointment) : 'No upcoming'}
+                                                    </span>
+                                                    {patient.next_appointment && (
+                                                        <span className="text-xs text-gray-500">Scheduled</span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className={getStatusColor(patient.status)}>
+                                                    {patient.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <Phone className="h-3 w-3 text-gray-500" />
-                                                    <span className="text-sm">{patient.phone}</span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0"
+                                                        onClick={() => handleViewPatient(patient)}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0"
+                                                        onClick={() => toast.success(`Editing ${patient.patient_name}`)}
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem>
+                                                                <Phone className="h-4 w-4 mr-2" />
+                                                                Call Patient
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem>
+                                                                <Mail className="h-4 w-4 mr-2" />
+                                                                Send Message
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem>
+                                                                <Calendar className="h-4 w-4 mr-2" />
+                                                                Schedule Appointment
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-red-600">
+                                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                                Archive Patient
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Mail className="h-3 w-3 text-gray-500" />
-                                                    <span className="text-xs text-gray-500">{patient.email}</span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge className="bg-blue-100 text-blue-600">{patient.insurance}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-sm">{patient.lastVisit}</span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm">{patient.nextAppointment}</span>
-                                                {patient.nextAppointment !== "Pending" && (
-                                                    <span className="text-xs text-gray-500">In 2 weeks</span>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge className={patient.statusColor}>
-                                                {patient.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
-                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-                                                    <circle cx="12" cy="12" r="3" />
-                                                </svg>
-                                                <span className="text-sm">View</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
                             </TableBody>
                         </Table>
                     )}
 
-                    {/* Filter Container (again) */}
-                    <div className="mt-6 bg-white shadow rounded-lg pt-6 sm:pt-8 pb-4 px-4 sm:px-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
-                        <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 w-full md:w-auto flex-wrap">
-                            <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search patients..."
-                                    className="pl-9"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                    {/* Footer with pagination and summary */}
+                    <div className="mt-6 bg-white shadow rounded-lg p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="text-sm text-gray-600">
+                                Showing {filteredAndSortedPatients.length} of {patients.length} patients
+                                {searchTerm && (
+                                    <span className="ml-2 text-blue-600">
+                                        • Filtered by "{searchTerm}"
+                                    </span>
+                                )}
                             </div>
-                            <Select className="w-full sm:w-40 md:w-40 lg:w-48">
-                                <SelectTrigger className="flex items-center">
-                                    <FileText className="h-4 w-4 mr-2 text-gray-500" />
-                                    <SelectValue placeholder="All insurance type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All insurance type</SelectItem>
-                                    <SelectItem value="private">Private</SelectItem>
-                                    <SelectItem value="public">Public</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Select className="w-full sm:w-40 md:w-40 lg:w-48">
-                                <SelectTrigger className="flex items-center">
-                                    <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                                    <SelectValue placeholder="All appointments" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All appointments</SelectItem>
-                                    <SelectItem value="upcoming">Upcoming</SelectItem>
-                                    <SelectItem value="past">Past</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600 text-sm whitespace-nowrap mt-2 md:mt-0">
-                            <Filter className="h-4 w-4" />
-                            <span>{patients.length} of {patients.length} patients</span>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="sm" disabled>
+                                    Previous
+                                </Button>
+                                <span className="text-sm text-gray-600">Page 1 of 1</span>
+                                <Button variant="outline" size="sm" disabled>
+                                    Next
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Add Patient Dialog */}
+                <AddPatientDialog
+                    open={openDialog}
+                    setOpen={setOpenDialog}
+                    onAdd={handleAddPatient}
+                />
+
+                {/* View Modal */}
+                <ViewModal
+                    isOpen={viewModalOpen}
+                    onClose={() => setViewModalOpen(false)}
+                    data={selectedPatient}
+                    type="patient"
+                />
             </main>
         </div>
     )

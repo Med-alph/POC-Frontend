@@ -61,12 +61,20 @@ export const staffAPI = {
     const { hospital_id, search, limit = 10, offset = 0 } = params
     const queryParams = new URLSearchParams()
     
-    if (hospital_id) queryParams.append('hospital_id', hospital_id)
+    // Get hospital_id from Redux store if not provided
+    const state = store.getState()
+    const userHospitalId = state.auth.user?.hospital_id
+    
+    // Use provided hospital_id or fallback to user's hospital_id
+    const finalHospitalId = hospital_id || userHospitalId
+    
+    if (finalHospitalId) queryParams.append('hospital_id', finalHospitalId)
     if (search) queryParams.append('search', search)
     if (limit) queryParams.append('limit', limit.toString())
     if (offset) queryParams.append('offset', offset.toString())
     
     const endpoint = queryParams.toString() ? `/staffs?${queryParams.toString()}` : '/staffs'
+    console.log('StaffAPI: Making request to:', endpoint)
     return apiRequest(endpoint)
   },
 
@@ -115,6 +123,20 @@ export const staffAPI = {
     return staffAPI.getAll(paramsWithRole)
   },
 
+  // Get staff statistics with hospital_id
+  getStats: async (params = {}) => {
+    const state = store.getState()
+    const userHospitalId = state.auth.user?.hospital_id
+    const finalHospitalId = params.hospital_id || userHospitalId
+    
+    const queryParams = new URLSearchParams()
+    if (finalHospitalId) queryParams.append('hospital_id', finalHospitalId)
+    if (params.period) queryParams.append('period', params.period)
+    
+    const endpoint = queryParams.toString() ? `/staffs/stats?${queryParams.toString()}` : '/staffs/stats'
+    return apiRequest(endpoint)
+  },
+
   // Get staff availability
   getAvailability: async (id, date) => {
     const params = date ? `?date=${date}` : ''
@@ -156,12 +178,6 @@ export const staffAPI = {
     })
   },
 
-  // Get staff statistics
-  getStats: async (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString()
-    const endpoint = queryParams ? `/staffs/stats?${queryParams}` : '/staffs/stats'
-    return apiRequest(endpoint)
-  },
 }
 
 export default staffAPI

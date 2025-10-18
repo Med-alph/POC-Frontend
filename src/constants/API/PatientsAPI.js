@@ -58,7 +58,14 @@ export const patientsAPI = {
     const { hospital_id, search, limit = 10, offset = 0, status, age_group } = params
     const queryParams = new URLSearchParams()
     
-    if (hospital_id) queryParams.append('hospital_id', hospital_id)
+    // Get hospital_id from Redux store if not provided
+    const state = store.getState()
+    const userHospitalId = state.auth.user?.hospital_id
+    
+    // Use provided hospital_id or fallback to user's hospital_id
+    const finalHospitalId = hospital_id || userHospitalId
+    
+    if (finalHospitalId) queryParams.append('hospital_id', finalHospitalId)
     if (search) queryParams.append('search', search)
     if (limit) queryParams.append('limit', limit.toString())
     if (offset) queryParams.append('offset', offset.toString())
@@ -66,6 +73,7 @@ export const patientsAPI = {
     if (age_group) queryParams.append('age_group', age_group)
     
     const endpoint = queryParams.toString() ? `/patients?${queryParams.toString()}` : '/patients'
+    console.log('PatientsAPI: Making request to:', endpoint)
     return apiRequest(endpoint)
   },
 

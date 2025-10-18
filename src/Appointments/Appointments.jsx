@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react"
+import { useSelector } from "react-redux"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
@@ -9,16 +10,30 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Search, FileText, Calendar, Plus, Filter, Clock, User, Stethoscope, Loader2 } from "lucide-react"
+import { Search, FileText, Calendar, Plus, Filter, Clock, User, Stethoscope, Loader2, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { appointmentsAPI } from "../API/AppointmentsAPI"
+import { patientsAPI } from "../API/PatientsAPI"
+import ViewModal from "@/components/ui/view-modal"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function Appointments() {
+  const user = useSelector((state) => state.auth.user)
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(false)
   const [formLoading, setFormLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState(null)
+  const [patients, setPatients] = useState([])
+  const [patientSearch, setPatientSearch] = useState("")
+  const [selectedPatient, setSelectedPatient] = useState(null)
   const [formData, setFormData] = useState({
     hospital_id: "",
     patient_id: "",
@@ -48,7 +63,24 @@ export default function Appointments() {
 
   useEffect(() => {
     fetchAppointments()
+    fetchPatients()
   }, [])
+
+  const fetchPatients = async () => {
+    try {
+      const result = await patientsAPI.getAll()
+      setPatients(Array.isArray(result.data) ? result.data : [])
+    } catch (err) {
+      console.error("Error fetching patients:", err)
+      setPatients([])
+    }
+  }
+
+  // Filter patients based on search
+  const filteredPatients = patients.filter(patient =>
+    patient.patient_name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+    patient.contact_info?.includes(patientSearch)
+  )
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -57,10 +89,22 @@ export default function Appointments() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate that a patient is selected
+    if (!selectedPatient) {
+      toast.error("Please select a patient");
+      return;
+    }
+    
     setFormLoading(true);
 
     try {
-      const data = await appointmentsAPI.create(formData);
+      const data = await appointmentsAPI.create({
+        ...formData,
+        hospital_id: user?.hospital_id, // Use logged-in user's hospital_id
+        staff_id: user?.id, // Use logged-in user's staff_id
+        patient_id: selectedPatient?.id, // Use selected patient's ID
+      });
       console.log("Created appointment:", data);
 
       await fetchAppointments();
@@ -75,6 +119,8 @@ export default function Appointments() {
         reason: "",
         notes: "",
       });
+      setSelectedPatient(null);
+      setPatientSearch("");
 
       toast.success("Appointment created successfully");
       setOpen(false);
@@ -102,6 +148,11 @@ export default function Appointments() {
       minute: '2-digit',
       hour12: true
     })
+  }
+
+  const handleViewAppointment = (appointment) => {
+    setSelectedAppointment(appointment)
+    setViewModalOpen(true)
   }
 
   return (
@@ -135,27 +186,98 @@ export default function Appointments() {
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                {/* Patient Search */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Select Patient</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
+                    <Input
+                      placeholder="Search patients by name or contact..."
+                      value={patientSearch}
+                      onChange={(e) => setPatientSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  
+                  {/* Patient Selection */}
+                  {patientSearch && (
+                    <div className="max-h-40 overflow-y-auto border rounded-md bg-white shadow-lg">
+                      {filteredPatients.length > 0 ? (
+                        filteredPatients.map((patient) => (
+                          <div
+                            key={patient.id}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            onClick={() => {
+                              setSelectedPatient(patient)
+                              setPatientSearch(patient.patient_name)
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback>
+                                  {patient.patient_name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">{patient.patient_name}</p>
+                                <p className="text-sm text-gray-500">{patient.contact_info}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-gray-500 text-center">No patients found</div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Selected Patient Display */}
+                  {selectedPatient && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {selectedPatient.patient_name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-blue-900">{selectedPatient.patient_name}</p>
+                          <p className="text-sm text-blue-600">{selectedPatient.contact_info}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPatient(null)
+                            setPatientSearch("")
+                          }}
+                          className="ml-auto"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Staff Information Display */}
+                <div className="p-3 bg-gray-50 border rounded-md">
+                  <label className="text-sm font-medium text-gray-700">Staff Information</label>
+                  <div className="flex items-center gap-3 mt-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'S'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-gray-900">{user?.name || 'Staff Member'}</p>
+                      <p className="text-sm text-gray-500">{user?.role || 'Staff'} • Hospital ID: {user?.hospital_id?.slice(0, 8)}...</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    name="hospital_id"
-                    placeholder="Hospital ID"
-                    value={formData.hospital_id}
-                    onChange={handleChange}
-                    required
-                  />
-                  <Input
-                    name="patient_id"
-                    placeholder="Patient ID"
-                    value={formData.patient_id}
-                    onChange={handleChange}
-                    required
-                  />
-                  <Input
-                    name="staff_id"
-                    placeholder="Staff ID"
-                    value={formData.staff_id}
-                    onChange={handleChange}
-                  />
                   <Input
                     name="appointment_type"
                     placeholder="Appointment Type"
@@ -303,12 +425,44 @@ export default function Appointments() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1 text-blue-600 cursor-pointer">
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                        <span className="text-sm">View</span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleViewAppointment(a)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => toast.success(`Editing appointment ${a.id}`)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Calendar className="h-4 w-4 mr-2" />
+                              Reschedule
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Clock className="h-4 w-4 mr-2" />
+                              Mark Complete
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Cancel Appointment
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -317,6 +471,14 @@ export default function Appointments() {
             </Table>
           )}
         </div>
+
+        {/* View Modal */}
+        <ViewModal
+          isOpen={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          data={selectedAppointment}
+          type="appointment"
+        />
       </main>
     </div>
   )
