@@ -53,12 +53,6 @@ function AppContent() {
   )
 }
 
-import TenantListPage from "./Owner/TenantList/TenantList"
-import Navbar from "./Dashboard/Navbar"
-import StaffListPage from "./Staff/StaffList"
-import DoctorDashboard from "./Dashboard/DoctorDashboard"
-import DoctorPatientRecord from "./Patients/PatientRecords/DoctorPatientRecord"
-import DoctorConsultation from "./Doctors/DoctorConsultation"
 function App() {
   return (
     <Router>
