@@ -1,8 +1,8 @@
-const isProd = false
-const isLocal = true
+const isProd = true
+const isLocal = false
 
 export const baseUrl = isProd 
-  ? "http://localhost:3000" 
+  ? "https://backend-emr.medalph.com" 
   : isLocal 
     ? "http://localhost:9009" 
     : ""
