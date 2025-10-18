@@ -131,6 +131,18 @@ export default function Doctors() {
         return { total, active, inactive, senior }
     }, [doctors])
 
+
+    const hospitalId = "HSP001" // Example: passed from tenant selection
+
+    const [staffList, setStaffList] = useState([])
+    const [openDialog, setOpenDialog] = useState(false)
+
+    const handleAddStaff = (newStaff) => {
+        setStaffList(prev => [...prev, newStaff])
+        toast.success(`Staff "${newStaff.staff_name}" added!`)
+    }
+
+
     const fetchDoctors = async () => {
         try {
             setLoading(true)
@@ -452,9 +464,17 @@ export default function Doctors() {
                                                 <Phone className="h-3 w-3 text-gray-500" />
                                                         <span className="text-sm">{doctor.contact_info}</span>
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium">{doctor.availability}</span>
+                                                <span className="text-xs text-gray-500">{doctor.nextAvailable}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <Mail className="h-3 w-3 text-gray-500" />
-                                                <span className="text-xs text-gray-500">{doctor.email}</span>
+                                                <Clock className="h-4 w-4 text-gray-500" />
+                                                <span className="text-sm">{doctor.nextAvailable}</span>
                                             </div>
                                         </div>
                                     </TableCell>
