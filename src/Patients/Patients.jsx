@@ -40,6 +40,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import ViewModal from "@/components/ui/view-modal"
+import AddPatientDialog from "./AddPatient"
 
 export default function Patients() {
     const [patients, setPatients] = useState([])
@@ -54,6 +55,7 @@ export default function Patients() {
     const [showFilters, setShowFilters] = useState(false)
     const [viewModalOpen, setViewModalOpen] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState(null)
+    const [openDialog, setOpenDialog] = useState(false) // Add Patient Dialog state
 
     // Computed values
     const filteredAndSortedPatients = useMemo(() => {
@@ -195,6 +197,11 @@ export default function Patients() {
         setViewModalOpen(true)
     }
 
+    const handleAddPatient = (newPatient) => {
+        setPatients(prev => [...prev, newPatient])
+        toast.success(`Patient "${newPatient.patient_name}" added!`)
+    }
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
 
@@ -327,7 +334,10 @@ export default function Patients() {
                                     <Download className="h-4 w-4" />
                                     Export
                                 </Button>
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                                <Button 
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() => setOpenDialog(true)}
+                                >
                                     <UserPlus className="h-4 w-4 mr-2" />
                                     Add Patient
                                 </Button>
@@ -527,6 +537,13 @@ export default function Patients() {
                         </div>
                     </div>
                 </div>
+
+                {/* Add Patient Dialog */}
+                <AddPatientDialog
+                    open={openDialog}
+                    setOpen={setOpenDialog}
+                    onAdd={handleAddPatient}
+                />
 
                 {/* View Modal */}
                 <ViewModal
