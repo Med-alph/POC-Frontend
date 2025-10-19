@@ -125,15 +125,25 @@ export default function Login() {
           </Button>
 
           {/* Footer Links */}
-          <p className="text-center text-sm text-gray-600 pt-2">
-            Don’t have an account?{" "}
-            <a
-              href="/signup"
-              className="text-blue-600 hover:underline font-medium"
-            >
-              Sign up
-            </a>
-          </p>
+          <div className="text-center text-sm text-gray-600 pt-2 space-y-2">
+            <p>
+              Don't have an account?{" "}
+              <a
+                href="/signup"
+                className="text-blue-600 hover:underline font-medium"
+              >
+                Sign up
+              </a>
+            </p>
+            <p>
+              <a
+                href="/admin/login"
+                className="text-gray-500 hover:text-gray-700 hover:underline font-medium"
+              >
+                Admin Login
+              </a>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

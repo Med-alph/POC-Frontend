@@ -18,13 +18,22 @@ import DoctorDashboard from "./Dashboard/DoctorDashboard"
 import DoctorPatientRecord from "./Patients/PatientRecords/DoctorPatientRecord"
 import DoctorConsultation from "./Doctors/DoctorConsultation"
 
+// Admin components
+import AdminLogin from "./Admin/AdminLogin"
+import AdminDashboard from "./Admin/AdminDashboard"
+import RolesManagement from "./Admin/RolesManagement"
+import PermissionsManagement from "./Admin/PermissionsManagement"
+import StaffRoleAssignment from "./Admin/StaffRoleAssignment"
+import ProtectedRoute from "./components/ProtectedRoute"
+
 // Component to conditionally render Navbar
 function AppContent() {
   const location = useLocation()
   
   // Routes that should NOT show the navbar
-  const authRoutes = ['/', '/signup', '/forgotpassword']
-  const shouldShowNavbar = !authRoutes.includes(location.pathname)
+  const authRoutes = ['/', '/signup', '/forgotpassword', '/admin/login']
+  const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs']
+  const shouldShowNavbar = !authRoutes.includes(location.pathname) && !adminRoutes.includes(location.pathname)
 
   return (
     <div className="min-h-svh flex flex-col">
@@ -48,6 +57,29 @@ function AppContent() {
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
         <Route path="/doctor-patient-record/:id" element={<DoctorPatientRecord />} />
         <Route path="/consultation/:id" element={<DoctorConsultation />} />
+
+        {/* Admin routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/roles" element={
+          <ProtectedRoute requireSuperAdmin={true}>
+            <RolesManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/permissions" element={
+          <ProtectedRoute requireSuperAdmin={true}>
+            <PermissionsManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/staffs" element={
+          <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
+            <StaffRoleAssignment />
+          </ProtectedRoute>
+        } />
       </Routes>
     </div>
   )
