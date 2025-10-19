@@ -1,4 +1,5 @@
 import { baseUrl } from '../constants/Constant'
+import { getAuthToken } from '../utils/auth'
 
 // API Configuration
 const API_CONFIG = {
@@ -20,10 +21,13 @@ const handleResponse = async (response) => {
 // Helper function to make API requests
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_CONFIG.baseURL}${endpoint}`
+  const token = getAuthToken()
+  
   const config = {
     ...options,
     headers: {
       ...API_CONFIG.headers,
+      ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
   }
@@ -42,6 +46,14 @@ export const authAPI = {
   // Login user
   login: async (credentials) => {
     return apiRequest('/auth/staff/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    })
+  },
+
+  // Admin login
+  adminLogin: async (credentials) => {
+    return apiRequest('/auth/admin/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     })
