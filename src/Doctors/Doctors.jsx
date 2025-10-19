@@ -13,16 +13,16 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { 
-    Search, 
-    FileText, 
-    Calendar, 
-    Plus, 
-    Filter, 
-    Phone, 
-    Mail, 
-    MapPin, 
-    Award, 
+import {
+    Search,
+    FileText,
+    Calendar,
+    Plus,
+    Filter,
+    Phone,
+    Mail,
+    MapPin,
+    Award,
     Clock,
     Users,
     UserPlus,
@@ -65,28 +65,28 @@ export default function Doctors() {
     // Computed values
     const filteredAndSortedDoctors = useMemo(() => {
         let filtered = doctors.filter(doctor => {
-            const matchesSearch = !searchTerm || 
+            const matchesSearch = !searchTerm ||
                 doctor.staff_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 doctor.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 doctor.contact_info?.includes(searchTerm) ||
                 doctor.email?.toLowerCase().includes(searchTerm.toLowerCase())
-            
+
             const matchesDepartment = departmentFilter === "all" || doctor.department === departmentFilter
             const matchesStatus = statusFilter === "all" || doctor.status === statusFilter
-            
-            const matchesExperience = experienceFilter === "all" || 
+
+            const matchesExperience = experienceFilter === "all" ||
                 (experienceFilter === "0-5" && doctor.experience <= 5) ||
                 (experienceFilter === "6-10" && doctor.experience >= 6 && doctor.experience <= 10) ||
                 (experienceFilter === "11-15" && doctor.experience >= 11 && doctor.experience <= 15) ||
                 (experienceFilter === "15+" && doctor.experience > 15)
-            
+
             return matchesSearch && matchesDepartment && matchesStatus && matchesExperience
         })
 
         // Sort doctors
         filtered.sort((a, b) => {
             let aValue, bValue
-            
+
             switch (sortBy) {
                 case "name":
                     aValue = a.staff_name || ""
@@ -108,7 +108,7 @@ export default function Doctors() {
                     aValue = a.staff_name || ""
                     bValue = b.staff_name || ""
             }
-            
+
             if (sortOrder === "asc") {
                 return aValue > bValue ? 1 : -1
             } else {
@@ -125,7 +125,7 @@ export default function Doctors() {
         const active = doctors.filter(d => d.status === 'active').length
         const inactive = doctors.filter(d => d.status === 'inactive').length
         const senior = doctors.filter(d => d.experience >= 10).length
-        
+
         return { total, active, inactive, senior }
     }, [doctors])
 
@@ -171,7 +171,7 @@ export default function Doctors() {
                 new Date(doctor.created_at).toLocaleDateString()
             ])
         ].map(row => row.join(',')).join('\n')
-        
+
         const blob = new Blob([csvContent], { type: 'text/csv' })
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -183,8 +183,8 @@ export default function Doctors() {
     }
 
     const handleSelectDoctor = (doctorId) => {
-        setSelectedDoctors(prev => 
-            prev.includes(doctorId) 
+        setSelectedDoctors(prev =>
+            prev.includes(doctorId)
                 ? prev.filter(id => id !== doctorId)
                 : [...prev, doctorId]
         )
@@ -208,7 +208,7 @@ export default function Doctors() {
             {/* Main Content */}
             <main className="flex-1 p-2 sm:p-6">
                 <Toaster position="top-right" />
-                
+
                 {/* Statistics Cards */}
                 <div className="mb-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -265,7 +265,7 @@ export default function Doctors() {
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
                                 <Input
                                     type="text"
-                                    placeholder="Search doctors, department, contact..."
+                                    placeholder="Search Staffs, department, contact..."
                                     className="pl-10"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -342,10 +342,10 @@ export default function Doctors() {
                                 <Filter className="h-4 w-4" />
                                 <span>{filteredAndSortedDoctors.length} of {doctors.length} doctors</span>
                             </div>
-                            
+
                             <div className="flex items-center gap-2">
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     onClick={handleRefresh}
                                     disabled={loading}
                                     className="flex items-center gap-2"
@@ -353,20 +353,20 @@ export default function Doctors() {
                                     <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                     Refresh
                                 </Button>
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     onClick={handleExport}
                                     className="flex items-center gap-2"
                                 >
                                     <Download className="h-4 w-4" />
                                     Export
                                 </Button>
-                                <Button 
+                                <Button
                                     className="bg-blue-600 hover:bg-blue-700 text-white"
                                     onClick={() => setOpenDialog(true)}
                                 >
                                     <UserPlus className="h-4 w-4 mr-2" />
-                                    Add Doctor
+                                    Add Staff
                                 </Button>
                             </div>
                         </div>
@@ -406,13 +406,13 @@ export default function Doctors() {
                                         .map(name => name.charAt(0))
                                         .join('')
                                         .toUpperCase() || 'D'
-                                    
+
                                     // Parse availability JSON
-                                    const availability = doctor.availability ? 
-                                        (typeof doctor.availability === 'string' ? 
-                                            JSON.parse(doctor.availability) : 
+                                    const availability = doctor.availability ?
+                                        (typeof doctor.availability === 'string' ?
+                                            JSON.parse(doctor.availability) :
                                             doctor.availability) : {}
-                                    
+
                                     // Status color mapping
                                     const getStatusColor = (status) => {
                                         switch (status) {
@@ -424,7 +424,7 @@ export default function Doctors() {
                                                 return 'bg-blue-100 text-blue-600'
                                         }
                                     }
-                                    
+
                                     return (
                                         <TableRow key={doctor.id}>
                                             <TableCell>

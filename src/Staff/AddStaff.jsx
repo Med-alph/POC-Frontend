@@ -7,6 +7,44 @@ import { toast } from "react-hot-toast"
 
 const departments = ["Cardiology", "Dermatology", "Pediatrics", "Radiology", "Orthopedics"]
 
+const designations = {
+    Cardiology: [
+        "Cardiologist",
+        "Interventional Cardiologist",
+        "Cardiac Surgeon",
+        "Cardiology Resident",
+        "Cardiac Nurse"
+    ],
+    Dermatology: [
+        "Dermatologist",
+        "Cosmetic Dermatologist",
+        "Dermatopathologist",
+        "Dermatology Resident",
+        "Skin Care Nurse"
+    ],
+    Pediatrics: [
+        "Pediatrician",
+        "Neonatologist",
+        "Pediatric Surgeon",
+        "Pediatric Resident",
+        "Pediatric Nurse"
+    ],
+    Radiology: [
+        "Radiologist",
+        "Interventional Radiologist",
+        "Radiology Technician",
+        "Radiology Resident",
+        "Medical Imaging Specialist"
+    ],
+    Orthopedics: [
+        "Orthopedic Surgeon",
+        "Sports Medicine Specialist",
+        "Trauma Orthopedist",
+        "Orthopedic Resident",
+        "Orthopedic Nurse"
+    ]
+}
+
 export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) {
     const [formData, setFormData] = useState({
         staff_name: "",
@@ -15,6 +53,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
         email: "",
         password: "",
         experience: "",
+        designation: "",
         availability: {}, // {Monday: ["09:00-12:00"], ...}
         is_archived: false,
         status: "Active"
@@ -50,70 +89,95 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
                     <form id="staff-form" onSubmit={handleSubmit} className="space-y-4">
-                    <Input
-                        name="staff_name"
-                        placeholder="Staff Name"
-                        value={formData.staff_name}
-                        onChange={handleChange}
-                        required
-                    />
+                        <Input
+                            name="staff_name"
+                            placeholder="Staff Name"
+                            value={formData.staff_name}
+                            onChange={handleChange}
+                            required
+                        />
 
-                    <Select onValueChange={value => setFormData(prev => ({ ...prev, department: value }))}>
+                        <Select onValueChange={value => setFormData(prev => ({ ...prev, department: value }))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Department" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {/* 
+                       <Select onValueChange={value => setFormData(prev => ({ ...prev, department: value }))}>
                         <SelectTrigger>
-                            <SelectValue placeholder="Select Department" />
+                            <SelectValue placeholder="Select Designation" />
                         </SelectTrigger>
                         <SelectContent>
                             {departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}
                         </SelectContent>
-                    </Select>
+                    </Select> */}
 
-                    <Input
-                        name="contact_info"
-                        placeholder="Phone Number"
-                        value={formData.contact_info}
-                        onChange={handleChange}
-                    />
+                        <Select
+                            onValueChange={value => setFormData(prev => ({ ...prev, designation: value }))}
+                            disabled={!formData.department} // disable until department is selected
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Designation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {formData.department &&
+                                    designations[formData.department]?.map(role => (
+                                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                                    ))
+                                }
+                            </SelectContent>
+                        </Select>
 
-                    <Input
-                        type="email"
-                        name="email"
-                        placeholder="Email"
-                        value={formData.email}
-                        onChange={handleChange}
-                    />
+                        <Input
+                            name="contact_info"
+                            placeholder="Phone Number"
+                            value={formData.contact_info}
+                            onChange={handleChange}
+                        />
 
-                    <Input
-                        type="password"
-                        name="password"
-                        placeholder="Password"
-                        value={formData.password}
-                        onChange={handleChange}
-                    />
+                        <Input
+                            type="email"
+                            name="email"
+                            placeholder="Email"
+                            value={formData.email}
+                            onChange={handleChange}
+                        />
 
-                    <Input
-                        type="number"
-                        name="experience"
-                        placeholder="Experience (Years)"
-                        value={formData.experience}
-                        onChange={handleChange}
-                    />
+                        <Input
+                            type="password"
+                            name="password"
+                            placeholder="Password"
+                            value={formData.password}
+                            onChange={handleChange}
+                        />
 
-                    {/* Example Availability Picker (simplified) */}
-                    <div>
-                        <p className="font-semibold">Availability</p>
-                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(day => (
-                            <div key={day} className="flex gap-2 items-center mb-1">
-                                <span>{day}:</span>
-                                <Input
-                                    type="text"
-                                    placeholder="e.g., 09:00-12:00"
-                                    value={formData.availability[day] || ""}
-                                    onChange={e => handleAvailabilityChange(day, e.target.value)}
-                                />
-                            </div>
-                        ))}
-                        <p className="text-xs text-gray-500">Enter time slots separated by commas if multiple per day</p>
-                    </div>
+                        <Input
+                            type="number"
+                            name="experience"
+                            placeholder="Experience (Years)"
+                            value={formData.experience}
+                            onChange={handleChange}
+                        />
+
+                        {/* Example Availability Picker (simplified) */}
+                        <div>
+                            <p className="font-semibold">Availability</p>
+                            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(day => (
+                                <div key={day} className="flex gap-2 items-center mb-1">
+                                    <span>{day}:</span>
+                                    <Input
+                                        type="text"
+                                        placeholder="e.g., 09:00-12:00"
+                                        value={formData.availability[day] || ""}
+                                        onChange={e => handleAvailabilityChange(day, e.target.value)}
+                                    />
+                                </div>
+                            ))}
+                            <p className="text-xs text-gray-500">Enter time slots separated by commas if multiple per day</p>
+                        </div>
 
                     </form>
                 </div>
