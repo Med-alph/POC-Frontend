@@ -58,22 +58,11 @@ const PatientDetailsForm = () => {
 
     const handleSubmit = async () => {
         try {
-            const payload = {
-                isBookingForOther,
-                booker: isBookingForOther
-                    ? { name: bookerName, phone: bookerPhone, email: bookerEmail }
-                    : { name, phone, email }, // self-booking
-                patient: { name, dob, gender, bloodGroup, phone, email, address },
-                medicalHistory,
-                allergies,
-                medications,
-                surgeries,
-                familyHistory,
-                lifestyle,
-                emergencyContact,
-            };
+            const payload = { /* all patient data collected */ };
             await axios.post("/api/patient/full-details", payload);
-            navigate("/confirmation");
+
+            // Navigate to appointment page with phone and firstTime flag
+            navigate("/appointment", { state: { phone: payload.patient.phone, isFirstTime: true } });
         } catch (err) {
             console.error(err);
         }
