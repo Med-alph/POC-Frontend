@@ -26,10 +26,20 @@ import PermissionsManagement from "./Admin/PermissionsManagement"
 import StaffRoleAssignment from "./Admin/StaffRoleAssignment"
 import ProtectedRoute from "./components/ProtectedRoute"
 
+// Appoinment flow page
+import PatientDetails from "./AppoinmentFlow/PatientDetails"
+import OTPVerification from "./AppoinmentFlow/OTPVerification"
+import AppointmentPage from "./AppoinmentFlow/AppointmentPage"
+import ConfirmationPage from "./AppoinmentFlow/ConfirmationPage"
+import LandingPage from "./AppoinmentFlow/LandingPage"
+import PatientDetailsForm from "./AppoinmentFlow/PatientDetailsForm"
+
 // Component to conditionally render Navbar
 function AppContent() {
   const location = useLocation()
-  
+
+
+
   // Routes that should NOT show the navbar
   const authRoutes = ['/', '/signup', '/forgotpassword', '/admin/login']
   const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs']
@@ -80,6 +90,13 @@ function AppContent() {
             <StaffRoleAssignment />
           </ProtectedRoute>
         } />
+        {/* Appointment Flow Routes */}
+        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/patient-details" element={<PatientDetails />} />
+        <Route path="/otp-verification" element={<OTPVerification />} />
+        <Route path="/appointment" element={<AppointmentPage />} />
+        <Route path="/confirmation" element={<ConfirmationPage />} />
+        <Route path="/patient-details-form" element={<PatientDetailsForm />} />
       </Routes>
     </div>
   )
