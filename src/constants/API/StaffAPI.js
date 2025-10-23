@@ -178,6 +178,13 @@ export const staffAPI = {
     })
   },
 
+  // Add this method to your existing staffAPI exports
+
+getDesignations: async () => {
+  return apiRequest('/designations');  // Assumes backend endpoint returning grouped designations
+},
+
+
 }
 
 export default staffAPI

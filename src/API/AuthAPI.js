@@ -127,6 +127,21 @@ export const authAPI = {
   removeAuthToken: () => {
     delete API_CONFIG.headers.Authorization
   },
+  // Send OTP
+  sendOtp: async ({ phone }) => {
+    return apiRequest('/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+  },
+
+  // Verify OTP
+  verifyOtp: async ({ phone, otp }) => {
+    return apiRequest('/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone, otp }),
+    });
+  },
 }
 
 export default authAPI
