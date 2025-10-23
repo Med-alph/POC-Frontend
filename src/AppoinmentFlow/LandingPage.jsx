@@ -2,19 +2,31 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-// import axios from "axios";
+import { authAPI } from "../api/authAPI";
 
 const LandingPage = () => {
     const [phone, setPhone] = useState("");
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleSendOTP = async () => {
-        // try {
-        //     await axios.post("/api/send-otp", { phone });
-        //     navigate("/verify-otp", { state: { phone } });
-        // } catch (err) {
-        //     console.error(err);
-        // }
+        if (!phone) return alert("Please enter phone number");
+        setLoading(true);
+        try {
+            const res = await authAPI.sendOtp({ phone });
+            // res = { success: true, isExistingPatient: boolean }
+            if (res.success) {
+                navigate("/otp-verification", {
+                    state: { phone, isExistingPatient: res.isExistingPatient },
+                });
+            } else {
+                alert("Failed to send OTP");
+            }
+        } catch (err) {
+            alert("Error sending OTP: " + err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -26,9 +38,10 @@ const LandingPage = () => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-64"
+                disabled={loading}
             />
-            <Button onClick={handleSendOTP} className="w-64">
-                Send OTP
+            <Button onClick={handleSendOTP} className="w-64" disabled={loading}>
+                {loading ? "Sending OTP..." : "Send OTP"}
             </Button>
         </div>
     );
