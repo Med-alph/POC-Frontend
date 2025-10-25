@@ -1,0 +1,61 @@
+.react-calendar {
+    width: 800px;
+    /* Adjust the width as needed */
+    max-width: 120%;
+    background: white;
+    border: 1px solid #a0a096;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.125em;
+}
+
+.react-calendar__tile {
+    height: 60px;
+    /* bigger tiles */
+    padding: 8px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+/* Hover effect */
+.react-calendar__tile:hover {
+    background: #e0f2fe;
+    /* light blue on hover */
+}
+
+/* Highlight today */
+.react-calendar__tile--now {
+    background: #bfdbfe;
+    /* blue background */
+    border: 1px solid #3b82f6;
+}
+
+/* Selected date */
+.react-calendar__tile--active {
+    background: #3b82f6;
+    /* primary blue */
+    color: white;
+    border-radius: 8px;
+}
+
+/* Weekday header */
+.react-calendar__month-view__weekdays {
+    text-align: center;
+    font-weight: 600;
+    color: #374151;
+    /* gray-700 */
+}
+
+/* Weekday text */
+.react-calendar__month-view__weekdays__weekday {
+    padding: 10px 0;
+    font-size: 14px;
+}
+
+/* Disabled tiles */
+.react-calendar__tile--disabled {
+    background: #f3f4f6;
+    /* gray-100 */
+    color: #9ca3af;
+    /* gray-400 */
+    cursor: not-allowed;
+}

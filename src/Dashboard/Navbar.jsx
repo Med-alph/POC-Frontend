@@ -23,6 +23,12 @@ const navigationItems = [
     { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Clock },
 ]
 
+const doctorNavItems = [
+    { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Home },
+    { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock },
+]
+
+
 export default function Navbar() {
     const navigate = useNavigate()
     const location = useLocation()
@@ -30,10 +36,14 @@ export default function Navbar() {
     const user = useSelector((state) => state.auth.user)
     const [activeTab, setActiveTab] = useState("")
 
+
+    console.log("Current User in Navbar:", user);
     // Update active tab when route changes
     useEffect(() => {
         const currentPath = location.pathname
-        const activeItem = navigationItems.find(item => item.path === currentPath)
+        // const activeItem = navigationItems.find(item => item.path === currentPath)
+        const activeItem = [...navigationItems, ...doctorNavItems].find(item => item.path === currentPath)
+
         setActiveTab(activeItem?.id || "")
     }, [location.pathname])
 
@@ -47,6 +57,8 @@ export default function Navbar() {
         navigate(path)
     }
 
+
+    const filteredNavItems = user?.designation_group?.toLowerCase() === "doctor" ? doctorNavItems : navigationItems;
     return (
         <div className="w-full bg-white shadow-lg border-b border-gray-100">
             {/* Top navbar */}
@@ -143,7 +155,7 @@ export default function Navbar() {
             <div className="bg-white border-b border-gray-100">
                 <div className="px-6">
                     <div className="flex space-x-1 overflow-x-auto">
-                        {navigationItems.map((item) => {
+                        {filteredNavItems.map((item) => {
                             const IconComponent = item.icon
                             const isActive = activeTab === item.id
 

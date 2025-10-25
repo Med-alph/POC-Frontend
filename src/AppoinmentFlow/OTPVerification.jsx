@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { authAPI } from "../api/authAPI";
+import authAPI from "../API/AuthAPI";
+
 
 const OTPVerification = () => {
   const navigate = useNavigate();
-  const { phone, isExistingPatient } = useLocation().state || {};
+  const { phone } = useLocation().state || {};
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(""); // To show success/error messages
@@ -31,6 +32,7 @@ const OTPVerification = () => {
     message.toLowerCase().includes("error") ||
     message.toLowerCase().includes("invalid");
 
+  // Handle OTP Verification followed by checking if phone is existing
   const handleVerifyOtp = async () => {
     if (!otp) {
       setMessage("Please enter OTP");
@@ -41,9 +43,13 @@ const OTPVerification = () => {
     try {
       const res = await authAPI.verifyOtp({ phone, otp });
       if (res.success) {
-        if (isExistingPatient) {
+        // Check if phone exists in patient DB via separate API call
+        const checkRes = await authAPI.checkPhone({ phone });
+        if (checkRes.isExistingPatient) {
+          // Navigate to appointment with isFirstTime false
           navigate("/appointment", { state: { phone, isFirstTime: false } });
         } else {
+          // New patient flow
           navigate("/appointment", { state: { phone, isFirstTime: true } });
         }
       } else {
