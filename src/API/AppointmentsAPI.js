@@ -23,6 +23,8 @@ const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_CONFIG.baseURL}${endpoint}`
   const token = getAuthToken()
   
+  console.log('API Request:', { url, token: token ? 'Present' : 'Missing', options }); // Debug log
+  
   const config = {
     ...options,
     headers: {
@@ -72,8 +74,9 @@ export const appointmentsAPI = {
     return apiRequest(endpoint)
   },
 
-  // Get appointment by ID
+  // Get appointment by ID - SINGLE DEFINITION
   getById: async (id) => {
+    console.log('appointmentsAPI.getById called with id:', id); // Debug log
     return apiRequest(`/appointments/${id}`)
   },
 
@@ -85,12 +88,12 @@ export const appointmentsAPI = {
     })
   },
 
-  // Update appointment
-  update: async (id, appointmentData) => {
+  // Change this from PUT to PATCH
+  update: async (id, data) => {
     return apiRequest(`/appointments/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(appointmentData),
-    })
+      method: 'PATCH',  // ← Change from 'PUT' to 'PATCH'
+      body: JSON.stringify(data),
+    });
   },
 
   // Delete appointment
@@ -151,14 +154,13 @@ export const appointmentsAPI = {
     return appointmentsAPI.getAll({ status, ...params })
   },
 
-  // Get available time slots for a staff member
-  getAvailableSlots: async (staffId, date, params = {}) => {
-    const { duration = 30 } = params
-    const queryParams = new URLSearchParams()
-    queryParams.append('date', date)
-    if (duration) queryParams.append('duration', duration.toString())
-    
-    return apiRequest(`/appointments/available-slots/${staffId}?${queryParams.toString()}`)
+  // Get available slots for a doctor on a specific date - SINGLE DEFINITION
+  getAvailableSlots: async (staffId, date) => {
+    const params = new URLSearchParams({
+      staff_id: staffId,
+      date: date, // Format: YYYY-MM-DD
+    });
+    return apiRequest(`/appointments/available-slots?${params.toString()}`);
   },
 
   // Get appointment statistics
@@ -166,6 +168,11 @@ export const appointmentsAPI = {
     const queryParams = new URLSearchParams(params).toString()
     const endpoint = queryParams ? `/appointments/stats?${queryParams}` : '/appointments/stats'
     return apiRequest(endpoint)
+  },
+
+  // Get today's appointments for logged-in doctor
+  getTodaysAppointments: async () => {
+    return apiRequest('/appointments/doctor/today');
   },
 }
 

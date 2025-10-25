@@ -142,6 +142,13 @@ export const authAPI = {
       body: JSON.stringify({ phone, otp }),
     });
   },
+
+   // Add checkPhone method
+  checkPhone: async ({ phone }) => {
+    return apiRequest(`/auth/check-phone?phone=${encodeURIComponent(phone)}`, {
+      method: 'GET',
+    });
+  },
 }
 
 export default authAPI

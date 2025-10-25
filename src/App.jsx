@@ -18,6 +18,9 @@ import DoctorDashboard from "./Dashboard/DoctorDashboard"
 import DoctorPatientRecord from "./Patients/PatientRecords/DoctorPatientRecord"
 import DoctorConsultation from "./Doctors/DoctorConsultation"
 
+// Doctor Appointment components
+import DoctorAttendancePage from "./Doctors/Attendance/AttendancePage"
+
 // Admin components
 import AdminLogin from "./Admin/AdminLogin"
 import AdminDashboard from "./Admin/AdminDashboard"
@@ -62,11 +65,13 @@ function AppContent() {
         <Route path="/reminders" element={<Reminders />} />
         <Route path="/TenantListPage" element={<TenantListPage />} />
         <Route path="/Staffs" element={<StaffListPage />} />
+        <Route path="/doctor-attendance" element={<DoctorAttendancePage />} />
 
         {/* Doctor view routes */}
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-        <Route path="/doctor-patient-record/:id" element={<DoctorPatientRecord />} />
-        <Route path="/consultation/:id" element={<DoctorConsultation />} />
+       <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
+
+     <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
 
         {/* Admin routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
