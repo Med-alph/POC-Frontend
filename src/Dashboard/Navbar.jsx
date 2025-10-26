@@ -20,13 +20,14 @@ const navigationItems = [
     { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar },
     { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock },
 
-    { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Clock },
+    // { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Clock },
 ]
 
 const doctorNavItems = [
-    { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Home },
-    { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock },
-]
+  { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Home },
+  { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock },
+  { id: "FulfilledRecords", label: "Fulfilled Patient Records", path: "/fulfilled-records", icon: Users },
+];
 
 
 export default function Navbar() {

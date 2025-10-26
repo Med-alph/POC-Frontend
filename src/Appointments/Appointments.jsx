@@ -47,19 +47,23 @@ export default function Appointments() {
   })
 
   const fetchAppointments = async () => {
-    try {
-      setLoading(true)
-      const result = await appointmentsAPI.getAll()
+  try {
+    setLoading(true);
 
-      setAppointments(Array.isArray(result.data) ? result.data : [])
-    } catch (err) {
-      console.error("Error fetching appointments:", err)
-      setAppointments([])
-      toast.error("Failed to load appointments. Please try again.")
-    } finally {
-      setLoading(false)
-    }
+    const hospitalId = "550e8400-e29b-41d4-a716-446655440001"; // hardcoded hospital ID for now
+
+    const result = await appointmentsAPI.getAll({ hospital_id: hospitalId });
+
+    setAppointments(Array.isArray(result.data) ? result.data : []);
+  } catch (err) {
+    console.error("Error fetching appointments:", err);
+    setAppointments([]);
+    toast.error("Failed to load appointments. Please try again.");
+  } finally {
+    setLoading(false);
   }
+};
+
 
   useEffect(() => {
     fetchAppointments()
@@ -67,15 +71,17 @@ export default function Appointments() {
   }, [])
 
   const fetchPatients = async () => {
-    try {
-      const result = await patientsAPI.getAll()
-      setPatients(Array.isArray(result.data) ? result.data : [])
-    } catch (err) {
-      console.error("Error fetching patients:", err)
-      setPatients([])
-    }
-  }
+  try {
+    const hospitalId = "550e8400-e29b-41d4-a716-446655440001"; // hardcoded hospital ID for now
 
+    const result = await patientsAPI.getAll({ hospital_id: hospitalId });
+
+    setPatients(Array.isArray(result.data) ? result.data : []);
+  } catch (err) {
+    console.error("Error fetching patients:", err);
+    setPatients([]);
+  }
+};
   // Filter patients based on search
   const filteredPatients = patients.filter(patient =>
     patient.patient_name?.toLowerCase().includes(patientSearch.toLowerCase()) ||

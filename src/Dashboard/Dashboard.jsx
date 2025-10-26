@@ -176,7 +176,7 @@ export default function Dashboard() {
           </div>
 
           {/* Card 4 - Available Doctors now */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-purple-500 transition-all duration-700 delay-600 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          {/* <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-purple-500 transition-all duration-700 delay-600 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
             }`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-xs sm:text-base font-semibold text-gray-700">Available Doctors Now</h2>
@@ -184,7 +184,7 @@ export default function Dashboard() {
             </div>
             <p className="text-2xl sm:text-3xl font-bold mt-1 sm:mt-3">{animatedValues.availableDoctors}</p>
             <p className="text-xs sm:text-sm font-medium text-purple-500 mt-1">out of 15 total</p>
-          </div>
+          </div> */}
         </div>
 
         {/* Additional larger cards */}

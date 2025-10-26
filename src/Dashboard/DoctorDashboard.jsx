@@ -1,174 +1,226 @@
 import { useState, useEffect, useRef } from "react";
 import DoctorAppointments from "./DoctorAppointments";
-import { CalendarDays, Users, UserX, Stethoscope, TrendingUp, BarChart2, Clock } from "lucide-react";
+import { CalendarDays, UserX } from "lucide-react";
 import TodaysSchedule from "./comps/TodaysSchedule";
 import { useSelector } from "react-redux";
 import appointmentsAPI from "../API/AppointmentsAPI";
 import toast from 'react-hot-toast';
 
 const DoctorDashboard = () => {
-    const [isLoaded, setIsLoaded] = useState(true);
-    const [todaysData, setTodaysData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [isCheckedIn, setIsCheckedIn] = useState(false);
-    const [elapsedTime, setElapsedTime] = useState(0);
-    const intervalRef = useRef(null);
+  const [isLoaded, setIsLoaded] = useState(true);
+  const [todaysData, setTodaysData] = useState(null);
+  const [upcomingData, setUpcomingData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(true);
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const intervalRef = useRef(null);
 
-    const user = useSelector((state) => state.auth.user);
+  const user = useSelector((state) => state.auth.user);
 
-    // Fetch today's appointments
-    useEffect(() => {
-        const fetchTodaysAppointments = async () => {
-            try {
-                setLoading(true);
-                const response = await appointmentsAPI.getTodaysAppointments();
-                console.log("Today's appointments:", response);
-                setTodaysData(response);
-            } catch (err) {
-                console.error("Failed to fetch today's appointments:", err);
-                toast.error("Failed to load today's appointments");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTodaysAppointments();
-    }, []);
-
-    // Check-in/Check-out logic
-    useEffect(() => {
-        const status = localStorage.getItem("isCheckedIn");
-        const startTime = localStorage.getItem("checkInTime");
-
-        if (status === "true" && startTime) {
-            const now = Date.now();
-            const prevElapsed = Math.floor((now - Number(startTime)) / 1000);
-            setIsCheckedIn(true);
-            setElapsedTime(prevElapsed);
-
-            intervalRef.current = setInterval(() => {
-                setElapsedTime((prev) => prev + 1);
-            }, 1000);
-        }
-    }, []);
-
-    const handleCheckIn = () => {
-        const now = Date.now();
-        localStorage.setItem("isCheckedIn", "true");
-        localStorage.setItem("checkInTime", now.toString());
-
-        setIsCheckedIn(true);
-        intervalRef.current = setInterval(() => {
-            setElapsedTime((prev) => prev + 1);
-        }, 1000);
+  // Fetch today's appointments
+  useEffect(() => {
+    const fetchTodaysAppointments = async () => {
+      try {
+        setLoading(true);
+        const response = await appointmentsAPI.getTodaysAppointments();
+        setTodaysData(response);
+      } catch (err) {
+        toast.error("Failed to load today's appointments");
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchTodaysAppointments();
+  }, []);
 
-    const handleCheckOut = () => {
-        setIsCheckedIn(false);
-        clearInterval(intervalRef.current);
-
-        localStorage.removeItem("isCheckedIn");
-        localStorage.removeItem("checkInTime");
+  // Fetch upcoming appointments (future 7 days)
+  useEffect(() => {
+    const fetchUpcomingAppointments = async () => {
+      try {
+        setLoadingUpcoming(true);
+        const response = await appointmentsAPI.getUpcomingAppointments();
+        setUpcomingData(response);
+      } catch (err) {
+        toast.error("Failed to load upcoming appointments");
+      } finally {
+        setLoadingUpcoming(false);
+      }
     };
+    fetchUpcomingAppointments();
+  }, []);
 
-    const formatTime = (seconds) => {
-        const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
-        const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
-        const s = String(seconds % 60).padStart(2, "0");
-        return `${h}:${m}:${s}`;
-    };
+  // Check-in/out logic remains unchanged...
+  useEffect(() => {
+    const status = localStorage.getItem("isCheckedIn");
+    const startTime = localStorage.getItem("checkInTime");
+    if (status === "true" && startTime) {
+      const now = Date.now();
+      const prevElapsed = Math.floor((now - Number(startTime)) / 1000);
+      setIsCheckedIn(true);
+      setElapsedTime(prevElapsed);
+      intervalRef.current = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, []);
 
-    useEffect(() => {
-        return () => clearInterval(intervalRef.current);
-    }, []);
+  const handleCheckIn = () => {
+    const now = Date.now();
+    localStorage.setItem("isCheckedIn", "true");
+    localStorage.setItem("checkInTime", now.toString());
+    setIsCheckedIn(true);
+    intervalRef.current = setInterval(() => {
+      setElapsedTime((prev) => prev + 1);
+    }, 1000);
+  };
 
-    return (
-        <div className="min-h-screen bg-gray-50 p-4 sm:p-6 transition-all">
-            <div className="mb-6 flex items-center justify-between">
-                <div className="mb-4">
-                    <h1 className="text-2xl font-bold">Good Morning, {user.name}</h1>
-                    <p className="text-gray-600">Here's your live attendance tracker</p>
-                </div>
+  const handleCheckOut = () => {
+    setIsCheckedIn(false);
+    clearInterval(intervalRef.current);
+    localStorage.removeItem("isCheckedIn");
+    localStorage.removeItem("checkInTime");
+  };
 
-                <div className="flex items-center gap-4">
-                    {/* Live Time */}
-                    <span className="text-sm font-medium text-gray-700">
-                        {isCheckedIn
-                            ? `Time Working: ${formatTime(elapsedTime)}`
-                            : elapsedTime > 0
-                                ? `Total Worked: ${formatTime(elapsedTime)}`
-                                : "Not Checked In Yet"}
-                    </span>
+  const formatTime = (seconds) => {
+    const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
+    const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+    const s = String(seconds % 60).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  };
 
-                    {/* Button */}
-                    {isCheckedIn ? (
-                        <button
-                            onClick={handleCheckOut}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700"
-                        >
-                            Check Out
-                        </button>
-                    ) : (
-                        <button
-                            onClick={handleCheckIn}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700"
-                        >
-                            Check In
-                        </button>
-                    )}
-                </div>
-            </div>
+  const formatDateTime = (dateStr, timeStr) => {
+    try {
+      const date = new Date(`${dateStr}T${timeStr}`);
+      return date.toLocaleString('en-US', {
+        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    } catch {
+      return `${dateStr} ${timeStr}`;
+    }
+  };
 
-            {/* Grid layout for cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="col-span-1 lg:col-span-1">
-                    <DoctorAppointments 
-                        appointments={todaysData?.appointments || []}
-                        loading={loading}
-                    />
-                </div>
-
-                {/* Card 2 - Cancellations */}
-                <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-red-500 transition-all duration-700 delay-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-                    isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-                }`}>
-                    <div className="flex items-center justify-between mb-4 sm:mb-6">
-                        <h2 className="text-xs sm:text-base font-semibold text-gray-700">Cancellations Today</h2>
-                        <UserX className="h-4 w-4 sm:h-6 sm:w-6 text-red-500" />
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-bold mt-1 sm:mt-3">
-                        {loading ? "..." : todaysData?.stats?.cancelled || 0}
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-red-500 mt-1">
-                        {loading ? "Loading..." : "See details"}
-                    </p>
-                </div>
-
-                {/* Card 3 - Quick Stats */}
-                <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-green-500 transition-all duration-700 delay-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${
-                    isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-                }`}>
-                    <h3 className="font-semibold text-gray-700 mb-2">Quick Stats</h3>
-                    {loading ? (
-                        <p className="text-sm text-gray-500">Loading...</p>
-                    ) : (
-                        <ul className="text-sm text-gray-600 space-y-1">
-                            <li>✔️ Completed: {todaysData?.stats?.completed || 0}</li>
-                            <li>⏳ Pending: {todaysData?.stats?.pending || 0}</li>
-                            <li>❌ Cancelled: {todaysData?.stats?.cancelled || 0}</li>
-                        </ul>
-                    )}
-                </div>
-
-                <div className="col-span-1 lg:col-span-1">
-                    <TodaysSchedule 
-                        appointments={todaysData?.appointments || []}
-                        loading={loading}
-                    />
-                </div>
-            </div>
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 transition-all">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold">Good Morning, {user.name}</h1>
+          <p className="text-gray-600">Here's your live attendance tracker</p>
         </div>
-    );
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium text-gray-700">
+            {isCheckedIn
+              ? `Time Working: ${formatTime(elapsedTime)}`
+              : elapsedTime > 0
+                ? `Total Worked: ${formatTime(elapsedTime)}`
+                : "Not Checked In Yet"
+            }
+          </span>
+          {isCheckedIn ? (
+            <button
+              onClick={handleCheckOut}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700"
+            >
+              Check Out
+            </button>
+          ) : (
+            <button
+              onClick={handleCheckIn}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700"
+            >
+              Check In
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* First row with 3 cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Today's appointments card */}
+        <div>
+          <DoctorAppointments
+            appointments={todaysData?.appointments || []}
+            loading={loading}
+          />
+        </div>
+
+        {/* Cancellations Today */}
+        <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-red-500 transition-all duration-700 delay-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="text-xs sm:text-base font-semibold text-gray-700">Cancellations Today</h2>
+            <UserX className="h-4 w-4 sm:h-6 sm:w-6 text-red-500" />
+          </div>
+          <p className="text-2xl sm:text-3xl font-bold mt-1 sm:mt-3">
+            {loading ? "..." : todaysData?.stats?.cancelled || 0}
+          </p>
+          <p className="text-xs sm:text-sm font-medium text-red-500 mt-1">
+            {loading ? "Loading..." : "See details"}
+          </p>
+        </div>
+
+        {/* Quick Stats */}
+        <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-green-500 transition-all duration-700 delay-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <h3 className="font-semibold text-gray-700 mb-2">Quick Stats</h3>
+          {loading ? (
+            <p className="text-sm text-gray-500">Loading...</p>
+          ) : (
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>✔️ Completed: {todaysData?.stats?.completed || 0}</li>
+              <li>⏳ Pending: {todaysData?.stats?.pending || 0}</li>
+              <li>❌ Cancelled: {todaysData?.stats?.cancelled || 0}</li>
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Second row with 3 col grid - place 4th card under 1st col, 5th under 2nd col, 3rd col empty */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Today's Schedule - first column */}
+        <div>
+          <TodaysSchedule
+            appointments={todaysData?.appointments || []}
+            loading={loading}
+          />
+        </div>
+
+        {/* Upcoming Appointments - second column */}
+        <div className="bg-white rounded-lg shadow p-5 border-l-4 border-blue-500 transition-all duration-700 delay-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-blue-600">
+            <CalendarDays className="w-5 h-5" />
+            Upcoming Future Appointments
+          </h2>
+          {loadingUpcoming ? (
+            <p className="text-center text-gray-500">Loading upcoming appointments...</p>
+          ) : upcomingData && upcomingData.appointments?.length > 0 ? (
+            <ul className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+              {upcomingData.appointments.map((apt) => (
+                <li key={apt.id} className="py-2 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                  <div>
+                    <p className="font-semibold text-gray-800">{apt.patient_name || 'Unknown Patient'}</p>
+                    <p className="text-sm text-gray-600">
+                      {formatDateTime(apt.appointment_date, apt.appointment_time)}
+                    </p>
+                  </div>
+                  <div className="mt-1 sm:mt-0 text-sm text-gray-500">
+                    <span className={`px-2 py-1 rounded text-white text-xs ${apt.status === 'booked' ? 'bg-green-600' : apt.status === 'cancelled' ? 'bg-red-600' : 'bg-gray-500'}`}>
+                      {apt.status?.toUpperCase() || 'UNKNOWN'}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-center text-gray-500">No upcoming appointments in the next 7 days.</p>
+          )}
+        </div>
+
+        {/* Empty third column for spacing */}
+        <div></div>
+      </div>
+    </div>
+  );
 };
 
 export default DoctorDashboard;

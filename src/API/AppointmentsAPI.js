@@ -1,5 +1,5 @@
-import { baseUrl } from '../constants/Constant'
-import { getAuthToken } from '../utils/auth'
+import { baseUrl } from '../constants/Constant';
+import { getAuthToken } from '../utils/auth';
 
 // API Configuration
 const API_CONFIG = {
@@ -7,24 +7,24 @@ const API_CONFIG = {
   headers: {
     'Content-Type': 'application/json',
   },
-}
+};
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
   }
-  return response.json()
-}
+  return response.json();
+};
 
 // Helper function to make API requests
 const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_CONFIG.baseURL}${endpoint}`
-  const token = getAuthToken()
-  
+  const url = `${API_CONFIG.baseURL}${endpoint}`;
+  const token = getAuthToken();
+
   console.log('API Request:', { url, token: token ? 'Present' : 'Missing', options }); // Debug log
-  
+
   const config = {
     ...options,
     headers: {
@@ -32,16 +32,16 @@ const apiRequest = async (endpoint, options = {}) => {
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
-  }
+  };
 
   try {
-    const response = await fetch(url, config)
-    return await handleResponse(response)
+    const response = await fetch(url, config);
+    return await handleResponse(response);
   } catch (error) {
-    console.error(`AppointmentsAPI Error for ${endpoint}:`, error)
-    throw error
+    console.error(`AppointmentsAPI Error for ${endpoint}:`, error);
+    throw error;
   }
-}
+};
 
 // Appointments API
 export const appointmentsAPI = {
@@ -57,27 +57,27 @@ export const appointmentsAPI = {
       status, 
       start_date, 
       end_date 
-    } = params
-    const queryParams = new URLSearchParams()
+    } = params;
+    const queryParams = new URLSearchParams();
     
-    if (hospital_id) queryParams.append('hospital_id', hospital_id)
-    if (search) queryParams.append('search', search)
-    if (limit) queryParams.append('limit', limit.toString())
-    if (offset) queryParams.append('offset', offset.toString())
-    if (patient_id) queryParams.append('patient_id', patient_id)
-    if (staff_id) queryParams.append('staff_id', staff_id)
-    if (status) queryParams.append('status', status)
-    if (start_date) queryParams.append('start_date', start_date)
-    if (end_date) queryParams.append('end_date', end_date)
+    if (hospital_id) queryParams.append('hospital_id', hospital_id);
+    if (search) queryParams.append('search', search);
+    if (limit) queryParams.append('limit', limit.toString());
+    if (offset) queryParams.append('offset', offset.toString());
+    if (patient_id) queryParams.append('patient_id', patient_id);
+    if (staff_id) queryParams.append('staff_id', staff_id);
+    if (status) queryParams.append('status', status);
+    if (start_date) queryParams.append('start_date', start_date);
+    if (end_date) queryParams.append('end_date', end_date);
     
-    const endpoint = queryParams.toString() ? `/appointments?${queryParams.toString()}` : '/appointments'
-    return apiRequest(endpoint)
+    const endpoint = queryParams.toString() ? `/appointments?${queryParams.toString()}` : '/appointments';
+    return apiRequest(endpoint);
   },
 
-  // Get appointment by ID - SINGLE DEFINITION
+  // Get appointment by ID
   getById: async (id) => {
     console.log('appointmentsAPI.getById called with id:', id); // Debug log
-    return apiRequest(`/appointments/${id}`)
+    return apiRequest(`/appointments/${id}`);
   },
 
   // Create new appointment
@@ -85,13 +85,13 @@ export const appointmentsAPI = {
     return apiRequest('/appointments', {
       method: 'POST',
       body: JSON.stringify(appointmentData),
-    })
+    });
   },
 
-  // Change this from PUT to PATCH
+  // Update appointment (use PATCH method)
   update: async (id, data) => {
     return apiRequest(`/appointments/${id}`, {
-      method: 'PATCH',  // ← Change from 'PUT' to 'PATCH'
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   },
@@ -100,7 +100,7 @@ export const appointmentsAPI = {
   delete: async (id) => {
     return apiRequest(`/appointments/${id}`, {
       method: 'DELETE',
-    })
+    });
   },
 
   // Cancel appointment
@@ -108,7 +108,7 @@ export const appointmentsAPI = {
     return apiRequest(`/appointments/${id}/cancel`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
-    })
+    });
   },
 
   // Reschedule appointment
@@ -116,14 +116,14 @@ export const appointmentsAPI = {
     return apiRequest(`/appointments/${id}/reschedule`, {
       method: 'POST',
       body: JSON.stringify(newDateTime),
-    })
+    });
   },
 
   // Confirm appointment
   confirm: async (id) => {
     return apiRequest(`/appointments/${id}/confirm`, {
       method: 'POST',
-    })
+    });
   },
 
   // Complete appointment
@@ -131,49 +131,59 @@ export const appointmentsAPI = {
     return apiRequest(`/appointments/${id}/complete`, {
       method: 'POST',
       body: JSON.stringify({ notes }),
-    })
+    });
   },
 
   // Get appointments by patient
   getByPatient: async (patientId, params = {}) => {
-    return appointmentsAPI.getAll({ patient_id: patientId, ...params })
+    return appointmentsAPI.getAll({ patient_id: patientId, ...params });
   },
 
   // Get appointments by doctor/staff
   getByStaff: async (staffId, params = {}) => {
-    return appointmentsAPI.getAll({ staff_id: staffId, ...params })
+    return appointmentsAPI.getAll({ staff_id: staffId, ...params });
   },
 
   // Get appointments by hospital
   getByHospital: async (hospitalId, params = {}) => {
-    return appointmentsAPI.getAll({ hospital_id: hospitalId, ...params })
+    return appointmentsAPI.getAll({ hospital_id: hospitalId, ...params });
   },
 
   // Get appointments by status
   getByStatus: async (status, params = {}) => {
-    return appointmentsAPI.getAll({ status, ...params })
+    return appointmentsAPI.getAll({ status, ...params });
   },
 
-  // Get available slots for a doctor on a specific date - SINGLE DEFINITION
+  // Get available slots for a doctor on a specific date
   getAvailableSlots: async (staffId, date) => {
     const params = new URLSearchParams({
       staff_id: staffId,
-      date: date, // Format: YYYY-MM-DD
+      date: date,
     });
     return apiRequest(`/appointments/available-slots?${params.toString()}`);
   },
 
   // Get appointment statistics
   getStats: async (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString()
-    const endpoint = queryParams ? `/appointments/stats?${queryParams}` : '/appointments/stats'
-    return apiRequest(endpoint)
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = queryParams ? `/appointments/stats?${queryParams}` : '/appointments/stats';
+    return apiRequest(endpoint);
   },
 
   // Get today's appointments for logged-in doctor
   getTodaysAppointments: async () => {
     return apiRequest('/appointments/doctor/today');
   },
-}
 
-export default appointmentsAPI
+  // New: Get upcoming (future) appointments for logged-in doctor (e.g. next 7 days)
+  getUpcomingAppointments: async () => {
+    return apiRequest('/appointments/doctor/upcoming');
+  },
+
+  // New: Get fulfilled appointments for logged-in doctor
+  getFulfilledAppointments: async () => {
+    return apiRequest('/appointments/doctor/fulfilled');
+  },
+};
+
+export default appointmentsAPI;
