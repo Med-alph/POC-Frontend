@@ -36,6 +36,7 @@ import AppointmentPage from "./AppoinmentFlow/AppointmentPage"
 import ConfirmationPage from "./AppoinmentFlow/ConfirmationPage"
 import LandingPage from "./AppoinmentFlow/LandingPage"
 import PatientDetailsForm from "./AppoinmentFlow/PatientDetailsForm"
+import FulfilledRecords from "./Doctors/FulfilledRecords"
 
 // Component to conditionally render Navbar
 function AppContent() {
@@ -70,6 +71,7 @@ function AppContent() {
         {/* Doctor view routes */}
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
        <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
+       <Route path="/fulfilled-records" element={<FulfilledRecords />} />
 
      <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
 

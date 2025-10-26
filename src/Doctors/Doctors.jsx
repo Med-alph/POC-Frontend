@@ -130,23 +130,31 @@ export default function Doctors() {
     }, [doctors])
 
     const fetchDoctors = async () => {
-        try {
-            setLoading(true)
-            const params = {}
-            if (searchTerm) params.search = searchTerm
-            if (departmentFilter !== "all") params.department = departmentFilter
-            if (statusFilter !== "all") params.status = statusFilter
+  try {
+    setLoading(true);
 
-            const result = await staffAPI.getAll(params)
-            setDoctors(Array.isArray(result.data) ? result.data : [])
-        } catch (err) {
-            console.error("Error fetching doctors:", err)
-            toast.error("Failed to load doctors. Please try again.")
-            setDoctors([])
-        } finally {
-            setLoading(false)
-        }
-    }
+    // Hardcoded hospital ID (replace with dynamic later)
+    const hospitalId = "550e8400-e29b-41d4-a716-446655440001";
+
+    const params = {
+      hospital_id: hospitalId,
+    };
+
+    if (searchTerm) params.search = searchTerm;
+    if (departmentFilter !== "all") params.department = departmentFilter;
+    if (statusFilter !== "all") params.status = statusFilter;
+
+    const result = await staffAPI.getAll(params);
+    setDoctors(Array.isArray(result.data) ? result.data : []);
+  } catch (err) {
+    console.error("Error fetching doctors:", err);
+    toast.error("Failed to load doctors. Please try again.");
+    setDoctors([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     useEffect(() => {
         fetchDoctors()

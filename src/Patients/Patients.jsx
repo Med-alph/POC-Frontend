@@ -123,23 +123,30 @@ export default function Patients() {
     }, [patients])
 
     const fetchPatients = async () => {
-        try {
-            setLoading(true)
-            const params = {}
-            if (searchTerm) params.search = searchTerm
-            if (statusFilter !== "all") params.status = statusFilter
-            if (ageGroupFilter !== "all") params.age_group = ageGroupFilter
+  try {
+    setLoading(true);
 
-            const result = await patientsAPI.getAll(params)
-            setPatients(Array.isArray(result.data) ? result.data : [])
-        } catch (err) {
-            console.error("Error fetching patients:", err)
-            toast.error("Failed to load patients. Please try again.")
-            setPatients([])
-        } finally {
-            setLoading(false)
-        }
-    }
+    // Hardcoded hospital ID for testing
+    const hospitalId = "550e8400-e29b-41d4-a716-446655440001";
+
+    const params = {
+      hospital_id: hospitalId,
+    };
+
+    if (searchTerm) params.search = searchTerm;
+    if (statusFilter !== "all") params.status = statusFilter;
+    if (ageGroupFilter !== "all") params.age_group = ageGroupFilter;
+
+    const result = await patientsAPI.getAll(params);
+    setPatients(Array.isArray(result.data) ? result.data : []);
+  } catch (err) {
+    console.error("Error fetching patients:", err);
+    toast.error("Failed to load patients. Please try again.");
+    setPatients([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
     useEffect(() => {
         fetchPatients()
