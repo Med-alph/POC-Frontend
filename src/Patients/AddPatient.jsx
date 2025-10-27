@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 
 export default function AddPatientDialog({ open, setOpen, onAdd }) {
     const [formData, setFormData] = useState({
+        hospital_id: "550e8400-e29b-41d4-a716-446655440001",  // hardcoded hospital ID
         patient_name: "",
         dob: "",
         contact_info: "",
@@ -29,16 +30,17 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target
-        setFormData({ ...formData, [name]: value })
+        setFormData(prev => ({ ...prev, [name]: value }))
     }
 
     const handleSelectChange = (name, value) => {
-        setFormData({ ...formData, [name]: value })
+        setFormData(prev => ({ ...prev, [name]: value }))
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        
+        console.log('Submitting form data:', formData)
+
         // Basic validation
         if (!formData.patient_name || !formData.contact_info) {
             toast.error("Please fill in required fields (Name and Contact)")
@@ -47,9 +49,9 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
 
         try {
             // Calculate age from date of birth
-            const age = formData.dob ? 
-                Math.floor((new Date() - new Date(formData.dob)) / (365.25 * 24 * 60 * 60 * 1000)) : 
-                null
+            const age = formData.dob
+                ? Math.floor((new Date() - new Date(formData.dob)) / (365.25 * 24 * 60 * 60 * 1000))
+                : null
 
             const patientData = {
                 ...formData,
@@ -59,12 +61,16 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                 next_appointment: null
             }
 
-            onAdd(patientData)
-            toast.success("Patient created successfully!")
+            console.log('Calling onAdd with patientData:', patientData)
+            await onAdd(patientData) // Await API call completion here
+            console.log('onAdd call successful')
+
+            // toast.success("Patient created successfully!")
             setOpen(false)
-            
-            // Reset form
+
+            // Reset form only after success
             setFormData({
+                hospital_id: "550e8400-e29b-41d4-a716-446655440001",
                 patient_name: "",
                 dob: "",
                 contact_info: "",
@@ -77,7 +83,10 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                 allergies: "",
                 status: "active"
             })
+            console.log('Form reset after success')
+
         } catch (error) {
+            console.error('Error in form submission:', error)
             toast.error("Failed to create patient. Please try again.")
         }
     }
@@ -93,7 +102,6 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                         {/* Basic Information */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
-                            
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="patient_name">Full Name *</Label>
@@ -106,7 +114,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                                         required
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <Label htmlFor="dob">Date of Birth</Label>
                                     <Input
@@ -117,7 +125,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                                         onChange={handleChange}
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <Label htmlFor="contact_info">Contact Number *</Label>
                                     <Input
@@ -129,7 +137,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                                         required
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <Label htmlFor="email">Email Address</Label>
                                     <Input
@@ -147,7 +155,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                         {/* Address Information */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-gray-900">Address Information</h3>
-                            
+
                             <div>
                                 <Label htmlFor="address">Address</Label>
                                 <Input
@@ -158,7 +166,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                                     onChange={handleChange}
                                 />
                             </div>
-                            
+
                             <div>
                                 <Label htmlFor="emergency_contact">Emergency Contact</Label>
                                 <Input
@@ -174,7 +182,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                         {/* Insurance Information */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-gray-900">Insurance Information</h3>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="insurance_provider">Insurance Provider</Label>
@@ -193,7 +201,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                
+
                                 <div>
                                     <Label htmlFor="insurance_number">Insurance Number</Label>
                                     <Input
@@ -210,7 +218,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                         {/* Medical Information */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-gray-900">Medical Information</h3>
-                            
+
                             <div>
                                 <Label htmlFor="medical_history">Medical History</Label>
                                 <textarea
@@ -223,7 +231,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                                     rows={3}
                                 />
                             </div>
-                            
+
                             <div>
                                 <Label htmlFor="allergies">Allergies</Label>
                                 <textarea
@@ -236,7 +244,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd }) {
                                     rows={2}
                                 />
                             </div>
-                            
+
                             <div>
                                 <Label htmlFor="status">Status</Label>
                                 <Select value={formData.status} onValueChange={(value) => handleSelectChange('status', value)}>

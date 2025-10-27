@@ -45,34 +45,43 @@ const apiRequest = async (endpoint, options = {}) => {
 
 // Appointments API
 export const appointmentsAPI = {
-  // Get all appointments with optional filters
-  getAll: async (params = {}) => {
-    const { 
-      hospital_id, 
-      search, 
-      limit = 10, 
-      offset = 0, 
-      patient_id, 
-      staff_id, 
-      status, 
-      start_date, 
-      end_date 
-    } = params;
-    const queryParams = new URLSearchParams();
-    
-    if (hospital_id) queryParams.append('hospital_id', hospital_id);
-    if (search) queryParams.append('search', search);
-    if (limit) queryParams.append('limit', limit.toString());
-    if (offset) queryParams.append('offset', offset.toString());
-    if (patient_id) queryParams.append('patient_id', patient_id);
-    if (staff_id) queryParams.append('staff_id', staff_id);
-    if (status) queryParams.append('status', status);
-    if (start_date) queryParams.append('start_date', start_date);
-    if (end_date) queryParams.append('end_date', end_date);
-    
-    const endpoint = queryParams.toString() ? `/appointments?${queryParams.toString()}` : '/appointments';
-    return apiRequest(endpoint);
-  },
+ // Get all appointments with optional filters
+getAll: async (params = {}) => {
+  const { 
+    hospital_id, 
+    search, 
+    limit = 10, 
+    offset = 0, 
+    patient_id, 
+    staff_id, 
+    status, 
+    fromDate,      // <<< Use fromDate not start_date
+    toDate         // <<< Use toDate not end_date
+  } = params;
+  const queryParams = new URLSearchParams();
+  
+  if (hospital_id) queryParams.append('hospital_id', hospital_id);
+  if (search) queryParams.append('search', search);
+  if (limit) queryParams.append('limit', limit.toString());
+  if (offset) queryParams.append('offset', offset.toString());
+  if (patient_id) queryParams.append('patient_id', patient_id);
+  if (staff_id) queryParams.append('staff_id', staff_id);
+  if (status) queryParams.append('status', status);
+
+  // >>> Correct parameter keys:
+  if (fromDate) queryParams.append('fromDate', fromDate);
+  if (toDate) queryParams.append('toDate', toDate);
+
+  // Remove these lines (do NOT use start_date or end_date at all!)
+  // if (start_date) queryParams.append('start_date', start_date);
+  // if (end_date) queryParams.append('end_date', end_date);
+
+  const endpoint = queryParams.toString() ? `/appointments?${queryParams.toString()}` : '/appointments';
+  // Add log for verification!
+  console.log("appointmentsAPI.getAll - url:", endpoint);
+  return apiRequest(endpoint);
+},
+
 
   // Get appointment by ID
   getById: async (id) => {
