@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import authAPI from "../API/AuthAPI";
+import authAPI from "../api/AuthAPI";
 
 
 const OTPVerification = () => {

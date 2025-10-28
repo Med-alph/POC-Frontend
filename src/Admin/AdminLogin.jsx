@@ -2,7 +2,7 @@ import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { setCredentials } from "../features/auth/authSlice"
-import { authAPI } from "../API/AuthAPI"
+import { authAPI } from "../api/AuthAPI"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {

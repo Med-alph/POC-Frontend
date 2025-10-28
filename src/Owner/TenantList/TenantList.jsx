@@ -7,7 +7,7 @@ import { PlusCircle, Info, Edit2 } from "lucide-react";
 import AddHospitalDialog from "./AddHospital";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import toast from "react-hot-toast";
-import tenantsAPI from "../../API/tenantsAPI";
+import tenantsAPI from "../../api/tenantsAPI";
 
 export default function TenantListPage() {
   const [tenants, setTenants] = useState([]);

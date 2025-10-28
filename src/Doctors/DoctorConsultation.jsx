@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { User, ClipboardList, Activity, Stethoscope, Pill, FlaskConical, Play, StopCircle, XCircle, Clock } from "lucide-react";
-import appointmentsAPI from "../API/AppointmentsAPI";
-import consultationsAPI from "../API/ConsultationsAPI";
+import appointmentsAPI from "../api/AppointmentsAPI";
+import consultationsAPI from "../api/ConsultationsAPI";
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 

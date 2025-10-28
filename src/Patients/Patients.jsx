@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react"
-import { patientsAPI } from "../API/PatientsAPI"
+import { patientsAPI } from "../api/PatientsAPI"
 import toast, { Toaster } from 'react-hot-toast'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"

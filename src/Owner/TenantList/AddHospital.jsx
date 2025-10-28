@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-import tenantsAPI from "../../API/tenantsAPI";
+import tenantsAPI from "../../api/tenantsAPI";
 
 export default function AddHospitalDialog({
   onAdd,

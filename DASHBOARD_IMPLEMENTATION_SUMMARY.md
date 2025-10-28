@@ -3,7 +3,7 @@
 ## ✅ Completed (Frontend)
 
 ### 1. Updated DashboardAPI.js
-- **File**: `src/API/DashboardAPI.js`
+- **File**: `src/api/DashboardAPI.js`
 - **Changes**: 
   - Updated all API endpoints to match the new specification
   - Added new methods: `getTodayAppointments()`, `getActivities()`, `getTrends()`, `getStaffPerformance()`
