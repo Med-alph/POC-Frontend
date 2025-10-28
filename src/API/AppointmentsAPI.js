@@ -45,42 +45,42 @@ const apiRequest = async (endpoint, options = {}) => {
 
 // Appointments API
 export const appointmentsAPI = {
- // Get all appointments with optional filters
-getAll: async (params = {}) => {
-  const { 
-    hospital_id, 
-    search, 
-    limit = 10, 
-    offset = 0, 
-    patient_id, 
-    staff_id, 
-    status, 
-    fromDate,      // <<< Use fromDate not start_date
-    toDate         // <<< Use toDate not end_date
-  } = params;
-  const queryParams = new URLSearchParams();
-  
-  if (hospital_id) queryParams.append('hospital_id', hospital_id);
-  if (search) queryParams.append('search', search);
-  if (limit) queryParams.append('limit', limit.toString());
-  if (offset) queryParams.append('offset', offset.toString());
-  if (patient_id) queryParams.append('patient_id', patient_id);
-  if (staff_id) queryParams.append('staff_id', staff_id);
-  if (status) queryParams.append('status', status);
+  // Get all appointments with optional filters
+  getAll: async (params = {}) => {
+    const {
+      hospital_id,
+      search,
+      limit = 10,
+      offset = 0,
+      patient_id,
+      staff_id,
+      status,
+      fromDate,      // <<< Use fromDate not start_date
+      toDate         // <<< Use toDate not end_date
+    } = params;
+    const queryParams = new URLSearchParams();
 
-  // >>> Correct parameter keys:
-  if (fromDate) queryParams.append('fromDate', fromDate);
-  if (toDate) queryParams.append('toDate', toDate);
+    if (hospital_id) queryParams.append('hospital_id', hospital_id);
+    if (search) queryParams.append('search', search);
+    if (limit) queryParams.append('limit', limit.toString());
+    if (offset) queryParams.append('offset', offset.toString());
+    if (patient_id) queryParams.append('patient_id', patient_id);
+    if (staff_id) queryParams.append('staff_id', staff_id);
+    if (status) queryParams.append('status', status);
 
-  // Remove these lines (do NOT use start_date or end_date at all!)
-  // if (start_date) queryParams.append('start_date', start_date);
-  // if (end_date) queryParams.append('end_date', end_date);
+    // >>> Correct parameter keys:
+    if (fromDate) queryParams.append('fromDate', fromDate);
+    if (toDate) queryParams.append('toDate', toDate);
 
-  const endpoint = queryParams.toString() ? `/appointments?${queryParams.toString()}` : '/appointments';
-  // Add log for verification!
-  console.log("appointmentsAPI.getAll - url:", endpoint);
-  return apiRequest(endpoint);
-},
+    // Remove these lines (do NOT use start_date or end_date at all!)
+    // if (start_date) queryParams.append('start_date', start_date);
+    // if (end_date) queryParams.append('end_date', end_date);
+
+    const endpoint = queryParams.toString() ? `/appointments?${queryParams.toString()}` : '/appointments';
+    // Add log for verification!
+    console.log("appointmentsAPI.getAll - url:", endpoint);
+    return apiRequest(endpoint);
+  },
 
 
   // Get appointment by ID
@@ -189,10 +189,34 @@ getAll: async (params = {}) => {
     return apiRequest('/appointments/doctor/upcoming');
   },
 
+  // New: Get weekly patient visits count for last 7 days (optionally by hospital)
+  getWeeklyVisits: async (hospital_id) => {
+    // Append hospital_id as query param if provided
+    const url = hospital_id ? `/appointments/stats/weekly-visits?hospital_id=${hospital_id}` : '/appointments/stats/weekly-visits';
+    return apiRequest(url);
+  },
+
+  getAppointmentsPerDepartment: async (hospital_id) => {
+    const url = hospital_id
+      ? `/appointments/stats/appointments-per-department?hospital_id=${hospital_id}`
+      : '/appointments/stats/appointments-per-department';
+    return apiRequest(url);
+  },
+
+
   // New: Get fulfilled appointments for logged-in doctor
   getFulfilledAppointments: async () => {
     return apiRequest('/appointments/doctor/fulfilled');
   },
+
+  getAppointmentStatusCounts: async (hospital_id) => {
+    const url = hospital_id
+      ? `/appointments/stats/appointments-status-counts?hospital_id=${hospital_id}`
+      : '/appointments/stats/appointments-status-counts';
+    return apiRequest(url);
+  },
+
+
 };
 
 export default appointmentsAPI;
