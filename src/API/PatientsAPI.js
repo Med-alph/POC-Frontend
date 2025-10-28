@@ -67,21 +67,23 @@ const apiRequest = async (endpoint, options = {}) => {
 
 // Patients API
 export const patientsAPI = {
-  // Get all patients with optional filters
-  getAll: async (params = {}) => {
-    const { hospital_id, search, limit = 10, offset = 0, status, age_group } = params
-    const queryParams = new URLSearchParams()
-    
-    if (hospital_id) queryParams.append('hospital_id', hospital_id)
-    if (search) queryParams.append('search', search)
-    if (limit) queryParams.append('limit', limit.toString())
-    if (offset) queryParams.append('offset', offset.toString())
-    if (status) queryParams.append('status', status)
-    if (age_group) queryParams.append('age_group', age_group)
-    
-    const endpoint = queryParams.toString() ? `/patients?${queryParams.toString()}` : '/patients'
-    return apiRequest(endpoint)
-  },
+ getAll: async (params = {}) => {
+  const { hospital_id, search, limit = 10, offset = 0, status, age_group, fromDate, toDate } = params;
+  const queryParams = new URLSearchParams();
+
+  if (hospital_id) queryParams.append('hospital_id', hospital_id);
+  if (search) queryParams.append('search', search);
+  if (limit) queryParams.append('limit', limit.toString());
+  if (offset) queryParams.append('offset', offset.toString());
+  if (status) queryParams.append('status', status);
+  if (age_group) queryParams.append('age_group', age_group);
+  if (fromDate) queryParams.append('fromDate', fromDate);  // Add fromDate param
+  if (toDate) queryParams.append('toDate', toDate);        // Add toDate param
+
+  const endpoint = queryParams.toString() ? `/patients?${queryParams.toString()}` : '/patients';
+  return apiRequest(endpoint);
+},
+
 
   // Get patient by ID
   getById: async (id) => {
@@ -143,14 +145,14 @@ export const patientsAPI = {
     }
   },
 
-  // Create new patient
-  create: async (patientData) => {
-    console.log('[PatientsAPI.create] Creating patient:', patientData.patient_name)
-    return apiRequest('/patients', {
-      method: 'POST',
-      body: JSON.stringify(patientData),
-    })
-  },
+    // Create new patient
+    create: async (patientData) => {
+      console.log('[PatientsAPI.create] Creating patient:', patientData.patient_name)
+      return apiRequest('/patients', {
+        method: 'POST',
+        body: JSON.stringify(patientData),
+      })
+    },
 
   // Update patient
   update: async (id, patientData) => {

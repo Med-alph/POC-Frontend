@@ -13,17 +13,16 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { 
-    Search, 
-    FileText, 
-    Calendar, 
-    Plus, 
-    Filter, 
-    Phone, 
-    Mail, 
-    MapPin, 
-    Users, 
-    UserPlus, 
+import {
+    Search,
+    FileText,
+    Calendar,
+    Plus,
+    Filter,
+    Phone,
+    Mail,
+    Users,
+    UserPlus,
     Download,
     RefreshCw,
     Eye,
@@ -32,7 +31,6 @@ import {
     MoreHorizontal
 } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -51,128 +49,137 @@ export default function Patients() {
     const [sortBy, setSortBy] = useState("name")
     const [sortOrder, setSortOrder] = useState("asc")
     const [selectedPatients, setSelectedPatients] = useState([])
-    const [viewMode, setViewMode] = useState("table") // table or grid
-    const [showFilters, setShowFilters] = useState(false)
+    const [viewMode, setViewMode] = useState("table")
     const [viewModalOpen, setViewModalOpen] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState(null)
-    const [openDialog, setOpenDialog] = useState(false) // Add Patient Dialog state
+    const [openDialog, setOpenDialog] = useState(false)
 
-    // Computed values
+    // Defensive patient validity check
+    const isValidPatient = (patient) => {
+        if (patient === undefined || patient === null || typeof patient !== "object") {
+            console.warn("Invalid patient object:", patient)
+            return false
+        }
+        if (typeof patient.status !== "string") {
+            console.warn("Patient missing or invalid status:", patient)
+            return false
+        }
+        if (!patient.patient_name || typeof patient.patient_name !== "string") {
+            console.warn("Patient missing or invalid patient_name:", patient)
+            return false
+        }
+        if (!patient.id || typeof patient.id !== "string") {
+            console.warn("Patient missing or invalid id:", patient)
+            return false
+        }
+        return true
+    }
+
     const filteredAndSortedPatients = useMemo(() => {
-        let filtered = patients.filter(patient => {
-            const matchesSearch = !searchTerm || 
-                patient.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                patient.contact_info?.includes(searchTerm) ||
-                patient.insurance_provider?.toLowerCase().includes(searchTerm.toLowerCase())
-            
-            const matchesStatus = statusFilter === "all" || patient.status === statusFilter
-            
-            const matchesAgeGroup = ageGroupFilter === "all" || 
-                (ageGroupFilter === "0-18" && patient.age <= 18) ||
-                (ageGroupFilter === "19-35" && patient.age >= 19 && patient.age <= 35) ||
-                (ageGroupFilter === "36-50" && patient.age >= 36 && patient.age <= 50) ||
-                (ageGroupFilter === "50+" && patient.age > 50)
-            
-            return matchesSearch && matchesStatus && matchesAgeGroup
+        const filtered = patients.filter(patient => {
+            return isValidPatient(patient) &&
+                (
+                    !searchTerm ||
+                    (patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (patient.contact_info?.includes(searchTerm)) ||
+                    (patient.insurance_provider?.toLowerCase().includes(searchTerm.toLowerCase()))
+                ) &&
+                (
+                    statusFilter === "all" || patient.status === statusFilter
+                ) &&
+                (
+                    ageGroupFilter === "all" ||
+                    (ageGroupFilter === "0-18" && patient.age !== undefined && patient.age <= 18) ||
+                    (ageGroupFilter === "19-35" && patient.age !== undefined && patient.age >= 19 && patient.age <= 35) ||
+                    (ageGroupFilter === "36-50" && patient.age !== undefined && patient.age >= 36 && patient.age <= 50) ||
+                    (ageGroupFilter === "50+" && patient.age !== undefined && patient.age > 50)
+                )
         })
 
-        // Sort patients
         filtered.sort((a, b) => {
             let aValue, bValue
-            
             switch (sortBy) {
                 case "name":
-                    aValue = a.patient_name || ""
-                    bValue = b.patient_name || ""
+                    aValue = a.patient_name
+                    bValue = b.patient_name
                     break
                 case "age":
-                    aValue = a.age || 0
-                    bValue = b.age || 0
+                    aValue = a.age ?? 0
+                    bValue = b.age ?? 0
                     break
                 case "status":
-                    aValue = a.status || ""
-                    bValue = b.status || ""
+                    aValue = a.status
+                    bValue = b.status
                     break
                 case "lastVisit":
                     aValue = new Date(a.last_visit || 0)
                     bValue = new Date(b.last_visit || 0)
                     break
                 default:
-                    aValue = a.patient_name || ""
-                    bValue = b.patient_name || ""
+                    aValue = a.patient_name
+                    bValue = b.patient_name
             }
-            
             if (sortOrder === "asc") {
                 return aValue > bValue ? 1 : -1
             } else {
                 return aValue < bValue ? 1 : -1
             }
         })
-
         return filtered
     }, [patients, searchTerm, statusFilter, ageGroupFilter, sortBy, sortOrder])
 
-    // Statistics
     const stats = useMemo(() => {
         const total = patients.length
         const active = patients.filter(p => p.status === 'active').length
         const inactive = patients.filter(p => p.status === 'inactive').length
         const withAppointments = patients.filter(p => p.next_appointment).length
-        
         return { total, active, inactive, withAppointments }
     }, [patients])
 
     const fetchPatients = async () => {
-  try {
-    setLoading(true);
-
-    // Hardcoded hospital ID for testing
-    const hospitalId = "550e8400-e29b-41d4-a716-446655440001";
-
-    const params = {
-      hospital_id: hospitalId,
-    };
-
-    if (searchTerm) params.search = searchTerm;
-    if (statusFilter !== "all") params.status = statusFilter;
-    if (ageGroupFilter !== "all") params.age_group = ageGroupFilter;
-
-    const result = await patientsAPI.getAll(params);
-    setPatients(Array.isArray(result.data) ? result.data : []);
-  } catch (err) {
-    console.error("Error fetching patients:", err);
-    toast.error("Failed to load patients. Please try again.");
-    setPatients([]);
-  } finally {
-    setLoading(false);
-  }
-};
+        try {
+            setLoading(true)
+            const hospitalId = "550e8400-e29b-41d4-a716-446655440001"
+            const params = { hospital_id: hospitalId }
+            if (searchTerm) params.search = searchTerm
+            if (statusFilter !== "all") params.status = statusFilter
+            if (ageGroupFilter !== "all") params.age_group = ageGroupFilter
+            const result = await patientsAPI.getAll(params)
+            const rawPatients = Array.isArray(result?.data) ? result.data : []
+            const cleanPatients = rawPatients.filter(isValidPatient)
+            setPatients(cleanPatients)
+        } catch (err) {
+            console.error("Error fetching patients:", err)
+            toast.error("Failed to load patients. Please try again.")
+            setPatients([])
+        } finally {
+            setLoading(false)
+        }
+    }
 
     useEffect(() => {
         fetchPatients()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchTerm, statusFilter, ageGroupFilter])
 
-    // Utility functions
     const handleRefresh = () => {
         fetchPatients()
         toast.success("Patients data refreshed")
     }
 
     const handleExport = () => {
-        // Simple CSV export
         const csvContent = [
             ['Name', 'Age', 'Contact', 'Insurance', 'Status', 'Last Visit', 'Next Appointment'],
-            ...filteredAndSortedPatients.map(patient => [
-                patient.patient_name,
-                patient.age,
-                patient.contact_info,
-                patient.insurance_provider,
-                patient.status,
-                patient.last_visit || 'N/A',
-                patient.next_appointment || 'N/A'
+            ...filteredAndSortedPatients.map(p => [
+                p.patient_name,
+                p.age,
+                p.contact_info,
+                p.insurance_provider,
+                p.status,
+                p.last_visit || 'N/A',
+                p.next_appointment || 'N/A'
             ])
         ].map(row => row.join(',')).join('\n')
-        
         const blob = new Blob([csvContent], { type: 'text/csv' })
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -184,8 +191,8 @@ export default function Patients() {
     }
 
     const handleSelectPatient = (patientId) => {
-        setSelectedPatients(prev => 
-            prev.includes(patientId) 
+        setSelectedPatients(prev =>
+            prev.includes(patientId)
                 ? prev.filter(id => id !== patientId)
                 : [...prev, patientId]
         )
@@ -204,18 +211,33 @@ export default function Patients() {
         setViewModalOpen(true)
     }
 
-    const handleAddPatient = (newPatient) => {
-        setPatients(prev => [...prev, newPatient])
-        toast.success(`Patient "${newPatient.patient_name}" added!`)
+   const handleAddPatient = async (newPatient) => {
+  try {
+    const response = await patientsAPI.create(newPatient)
+    const createdPatient = response?.data ?? response  // <-- key fix here
+
+    console.log("Created patient object:", createdPatient)
+
+    if (!isValidPatient(createdPatient)) {
+      throw new Error("Created patient data invalid")
     }
+
+    setPatients(prev => [...prev.filter(p => p.id !== createdPatient.id), createdPatient])
+    toast.success(`Patient "${createdPatient.patient_name}" added!`)
+    setOpenDialog(false)
+  } catch (error) {
+    console.error("Add patient error:", error)
+    toast.error("Failed to add patient, please try again.")
+  }
+}
+
+
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
-
-            {/* Main Content */}
             <main className="flex-1 p-2 sm:p-6">
                 <Toaster position="top-right" />
-                
+
                 {/* Statistics Cards */}
                 <div className="mb-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -262,70 +284,62 @@ export default function Patients() {
                     </div>
                 </div>
 
-                {/* Filters and Actions container */}
+                {/* Filters and Actions */}
                 <div className="bg-white shadow rounded-lg p-4 mb-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        {/* Left side: Search and Filters */}
                         <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                        {/* Search */}
-                        <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
-                            <Input
-                                type="text"
-                                placeholder="Search patients..."
-                                className="pl-9"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                            <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search patients..."
+                                    className="pl-9"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <Select
+                                className="w-full sm:w-40 md:w-40 lg:w-48"
+                                value={statusFilter}
+                                onValueChange={setStatusFilter}
+                            >
+                                <SelectTrigger className="flex items-center">
+                                    <FileText className="h-4 w-4 mr-2 text-gray-500" />
+                                    <SelectValue placeholder="All status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All status</SelectItem>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="inactive">Inactive</SelectItem>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                className="w-full sm:w-40 md:w-40 lg:w-48"
+                                value={ageGroupFilter}
+                                onValueChange={setAgeGroupFilter}
+                            >
+                                <SelectTrigger className="flex items-center">
+                                    <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                                    <SelectValue placeholder="All ages" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All ages</SelectItem>
+                                    <SelectItem value="pediatric">Pediatric (0-17)</SelectItem>
+                                    <SelectItem value="adult">Adult (18-64)</SelectItem>
+                                    <SelectItem value="senior">Senior (65+)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        {/* Status Filter */}
-                        <Select
-                            className="w-full sm:w-40 md:w-40 lg:w-48"
-                            value={statusFilter}
-                            onValueChange={setStatusFilter}
-                        >
-                            <SelectTrigger className="flex items-center">
-                                <FileText className="h-4 w-4 mr-2 text-gray-500" />
-                                <SelectValue placeholder="All status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All status</SelectItem>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="inactive">Inactive</SelectItem>
-                                <SelectItem value="pending">Pending</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        {/* Age Group Filter */}
-                        <Select
-                            className="w-full sm:w-40 md:w-40 lg:w-48"
-                            value={ageGroupFilter}
-                            onValueChange={setAgeGroupFilter}
-                        >
-                            <SelectTrigger className="flex items-center">
-                                <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                                <SelectValue placeholder="All ages" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All ages</SelectItem>
-                                <SelectItem value="pediatric">Pediatric (0-17)</SelectItem>
-                                <SelectItem value="adult">Adult (18-64)</SelectItem>
-                                <SelectItem value="senior">Senior (65+)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                        {/* Right side: Actions and Count */}
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <div className="flex items-center gap-2 text-gray-600 text-sm">
                                 <Filter className="h-4 w-4" />
                                 <span>{filteredAndSortedPatients.length} of {patients.length} patients</span>
                             </div>
-                            
                             <div className="flex items-center gap-2">
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     onClick={handleRefresh}
                                     disabled={loading}
                                     className="flex items-center gap-2"
@@ -333,15 +347,15 @@ export default function Patients() {
                                     <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                     Refresh
                                 </Button>
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     onClick={handleExport}
                                     className="flex items-center gap-2"
                                 >
                                     <Download className="h-4 w-4" />
                                     Export
                                 </Button>
-                                <Button 
+                                <Button
                                     className="bg-blue-600 hover:bg-blue-700 text-white"
                                     onClick={() => setOpenDialog(true)}
                                 >
@@ -380,15 +394,13 @@ export default function Patients() {
                                             {patients.length === 0 ? 'No patients found' : 'No patients match your filters'}
                                         </TableCell>
                                     </TableRow>
-                                ) : filteredAndSortedPatients.map((patient) => {
-                                    // Generate initials from patient_name
+                                ) : filteredAndSortedPatients.map(patient => {
                                     const initials = patient.patient_name
                                         ?.split(' ')
                                         .map(name => name.charAt(0))
                                         .join('')
                                         .toUpperCase() || 'P'
-                                    
-                                    // Format date of birth
+
                                     const formatDate = (dateString) => {
                                         if (!dateString) return 'N/A'
                                         const date = new Date(dateString)
@@ -398,21 +410,17 @@ export default function Patients() {
                                             day: 'numeric'
                                         })
                                     }
-                                    
-                                    // Status color mapping
+
                                     const getStatusColor = (status) => {
+                                        if (!status) return 'bg-gray-100 text-gray-600'
                                         switch (status) {
-                                            case 'active':
-                                                return 'bg-green-100 text-green-600'
-                                            case 'inactive':
-                                                return 'bg-gray-100 text-gray-600'
-                                            case 'pending':
-                                                return 'bg-yellow-100 text-yellow-600'
-                                            default:
-                                                return 'bg-blue-100 text-blue-600'
+                                            case 'active': return 'bg-green-100 text-green-600'
+                                            case 'inactive': return 'bg-gray-100 text-gray-600'
+                                            case 'pending': return 'bg-yellow-100 text-yellow-600'
+                                            default: return 'bg-blue-100 text-blue-600'
                                         }
                                     }
-                                    
+
                                     return (
                                         <TableRow key={patient.id}>
                                             <TableCell>
@@ -440,7 +448,7 @@ export default function Patients() {
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Mail className="h-3 w-3 text-gray-500" />
-                                                        <span className="text-xs text-gray-500">No email provided</span>
+                                                        <span className="text-xs text-gray-500">{patient.email || 'No email provided'}</span>
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -450,15 +458,11 @@ export default function Patients() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <span className="text-sm">
-                                                    {patient.last_visit ? formatDate(patient.last_visit) : 'No visits yet'}
-                                                </span>
+                                                <span className="text-sm">{patient.last_visit ? formatDate(patient.last_visit) : 'No visits yet'}</span>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm">
-                                                        {patient.next_appointment ? formatDate(patient.next_appointment) : 'No upcoming'}
-                                                    </span>
+                                                    <span className="text-sm">{patient.next_appointment ? formatDate(patient.next_appointment) : 'No upcoming'}</span>
                                                     {patient.next_appointment && (
                                                         <span className="text-xs text-gray-500">Scheduled</span>
                                                     )}
@@ -520,27 +524,21 @@ export default function Patients() {
                             </TableBody>
                         </Table>
                     )}
+                </div>
 
-                    {/* Footer with pagination and summary */}
-                    <div className="mt-6 bg-white shadow rounded-lg p-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="text-sm text-gray-600">
-                                Showing {filteredAndSortedPatients.length} of {patients.length} patients
-                                {searchTerm && (
-                                    <span className="ml-2 text-blue-600">
-                                        • Filtered by "{searchTerm}"
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" disabled>
-                                    Previous
-                                </Button>
-                                <span className="text-sm text-gray-600">Page 1 of 1</span>
-                                <Button variant="outline" size="sm" disabled>
-                                    Next
-                                </Button>
-                            </div>
+                {/* Footer */}
+                <div className="mt-6 bg-white shadow rounded-lg p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="text-sm text-gray-600">
+                            Showing {filteredAndSortedPatients.length} of {patients.length} patients
+                            {searchTerm && (
+                                <span className="ml-2 text-blue-600">• Filtered by "{searchTerm}"</span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" disabled>Previous</Button>
+                            <span className="text-sm text-gray-600">Page 1 of 1</span>
+                            <Button variant="outline" size="sm" disabled>Next</Button>
                         </div>
                     </div>
                 </div>
