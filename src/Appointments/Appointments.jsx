@@ -13,8 +13,8 @@ import { Badge } from "@/components/ui/badge"
 import { Search, FileText, Calendar, Plus, Filter, Clock, User, Stethoscope, Loader2, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { appointmentsAPI } from "../API/AppointmentsAPI"
-import { patientsAPI } from "../API/PatientsAPI"
+import { appointmentsAPI } from "../api/AppointmentsAPI"
+import { patientsAPI } from "../api/PatientsAPI"
 import ViewModal from "@/components/ui/view-modal"
 import {
     DropdownMenu,

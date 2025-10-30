@@ -122,7 +122,7 @@ src/
 │   └── StaffRoleAssignment.jsx # Staff role assignment
 ├── components/
 │   └── ProtectedRoute.jsx       # Route protection component
-└── API/
+└── api/
     └── RBACAPI.js              # RBAC API integration
 ```
 
@@ -218,7 +218,7 @@ DELETE /admin/staff/:id/role/:roleId # Remove role from staff
 
 ### API Usage
 ```javascript
-import { rbacAPI } from '../API/RBACAPI'
+import { rbacAPI } from '../api/RBACAPI'
 
 // Get all roles
 const roles = await rbacAPI.getRoles()

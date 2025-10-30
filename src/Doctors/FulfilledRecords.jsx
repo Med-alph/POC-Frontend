@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import appointmentsAPI from "../API/AppointmentsAPI";
+import appointmentsAPI from "../api/AppointmentsAPI";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 

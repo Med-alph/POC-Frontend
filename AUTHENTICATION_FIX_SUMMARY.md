@@ -71,14 +71,14 @@ const apiRequest = async (endpoint, options = {}) => {
 ### **Files Modified**
 
 #### **API Files Updated**:
-- `src/API/StaffAPI.js`
-- `src/API/AppointmentsAPI.js`
-- `src/API/DashboardAPI.js`
-- `src/API/PatientsAPI.js`
-- `src/API/AuthAPI.js`
-- `src/API/RBACAPI.js`
-- `src/API/RemindersAPI.js`
-- `src/API/tenantsAPI.js`
+- `src/api/StaffAPI.js`
+- `src/api/AppointmentsAPI.js`
+- `src/api/DashboardAPI.js`
+- `src/api/PatientsAPI.js`
+- `src/api/AuthAPI.js`
+- `src/api/RBACAPI.js`
+- `src/api/RemindersAPI.js`
+- `src/api/tenantsAPI.js`
 
 #### **New Files Created**:
 - `src/utils/auth.js` - Centralized authentication utilities

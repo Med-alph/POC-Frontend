@@ -5,7 +5,7 @@ import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import consultationsAPI from "../../API/ConsultationsAPI";
+import consultationsAPI from "../../api/ConsultationsAPI";
 
 const tabs = ["Appointments", "SOAP Notes", "Medications", "Lab Results", "Allergies & Notes"];
 

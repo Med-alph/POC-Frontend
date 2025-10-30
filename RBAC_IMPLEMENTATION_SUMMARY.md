@@ -89,7 +89,7 @@ src/
 │   └── StaffRoleAssignment.jsx    # Staff role assignment
 ├── components/
 │   └── ProtectedRoute.jsx          # Route protection component
-├── API/
+├── api/
 │   └── RBACAPI.js                  # RBAC API integration
 └── Login/
     └── Login.jsx                   # Updated with admin login link

@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { CheckCircleIcon, XCircleIcon, ArrowLeft, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
-import appointmentsAPI from "../API/AppointmentsAPI";
-import staffAPI from "../API/StaffAPI";
+import appointmentsAPI from "../api/AppointmentsAPI";
+import staffAPI from "../api/StaffAPI";
 import AddPatientDialog from "../Patients/AddPatient";
-import patientsAPI from "../API/PatientsAPI";
+import patientsAPI from "../api/PatientsAPI";
 
 export default function AppointmentForm() {
   const navigate = useNavigate();
