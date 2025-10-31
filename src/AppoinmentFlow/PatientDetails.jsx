@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Stethoscope, User, Calendar, Phone, Mail, FileText, Edit, PlusCircle, Moon, Sun } from "lucide-react";
-import { patientsAPI } from "@/API/PatientsAPI";
+import { patientsAPI } from "@/api/PatientsAPI";
 
 const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
 

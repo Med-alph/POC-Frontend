@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, Smartphone, Stethoscope, Moon, Sun, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import authAPI from "@/API/AuthAPI";
+import authAPI from "@/api/AuthAPI";
 import InputOtp from "@/components/InputOtp";
 
 
