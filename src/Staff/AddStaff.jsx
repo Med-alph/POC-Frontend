@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import { Clock, AlertCircle } from "lucide-react";
-import designationAPI from "@/api/designationAPI";
+import designationapi from "@/api/designationapi";
 import staffApi from "@/api/staffApi";
 
 // Days of the week
@@ -41,7 +41,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
     async function loadDesignations() {
       try {
         console.log('[CreateStaffDialog] Loading designations...');
-        const data = await designationAPI.getAllGrouped();
+        const data = await designationapi.getAllGrouped();
         console.log('[CreateStaffDialog] Designations loaded:', data);
         setDesignations(data);
         setDepartments(Object.keys(data));
