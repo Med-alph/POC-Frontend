@@ -1,0 +1,62 @@
+name: Build & Deploy Frontend to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (optional for multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker hub (optional)
+        # remove if not pushing to registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t react-frontend:latest .
+
+      - name: Save Docker image to tar
+        run: |
+          docker save react-frontend:latest -o react-frontend.tar
+
+      - name: Upload artifact (optional for debugging)
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-frontend-tar
+          path: react-frontend.tar
+
+      - name: Copy image tar to EC2 via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}   # the private key (PEM) contents
+          port: 22
+          source: react-frontend.tar
+          target: /home/ec2-user/react-frontend.tar
+
+      - name: SSH to EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            chmod +x /home/ec2-user/deploy-restart.sh || true
+            mv /home/ec2-user/react-frontend.tar /home/ec2-user/react-frontend.tar
+            /home/ec2-user/deploy-restart.sh
