@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "react-hot-toast";
 import { Clock, AlertCircle } from "lucide-react";
 import designationAPI from "@/api/designationAPI";
-import staffAPI from "@/api/staffAPI";
+import staffApi from "@/api/staffApi";
 
 // Days of the week
 const WEEKDAYS = [
@@ -358,7 +358,7 @@ const handleSubmit = async (e) => {
     console.log('[CreateStaffDialog] Payload to send:', payload);
     console.log('[CreateStaffDialog] Availability string:', payload.availability);
 
-    const createdStaff = await staffAPI.create(payload);
+    const createdStaff = await staffApi.create(payload);
     
     console.log('[CreateStaffDialog] Staff created successfully:', createdStaff);
     
