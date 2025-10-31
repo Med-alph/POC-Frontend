@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import authAPI from "@/API/AuthAPI";
+import authAPI from "@/api/AuthAPI";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const phoneDigitsOnly = (value) => value.replace(/[^0-9]/g, "").slice(0, 10);

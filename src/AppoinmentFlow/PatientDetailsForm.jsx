@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Stethoscope, ArrowLeft, Moon, Sun, User, Calendar, Phone, Mail, FileText, Heart, Pill } from "lucide-react";
-import { patientsAPI } from "@/API/PatientsAPI";
+import { patientsAPI } from "@/api/PatientsAPI";
 
 const PatientDetailsForm = () => {
     const navigate = useNavigate();
