@@ -42,7 +42,7 @@ const apiRequest = async (endpoint, options = {}) => {
 }
 
 // Staff API (handles both doctors and staff)
-export const staffAPI = {
+export const staffApi = {
   // Get all staff/doctors with optional filters
   getAll: async (params = {}) => {
     const { hospital_id, search, limit = 10, offset = 0 } = params
@@ -88,18 +88,18 @@ export const staffAPI = {
   // Search staff members
   search: async (query, filters = {}) => {
     const params = { search: query, ...filters }
-    return staffAPI.getAll(params)
+    return staffApi.getAll(params)
   },
 
   // Get staff by hospital
   getByHospital: async (hospitalId, params = {}) => {
-    return staffAPI.getAll({ hospital_id: hospitalId, ...params })
+    return staffApi.getAll({ hospital_id: hospitalId, ...params })
   },
 
   // Get staff by role/type (doctor, nurse, admin, etc.)
   getByRole: async (role, params = {}) => {
     const paramsWithRole = { ...params, role }
-    return staffAPI.getAll(paramsWithRole)
+    return staffApi.getAll(paramsWithRole)
   },
 
   // Get staff availability
@@ -151,4 +151,4 @@ export const staffAPI = {
   },
 }
 
-export default staffAPI
+export default staffApi

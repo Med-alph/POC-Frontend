@@ -7,7 +7,7 @@ import { CheckCircleIcon, XCircleIcon, ArrowLeft, Loader2, Stethoscope, Moon, Su
 import { toast } from "sonner";
 
 import { appointmentsAPI } from "@/api/AppointmentsAPI";
-import { staffAPI } from "@/api/StaffAPI";
+import { staffApi } from "@/api/StaffAPI";
 import AddPatientDialog from "@/Patients/AddPatient";
 import { patientsAPI } from "@/api/PatientsAPI";
 
@@ -88,7 +88,7 @@ export default function AppointmentForm() {
       if (!registeredPatient) return;
       try {
         setLoadingDoctors(true);
-        const response = await staffAPI.getByHospital(HOSPITAL_ID, { limit: 50, offset: 0 });
+        const response = await staffApi.getByHospital(HOSPITAL_ID, { limit: 50, offset: 0 });
         const activeDoctors = response.data.filter(
           (doc) => doc.status?.toLowerCase() === "active" && !doc.is_archived
         );

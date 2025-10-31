@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import CreateStaffDialog from "./AddStaff"
 import { toast } from "react-hot-toast"
-import staffAPI from "@/api/staffAPI" // Import your staff API client
+import staffApi from "@/api/staffApi" // Import your staff API client
 
 export default function StaffListPage() {
   const [hospitalId, setHospitalId] = useState(null)
@@ -36,7 +36,7 @@ export default function StaffListPage() {
 
     async function fetchStaff() {
       try {
-        const response = await staffAPI.getByHospital(hospitalId, { limit: 1000 }) // adjust limit/pagination
+        const response = await staffApi.getByHospital(hospitalId, { limit: 1000 }) // adjust limit/pagination
         setStaffList(response.data) // assuming response shape: { data: [...] }
       } catch (err) {
         console.error("Failed to fetch staff:", err)
