@@ -8,18 +8,32 @@ import { Clock, AlertCircle } from "lucide-react";
 import designationapi from "@/api/designationapi";
 import staffApi from "@/api/staffApi";
 
-// Days of the week
 const WEEKDAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday"
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
 ];
 
-export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) {
+// Utility to convert string like "monday" or "MONDAY" to "Monday"
+const toTitleCase = (str) =>
+  str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+// Normalize time string to "HH:MM-HH:MM" format
+const normalizeTime = (timeStr) => {
+  if (!timeStr) return "";
+  const parts = timeStr.split("-");
+  if (parts.length !== 2) return timeStr; // fallback, do not break
+  const pad = (str) => {
+    if (str.includes(":")) return str;
+    // Pad single digit hour with zero and add ":00"
+    const trimmed = str.trim();
+    if (/^\d{1,2}$/.test(trimmed)) {
+      return (trimmed.length === 1 ? "0" + trimmed : trimmed) + ":00";
+    }
+    return str; // fallback
+  };
+  return `${pad(parts[0])}-${pad(parts[1])}`;
+};
+
+export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, editStaff }) {
   const [departments, setDepartments] = useState([]);
   const [designations, setDesignations] = useState({});
   const [formData, setFormData] = useState({
@@ -32,21 +46,17 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
     designation: "",
     availability: {},
     is_archived: false,
-    status: "Active"
+    status: "Active",
   });
   const [availabilityErrors, setAvailabilityErrors] = useState({});
 
-  // Fetch designations grouped by department when dialog opens
   useEffect(() => {
     async function loadDesignations() {
       try {
-        console.log('[CreateStaffDialog] Loading designations...');
         const data = await designationapi.getAllGrouped();
-        console.log('[CreateStaffDialog] Designations loaded:', data);
         setDesignations(data);
         setDepartments(Object.keys(data));
       } catch (err) {
-        console.error('[CreateStaffDialog] Failed to load designations:', err);
         toast.error("Failed to load designations");
       }
     }
@@ -55,9 +65,41 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
     }
   }, [open]);
 
-  // Reset form when dialog closes
   useEffect(() => {
-    if (!open) {
+    if (open && editStaff) {
+      // Parse & normalize availability keys and time strings
+      let availabilityObj = {};
+      if (editStaff.availability) {
+        try {
+          const rawAvail = JSON.parse(editStaff.availability);
+          Object.entries(rawAvail).forEach(([key, value]) => {
+            const titleKey = toTitleCase(key);
+            availabilityObj[titleKey] = normalizeTime(value);
+          });
+        } catch (e) {
+          availabilityObj = {};
+        }
+      }
+
+      setFormData({
+        staff_name: editStaff.staff_name || "",
+        department: editStaff.department || "",
+        contact_info: editStaff.contact_info || "",
+        email: editStaff.email || "",
+        password: "",
+        experience: editStaff.experience != null ? editStaff.experience.toString() : "",
+        designation: editStaff.designation_id ? editStaff.designation_id.toString() : "",
+        availability: availabilityObj,
+        is_archived: editStaff.is_archived || false,
+        status:
+          editStaff.status?.charAt(0).toUpperCase() + editStaff.status?.slice(1) || "Active",
+      });
+      setAvailabilityErrors({});
+    }
+  }, [open, editStaff]);
+
+  useEffect(() => {
+    if (!open || (!editStaff && open)) {
       setFormData({
         staff_name: "",
         department: "",
@@ -68,231 +110,110 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
         designation: "",
         availability: {},
         is_archived: false,
-        status: "Active"
+        status: "Active",
       });
       setAvailabilityErrors({});
     }
-  }, [open]);
+  }, [open, editStaff]);
 
-  /**
-   * Validate time format (HH:MM in 24-hour format)
-   * Valid examples: 09:00, 14:30, 23:59
-   * Invalid: 9:00, 25:00, 12:60
-   */
-  const validateTimeFormat = (time) => {
-    const timeRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
-    return timeRegex.test(time);
-  };
+  const validateTimeFormat = (time) => /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/.test(time);
 
-  /**
-   * Validate time slot format (HH:MM-HH:MM)
-   * Examples: 09:00-14:00, 16:00-18:00
-   */
   const validateTimeSlot = (slot) => {
-    if (!slot || slot.trim() === '') {
-      return { isValid: true, error: null }; // Empty is allowed
-    }
-
+    if (!slot || slot.trim() === "") return { isValid: true, error: null };
     const trimmedSlot = slot.trim();
-    
-    // Check basic format
-    if (!trimmedSlot.includes('-')) {
-      return { 
-        isValid: false, 
-        error: 'Use format HH:MM-HH:MM (e.g., 09:00-14:00)' 
+    if (!trimmedSlot.includes("-"))
+      return { isValid: false, error: "Use format HH:MM-HH:MM (e.g., 09:00-14:00)" };
+    const [startTime, endTime] = trimmedSlot.split("-").map((t) => t.trim());
+    if (!validateTimeFormat(startTime))
+      return {
+        isValid: false,
+        error: `Invalid start time: ${startTime}. Use 24hr format (e.g., 09:00)`,
       };
-    }
-
-    const [startTime, endTime] = trimmedSlot.split('-').map(t => t.trim());
-
-    // Validate start time
-    if (!validateTimeFormat(startTime)) {
-      return { 
-        isValid: false, 
-        error: `Invalid start time: ${startTime}. Use 24hr format (e.g., 09:00)` 
+    if (!validateTimeFormat(endTime))
+      return {
+        isValid: false,
+        error: `Invalid end time: ${endTime}. Use 24hr format (e.g., 14:00)`,
       };
-    }
-
-    // Validate end time
-    if (!validateTimeFormat(endTime)) {
-      return { 
-        isValid: false, 
-        error: `Invalid end time: ${endTime}. Use 24hr format (e.g., 14:00)` 
-      };
-    }
-
-    // Check if end time is after start time
-    const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
-    const endMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
-
-    if (endMinutes <= startMinutes) {
-      return { 
-        isValid: false, 
-        error: 'End time must be after start time' 
-      };
-    }
-
+    const startMinutes = parseInt(startTime.split(":")[0]) * 60 + parseInt(startTime.split(":")[1]);
+    const endMinutes = parseInt(endTime.split(":")[0]) * 60 + parseInt(endTime.split(":")[1]);
+    if (endMinutes <= startMinutes) return { isValid: false, error: "End time must be after start time" };
     return { isValid: true, error: null };
   };
 
-  /**
-   * Convert time to 24-hour format if needed
-   * Already in 24hr format: return as-is
-   */
-  const ensureTimeIn24HourFormat = (timeSlot) => {
-    if (!timeSlot || timeSlot.trim() === '') {
-      return '';
-    }
-    // Since we're validating for 24hr format, just return the trimmed value
-    return timeSlot.trim();
-  };
+  const ensureTimeIn24HourFormat = (timeSlot) => (!timeSlot || timeSlot.trim() === "" ? "" : timeSlot.trim());
 
-  // Handle change for simple inputs
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // On department select, reset designation selection
-  const handleDepartmentChange = (value) => {
-    console.log('[CreateStaffDialog] Department changed:', value);
-    setFormData(prev => ({ ...prev, department: value, designation: '' }));
-  };
+  const handleDepartmentChange = (value) => setFormData((prev) => ({ ...prev, department: value, designation: "" }));
 
-  // Handle designation change (stores designation id)
-  const handleDesignationChange = (value) => {
-    console.log('[CreateStaffDialog] Designation changed:', value);
-    setFormData(prev => ({ ...prev, designation: value }));
-  };
+  const handleDesignationChange = (value) => setFormData((prev) => ({ ...prev, designation: value }));
 
-  // Handle availability input changes per day
   const handleAvailabilityChange = (day, slot) => {
-    console.log(`[CreateStaffDialog] Availability changed for ${day}:`, slot);
-    
-    // Validate the time slot
     const validation = validateTimeSlot(slot);
-    
-    // Update errors state
-    setAvailabilityErrors(prev => ({
+    setAvailabilityErrors((prev) => ({ ...prev, [day]: validation.error }));
+    setFormData((prev) => ({
       ...prev,
-      [day]: validation.error
-    }));
-
-    // Update form data with the raw input (we'll validate on submit)
-    setFormData(prev => ({
-      ...prev,
-      availability: {
-        ...prev.availability,
-        [day]: slot,
-      },
+      availability: { ...prev.availability, [day]: slot },
     }));
   };
 
-  // Copy time to all weekdays (Monday-Friday)
   const copyToWeekdays = (sourceDay) => {
     const sourceTime = formData.availability[sourceDay];
-    if (!sourceTime) {
-      toast.error("Please enter a time slot first");
-      return;
-    }
-
+    if (!sourceTime) return toast.error("Please enter a time slot first");
     const validation = validateTimeSlot(sourceTime);
-    if (!validation.isValid) {
-      toast.error("Please fix the time format before copying");
-      return;
-    }
-
+    if (!validation.isValid) return toast.error("Please fix the time format before copying");
     const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
     const newAvailability = { ...formData.availability };
-    
-    weekdays.forEach(day => {
+    weekdays.forEach((day) => {
       newAvailability[day] = sourceTime;
     });
-
-    setFormData(prev => ({ ...prev, availability: newAvailability }));
-    
-    // Clear errors for weekdays
+    setFormData((prev) => ({ ...prev, availability: newAvailability }));
     const newErrors = { ...availabilityErrors };
-    weekdays.forEach(day => {
+    weekdays.forEach((day) => {
       delete newErrors[day];
     });
     setAvailabilityErrors(newErrors);
-    
     toast.success("Time copied to all weekdays");
   };
 
-  // Copy time to weekend (Saturday-Sunday)
   const copyToWeekend = (sourceDay) => {
     const sourceTime = formData.availability[sourceDay];
-    if (!sourceTime) {
-      toast.error("Please enter a time slot first");
-      return;
-    }
-
+    if (!sourceTime) return toast.error("Please enter a time slot first");
     const validation = validateTimeSlot(sourceTime);
-    if (!validation.isValid) {
-      toast.error("Please fix the time format before copying");
-      return;
-    }
-
+    if (!validation.isValid) return toast.error("Please fix the time format before copying");
     const weekend = ["Saturday", "Sunday"];
     const newAvailability = { ...formData.availability };
-    
-    weekend.forEach(day => {
+    weekend.forEach((day) => {
       newAvailability[day] = sourceTime;
     });
-
-    setFormData(prev => ({ ...prev, availability: newAvailability }));
-    
-    // Clear errors for weekend
+    setFormData((prev) => ({ ...prev, availability: newAvailability }));
     const newErrors = { ...availabilityErrors };
-    weekend.forEach(day => {
+    weekend.forEach((day) => {
       delete newErrors[day];
     });
     setAvailabilityErrors(newErrors);
-    
     toast.success("Time copied to weekend");
   };
 
-  // Validate entire form
   const validateForm = () => {
     const errors = [];
-
-    if (!formData.staff_name.trim()) {
-      errors.push("Staff name is required");
-    }
-
-    if (!formData.department) {
-      errors.push("Department is required");
-    }
-
-    if (!formData.designation) {
-      errors.push("Designation is required");
-    }
-
-    if (!formData.contact_info.trim()) {
-      errors.push("Contact information is required");
-    }
-
-    if (formData.email && !isValidEmail(formData.email)) {
-      errors.push("Invalid email format");
-    }
-
-    if (!formData.password || formData.password.length < 6) {
+    if (!formData.staff_name.trim()) errors.push("Staff name is required");
+    if (!formData.department) errors.push("Department is required");
+    if (!formData.designation) errors.push("Designation is required");
+    if (!formData.contact_info.trim()) errors.push("Contact information is required");
+    if (formData.email && !isValidEmail(formData.email)) errors.push("Invalid email format");
+    if (!editStaff && (!formData.password || formData.password.length < 6))
       errors.push("Password must be at least 6 characters");
-    }
+    if (formData.experience && isNaN(Number(formData.experience))) errors.push("Experience must be a number");
 
-    if (formData.experience && isNaN(Number(formData.experience))) {
-      errors.push("Experience must be a number");
-    }
-
-    // Validate all availability slots
     let hasAvailability = false;
     const availabilityValidationErrors = {};
-
-    WEEKDAYS.forEach(day => {
+    WEEKDAYS.forEach((day) => {
       const slot = formData.availability[day];
-      if (slot && slot.trim() !== '') {
+      if (slot && slot.trim() !== "") {
         hasAvailability = true;
         const validation = validateTimeSlot(slot);
         if (!validation.isValid) {
@@ -301,125 +222,77 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen }) 
         }
       }
     });
-
-    if (!hasAvailability) {
-      errors.push("Please specify availability for at least one day");
-    }
-
+    if (!hasAvailability) errors.push("Please specify availability for at least one day");
     setAvailabilityErrors(availabilityValidationErrors);
-
     return errors;
   };
 
-  // Submit form
- // Submit form
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  console.log('[CreateStaffDialog] Form submitted');
-  console.log('[CreateStaffDialog] Form data:', formData);
-
-  // Validate form
-  const validationErrors = validateForm();
-  if (validationErrors.length > 0) {
-    console.error('[CreateStaffDialog] Validation errors:', validationErrors);
-    toast.error(validationErrors[0]); // Show first error
-    return;
-  }
-
-  try {
-    // Build availability object in correct format
-    const availabilityObject = {};
-    
-    WEEKDAYS.forEach(day => {
-      const slot = formData.availability[day];
-      if (slot && slot.trim() !== '') {
-        // Ensure 24-hour format
-        availabilityObject[day] = ensureTimeIn24HourFormat(slot);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("Form submit triggered");
+    if (editStaff) console.log("Editing staff:", editStaff.id);
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      console.log("Validation errors: \n", validationErrors);
+      toast.error(validationErrors[0]);
+      return;
+    }
+    try {
+      const availabilityObject = {};
+      WEEKDAYS.forEach((day) => {
+        const slot = formData.availability[day];
+        if (slot && slot.trim() !== "") {
+          availabilityObject[day] = ensureTimeIn24HourFormat(slot);
+        }
+      });
+      const payload = {
+        hospital_id: hospitalId,
+        staff_name: formData.staff_name.trim(),
+        department: formData.department,
+        designation_id: formData.designation,
+        contact_info: formData.contact_info.trim(),
+        email: formData.email.trim() || null,
+        ...(editStaff ? (formData.password ? { password: formData.password } : {}) : { password: formData.password }),
+        experience: formData.experience ? Number(formData.experience) : 0,
+        availability: JSON.stringify(availabilityObject),
+        is_archived: false,
+        status: formData.status?.toLowerCase() || "active",
+      };
+      console.log("Payload: \n", payload);
+      let saved;
+      if (editStaff) {
+        saved = await staffApi.update(editStaff.id, payload);
+        toast.success(`Staff updated successfully!`);
+      } else {
+        saved = await staffApi.create(payload);
+        toast.success(`Staff created successfully!`);
       }
-    });
-
-    console.log('[CreateStaffDialog] Final availability object:', availabilityObject);
-
-    const payload = {
-      hospital_id: hospitalId,
-      staff_name: formData.staff_name.trim(),
-      department: formData.department,
-      designation_id: formData.designation,
-      contact_info: formData.contact_info.trim(),
-      email: formData.email.trim() || null,
-      password: formData.password,
-      experience: formData.experience ? Number(formData.experience) : 0,
-      availability: JSON.stringify(availabilityObject), // 👈 STRINGIFY HERE
-      is_archived: false,
-      status: "active"
-    };
-
-    console.log('[CreateStaffDialog] Payload to send:', payload);
-    console.log('[CreateStaffDialog] Availability string:', payload.availability);
-
-    const createdStaff = await staffApi.create(payload);
-    
-    console.log('[CreateStaffDialog] Staff created successfully:', createdStaff);
-    
-    onAdd(createdStaff);
-    toast.success(`Staff created successfully! Availability set for ${Object.keys(availabilityObject).length} days.`);
-    setOpen(false);
-    
-    // Reset form
-    setFormData({
-      staff_name: "",
-      department: "",
-      contact_info: "",
-      email: "",
-      password: "",
-      experience: "",
-      designation: "",
-      availability: {},
-      is_archived: false,
-      status: "Active"
-    });
-    setAvailabilityErrors({});
-
-  } catch (error) {
-    console.error("[CreateStaffDialog] Failed to create staff:", error);
-    toast.error(`Failed to create staff: ${error.message || 'Unknown error'}`);
-  }
-};
-
-
-  // Email validation helper
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+      onAdd(saved);
+      setOpen(false);
+    } catch (error) {
+      toast.error(`Failed to ${editStaff ? "update" : "create"} staff: ${error.message || "Unknown error"}`);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-[700px] h-[90vh] flex flex-col">
+      <DialogContent className="max-w-[700px] h-[90vh] flex flex-col" aria-describedby="staff-form-dialog-description">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl font-semibold">Create New Staff</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">{editStaff ? "Edit Staff" : "Create New Staff"}</DialogTitle>
         </DialogHeader>
-        
         <div className="flex-1 overflow-y-auto mt-4 pr-2 space-y-1">
-          <form id="staff-form" onSubmit={handleSubmit} className="space-y-4">
+          <form id="staff-form" onSubmit={handleSubmit} className="space-y-4" aria-describedby="staff-form-dialog-description">
             {/* Basic Information */}
             <div className="space-y-4 pb-4 border-b">
               <h3 className="font-semibold text-sm text-gray-700">Basic Information</h3>
-              
               <div>
                 <label className="text-sm font-medium text-gray-600 mb-1 block">
                   Staff Name <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  name="staff_name"
-                  placeholder="Enter full name"
-                  value={formData.staff_name}
-                  onChange={handleChange}
-                  required
-                />
+                <Input name="staff_name" placeholder="Enter full name" value={formData.staff_name} onChange={handleChange} required />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600 mb-1 block">
@@ -430,80 +303,58 @@ const handleSubmit = async (e) => {
                       <SelectValue placeholder="Select Department" />
                     </SelectTrigger>
                     <SelectContent>
-                      {departments.map(dep => (
-                        <SelectItem key={dep} value={dep}>{dep}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-600 mb-1 block">
-                    Designation <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    onValueChange={handleDesignationChange}
-                    value={formData.designation}
-                    disabled={!formData.department}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Designation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData.department && designations[formData.department]?.map(designation => (
-                        <SelectItem key={designation.id} value={designation.id}>
-                          {designation.name}
+                      {departments.map((dep) => (
+                        <SelectItem key={dep} value={dep}>
+                          {dep}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600 mb-1 block">
+                    Designation <span className="text-red-500">*</span>
+                  </label>
+                  <Select onValueChange={handleDesignationChange} value={formData.designation} disabled={!formData.department}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Designation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.department &&
+                        designations[formData.department]?.map((designation) => (
+                          <SelectItem key={designation.id.toString()} value={designation.id.toString()}>
+                            {designation.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-
               <div>
                 <label className="text-sm font-medium text-gray-600 mb-1 block">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  name="contact_info"
-                  placeholder="+91 1234567890"
-                  value={formData.contact_info}
-                  onChange={handleChange}
-                  required
-                />
+                <Input name="contact_info" placeholder="+91 1234567890" value={formData.contact_info} onChange={handleChange} required />
               </div>
-
+              <div>
+                <label className="text-sm font-medium text-gray-600 mb-1 block">Email</label>
+                <Input type="email" name="email" placeholder="email@example.com" value={formData.email} onChange={handleChange} />
+              </div>
               <div>
                 <label className="text-sm font-medium text-gray-600 mb-1 block">
-                  Email
-                </label>
-                <Input
-                  type="email"
-                  name="email"
-                  placeholder="email@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600 mb-1 block">
-                  Password <span className="text-red-500">*</span>
+                  Password{editStaff ? "" : <span className="text-red-500">*</span>}
                 </label>
                 <Input
                   type="password"
                   name="password"
-                  placeholder="Minimum 6 characters"
+                  placeholder={editStaff ? "Set to change, leave blank to keep" : "Minimum 6 characters"}
                   value={formData.password}
                   onChange={handleChange}
-                  required
+                  required={!editStaff}
                 />
               </div>
-
               <div>
-                <label className="text-sm font-medium text-gray-600 mb-1 block">
-                  Experience (Years)
-                </label>
+                <label className="text-sm font-medium text-gray-600 mb-1 block">Experience (Years)</label>
                 <Input
                   type="number"
                   name="experience"
@@ -527,14 +378,15 @@ const handleSubmit = async (e) => {
                   <span>24-hour format</span>
                 </div>
               </div>
-
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div className="text-xs text-blue-800">
                     <p className="font-medium mb-1">Time Format Instructions:</p>
                     <ul className="list-disc list-inside space-y-0.5 ml-2">
-                      <li>Use 24-hour format: <code className="bg-blue-100 px-1 rounded">09:00-14:00</code></li>
+                      <li>
+                        Use 24-hour format: <code className="bg-blue-100 px-1 rounded">09:00-14:00</code>
+                      </li>
                       <li>Start and end times must be HH:MM (e.g., 09:00, not 9:00)</li>
                       <li>End time must be after start time</li>
                       <li>Leave blank for days off</li>
@@ -559,25 +411,20 @@ const handleSubmit = async (e) => {
                     </Button>
                   )}
                 </div>
-                
-                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(day => (
+                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => (
                   <div key={day} className="space-y-1">
                     <div className="flex gap-2 items-center">
-                      <span className="text-sm font-medium text-gray-600 min-w-[100px]">
-                        {day}:
-                      </span>
+                      <span className="text-sm font-medium text-gray-600 min-w-[100px]">{day}:</span>
                       <Input
                         type="text"
                         placeholder="09:00-14:00"
                         value={formData.availability[day] || ""}
-                        onChange={e => handleAvailabilityChange(day, e.target.value)}
-                        className={`flex-1 ${availabilityErrors[day] ? 'border-red-500' : ''}`}
+                        onChange={(e) => handleAvailabilityChange(day, e.target.value)}
+                        className={`flex-1 ${availabilityErrors[day] ? "border-red-500" : ""}`}
                       />
                     </div>
                     {availabilityErrors[day] && (
-                      <p className="text-xs text-red-500 ml-[108px]">
-                        {availabilityErrors[day]}
-                      </p>
+                      <p className="text-xs text-red-500 ml-[108px]">{availabilityErrors[day]}</p>
                     )}
                   </div>
                 ))}
@@ -599,32 +446,29 @@ const handleSubmit = async (e) => {
                     </Button>
                   )}
                 </div>
-                
-                {["Saturday", "Sunday"].map(day => (
+                {["Saturday", "Sunday"].map((day) => (
                   <div key={day} className="space-y-1">
                     <div className="flex gap-2 items-center">
-                      <span className="text-sm font-medium text-gray-600 min-w-[100px]">
-                        {day}:
-                      </span>
+                      <span className="text-sm font-medium text-gray-600 min-w-[100px]">{day}:</span>
                       <Input
                         type="text"
                         placeholder="09:00-18:00"
                         value={formData.availability[day] || ""}
-                        onChange={e => handleAvailabilityChange(day, e.target.value)}
-                        className={`flex-1 ${availabilityErrors[day] ? 'border-red-500' : ''}`}
+                        onChange={(e) => handleAvailabilityChange(day, e.target.value)}
+                        className={`flex-1 ${availabilityErrors[day] ? "border-red-500" : ""}`}
                       />
                     </div>
                     {availabilityErrors[day] && (
-                      <p className="text-xs text-red-500 ml-[108px]">
-                        {availabilityErrors[day]}
-                      </p>
+                      <p className="text-xs text-red-500 ml-[108px]">{availabilityErrors[day]}</p>
                     )}
                   </div>
                 ))}
               </div>
 
               {/* Preview */}
-              {Object.keys(formData.availability).some(day => formData.availability[day]?.trim()) && (
+              {Object.keys(formData.availability).some((day) =>
+                formData.availability[day]?.trim()
+              ) && (
                 <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
                   <p className="text-xs font-medium text-gray-700 mb-2">Availability Preview:</p>
                   <pre className="text-xs text-gray-600 overflow-x-auto">
@@ -644,21 +488,13 @@ const handleSubmit = async (e) => {
           </form>
         </div>
 
-        {/* Footer Buttons */}
+        {/* Footer */}
         <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => setOpen(false)}
-          >
+          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
-            form="staff-form" 
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Create Staff
+          <Button type="submit" form="staff-form" className="bg-blue-600 hover:bg-blue-700 text-white">
+            {editStaff ? "Save Changes" : "Create Staff"}
           </Button>
         </div>
       </DialogContent>

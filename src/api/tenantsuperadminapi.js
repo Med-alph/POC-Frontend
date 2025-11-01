@@ -22,7 +22,7 @@ const handleResponse = async (response) => {
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_CONFIG.baseURL}${endpoint}`
   const token = getAuthToken()
-
+  
   const config = {
     ...options,
     headers: {
@@ -36,62 +36,38 @@ const apiRequest = async (endpoint, options = {}) => {
     const response = await fetch(url, config)
     return await handleResponse(response)
   } catch (error) {
-    console.error(`HospitalsAPI Error for ${endpoint}:`, error)
+    console.error(`TenantSuperAdminAPI Error for ${endpoint}:`, error)
     throw error
   }
 }
 
-// Hospital API methods
-export const hospitalsapi = {
-  create: async (payload) => {
-    const token = getAuthToken()
-    return apiRequest('/hospitals', {
+// Tenant Super Admin API methods
+export const tenantsuperadminapi = {
+  // Admin login for tenant superadmin
+  login: async (credentials) => {
+    return apiRequest('/tenant-admin/login', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(credentials),
+    })
+  },
+
+  // Password reset for tenant superadmin
+  resetPassword: async (adminId, resetData, authToken) => {
+    return apiRequest(`/tenant-admin/change-password`, {
+      method: 'POST',
+      body: JSON.stringify({ adminId, newPassword: resetData.newPassword }),
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${authToken}`,
       },
     })
   },
 
-  getAll: async () => {
-    return apiRequest('/hospitals', {
+  // Get tenant info by tenant ID
+  getTenantInfo: async (tenantId) => {
+    return apiRequest(`/tenant-admin/tenant-info?tenantId=${encodeURIComponent(tenantId)}`, {
       method: 'GET',
-    })
-  },
-
-  getOne: async (id) => {
-    return apiRequest(`/hospitals/${id}`, {
-      method: 'GET',
-    })
-  },
-
-  getByTenant: async () => {
-    return apiRequest('/hospitals/tenant', {
-      method: 'GET',
-    })
-  },
-
-  update: async (id, payload) => {
-    const token = getAuthToken()
-    return apiRequest(`/hospitals/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-  },
-
-  delete: async (id) => {
-    const token = getAuthToken()
-    return apiRequest(`/hospitals/${id}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
   },
 }
 
-export default hospitalsapi
+export default tenantsuperadminapi
