@@ -48,7 +48,7 @@ function AppContent() {
 
   // Routes that should NOT show the navbar
   const authRoutes = ['/', '/signup', '/forgotpassword', '/admin/login']
-  const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs']
+  const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs','/tenantadmin/login','/tenantadmin/dashboard']
   // Patient portal flow routes (phone/otp login + booking steps)
   const patientRoutes = ['/landing', '/otp-verification', '/appointment', '/confirmation', '/patient-details', '/patient-details-form']
   const shouldShowNavbar = !authRoutes.includes(location.pathname) && !adminRoutes.includes(location.pathname) && !patientRoutes.includes(location.pathname)

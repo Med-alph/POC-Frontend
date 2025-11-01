@@ -12,7 +12,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import tenantsuperadminapi from "../API/tenantsuperadminapi";
+import tenantsuperadminapi from "../api/tenantsuperadminapi"
+import HospitalListTable from "./Hospitals/HospitalListTable";
+import UsersRolesTab from "./StaffRoles/StaffsRolesTab";
+import StaffsRolesTab from "./StaffRoles/StaffsRolesTab";
+
 
 export default function TenantAdminDashboard() {
   const NAVBAR_HEIGHT = 84; // height of navbar in px
@@ -75,14 +79,14 @@ export default function TenantAdminDashboard() {
         {/* Right side */}
         <div className="flex items-center space-x-4">
           {/* Search */}
-          <div className="relative hidden md:block">
+          {/* <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
             <Input
               type="text"
               placeholder="Search patients, doctors..."
               className="pl-10 pr-4 py-2 w-80 bg-white/10 border-white/20 text-white placeholder-gray-300 focus:bg-white focus:text-gray-900 focus:placeholder-gray-500 transition duration-200"
             />
-          </div>
+          </div> */}
 
           {/* Notification */}
           <button className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition duration-200 group">
@@ -143,7 +147,11 @@ export default function TenantAdminDashboard() {
           {[
             { id: "overview", label: "Tenant Overview" },
             { id: "hospitals", label: "Hospitals" },
-            { id: "users", label: "Users & Roles" },
+            { id: "hospitals-staffs", label: "Hospitals Staffs" },           // New tab: Operational metrics & health stats per hospital
+            // { id: "hospital-staff", label: "Hospital Staff" },           // New tab: Manage hospital staff & departments
+            // { id: "compliance", label: "Compliance & Documents" },       // New tab: Licensing, certifications, document management
+            // { id: "notifications", label: "Notifications & Alerts" },    // New tab: Admin alerts & warnings
+            // { id: "audit-logs", label: "Audit Logs" },                   // New tab: Activity logs and change tracking
             { id: "billing", label: "Subscription & Billing" },
             { id: "settings", label: "Settings" },
           ].map((tab) => {
@@ -152,11 +160,10 @@ export default function TenantAdminDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-4 py-3 rounded-lg font-medium text-sm transition duration-200 whitespace-nowrap ${
-                  isActive
+                className={`flex items-center px-4 py-3 rounded-lg font-medium text-sm transition duration-200 whitespace-nowrap ${isActive
                     ? "bg-blue-50 text-blue-700 border-b-2 border-blue-700"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -272,19 +279,9 @@ export default function TenantAdminDashboard() {
       case "overview":
         return renderTenantOverview();
       case "hospitals":
-        return (
-          <div className="p-6 bg-white rounded shadow mt-6">
-            <h2 className="text-xl font-semibold mb-4">Hospitals Management</h2>
-            <p>Manage hospitals under your tenant.</p>
-          </div>
-        );
-      case "users":
-        return (
-          <div className="p-6 bg-white rounded shadow mt-6">
-            <h2 className="text-xl font-semibold mb-4">Users and Roles</h2>
-            <p>Manage tenant admins, hospital staff, and roles here.</p>
-          </div>
-        );
+        return <HospitalListTable />;
+      case "hospitals-staffs":
+       return <StaffsRolesTab />;
       case "billing":
         return (
           <div className="p-6 bg-white rounded shadow mt-6">

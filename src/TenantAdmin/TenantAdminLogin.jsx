@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Mail, Lock, Eye, EyeOff, Shield } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
-import tenantsuperadminapi from "../API/tenantsuperadminapi"
+import tenantsuperadminapi from "../api/tenantsuperadminapi"
 
 export default function TenantAdminLogin() {
   const [showPassword, setShowPassword] = useState(false)
