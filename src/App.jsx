@@ -37,6 +37,8 @@ import ConfirmationPage from "./AppoinmentFlow/ConfirmationPage"
 import LandingPage from "./AppoinmentFlow/LandingPage"
 import PatientDetailsForm from "./AppoinmentFlow/PatientDetailsForm"
 import FulfilledRecords from "./Doctors/FulfilledRecords"
+import TenantAdminLogin from "./TenantAdmin/TenantAdminLogin"
+import TenantAdminDashboard from "./TenantAdmin/TenantAdminDashboard"
 
 // Component to conditionally render Navbar
 function AppContent() {
@@ -46,7 +48,7 @@ function AppContent() {
 
   // Routes that should NOT show the navbar
   const authRoutes = ['/', '/signup', '/forgotpassword', '/admin/login']
-  const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs']
+  const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs','/tenantadmin/login','/tenantadmin/dashboard']
   const shouldShowNavbar = !authRoutes.includes(location.pathname) && !adminRoutes.includes(location.pathname)
 
   return (
@@ -76,7 +78,9 @@ function AppContent() {
      <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
 
         {/* Admin routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
+        {/* <Route path="/admin/login" element={<AdminLogin />} /> */}
+        <Route path="/tenantadmin/login" element={<TenantAdminLogin />} />
+        <Route path="/tenantadmin/dashboard" element={<TenantAdminDashboard />} />
         <Route path="/admin/dashboard" element={
           <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
             <AdminDashboard />

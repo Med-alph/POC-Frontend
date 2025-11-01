@@ -143,10 +143,10 @@ export default function Login() {
             </p>
             <p>
               <a
-                href="/admin/login"
+                href="/tenantadmin/login"
                 className="text-gray-500 hover:text-gray-700 hover:underline font-medium"
               >
-                Admin Login
+                Tenant Admin Login
               </a>
             </p>
           </div>
