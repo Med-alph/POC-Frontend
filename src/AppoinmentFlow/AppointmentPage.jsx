@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CheckCircleIcon, XCircleIcon, ArrowLeft, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { CheckCircleIcon, XCircleIcon, ArrowLeft, Loader2, Stethoscope, Moon, Sun } from "lucide-react";
+import { toast } from "sonner";
 
-import appointmentsAPI from "../api/AppointmentsAPI";
-import staffAPI from "../api/StaffAPI";
-import AddPatientDialog from "../Patients/AddPatient";
-import patientsAPI from "../api/PatientsAPI";
+import { appointmentsAPI } from "@/api/AppointmentsAPI";
+import { staffApi } from "@/api/StaffAPI";
+import AddPatientDialog from "@/Patients/AddPatient";
+import { patientsAPI } from "@/api/PatientsAPI";
 
 export default function AppointmentForm() {
   const navigate = useNavigate();
@@ -88,7 +88,7 @@ export default function AppointmentForm() {
       if (!registeredPatient) return;
       try {
         setLoadingDoctors(true);
-        const response = await staffAPI.getByHospital(HOSPITAL_ID, { limit: 50, offset: 0 });
+        const response = await staffApi.getByHospital(HOSPITAL_ID, { limit: 50, offset: 0 });
         const activeDoctors = response.data.filter(
           (doc) => doc.status?.toLowerCase() === "active" && !doc.is_archived
         );
@@ -277,20 +277,32 @@ export default function AppointmentForm() {
             ) : doctors.length === 0 ? (
               <p className="text-center text-gray-500">No doctors available</p>
             ) : (
-              doctors.map((doc) => (
-                <Button
-                  key={doc.id}
-                  onClick={() => {
-                    setSelectedDoctor(doc);
-                    setStep(3);
-                  }}
-                  variant={selectedDoctor?.id === doc.id ? "default" : "outline"}
-                  className="w-full flex justify-between"
-                >
-                  <span>{doc.staff_name}</span>
-                  <span className="text-xs text-gray-500">{doc.department || "General"}</span>
-                </Button>
-              ))
+              <div className="grid grid-cols-1 gap-3">
+                {doctors.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className={`border rounded-md p-3 cursor-pointer transition-colors ${
+                      selectedDoctor?.id === doc.id
+                        ? 'border-blue-600 bg-blue-50'
+                        : 'hover:border-blue-300'
+                    }`}
+                    onClick={() => {
+                      setSelectedDoctor(doc);
+                      setStep(3);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-gray-900">{doc.staff_name}</div>
+                        <div className="text-xs text-gray-600">{doc.department || 'General'}</div>
+                      </div>
+                      <Button size="sm" variant={selectedDoctor?.id === doc.id ? 'default' : 'outline'}>
+                        {selectedDoctor?.id === doc.id ? 'Selected' : 'Select'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         );
@@ -411,11 +423,67 @@ export default function AppointmentForm() {
     }
   };
 
+  // Dark mode state (matching other pages)
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem("darkMode", String(newMode));
+    document.documentElement.classList.toggle("dark", newMode);
+  };
+
+  // Apply dark mode on mount
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    }
+  }, [darkMode]);
+
   return (
-    <div className="flex justify-center py-10 px-4 bg-gray-50 min-h-screen">
-      <Card className="w-full max-w-lg p-6 shadow-lg">
-        <CardContent>{renderStep()}</CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-start justify-center py-10 px-4 transition-colors duration-300">
+      {/* Dark Mode Toggle */}
+      <button
+        onClick={toggleDarkMode}
+        className="fixed top-4 right-4 p-3 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 z-50"
+        aria-label="Toggle dark mode"
+      >
+        {darkMode ? (
+          <Sun className="h-5 w-5 text-yellow-500" />
+        ) : (
+          <Moon className="h-5 w-5 text-gray-700" />
+        )}
+      </button>
+
+      <div className="w-full max-w-lg">
+        <div className="inline-flex items-center gap-3 bg-blue-600 text-white px-4 py-2.5 rounded-xl shadow-lg mb-4">
+          <Stethoscope className="h-6 w-6" />
+          <span className="text-sm font-semibold">MedPortal — Patient Access</span>
+        </div>
+        <Card className="w-full shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-700 dark:to-blue-600 text-white">
+          <CardTitle className="text-xl">Book an Appointment</CardTitle>
+          <div className="mt-2">
+            <div className="flex items-center gap-2 text-xs text-gray-200">
+              <div className={`h-2 rounded w-1/4 ${step >= 1 ? 'bg-white' : 'bg-gray-300'}`}></div>
+              <div className={`h-2 rounded w-1/4 ${step >= 2 ? 'bg-white' : 'bg-gray-300'}`}></div>
+              <div className={`h-2 rounded w-1/4 ${step >= 3 ? 'bg-white' : 'bg-gray-300'}`}></div>
+              <div className={`h-2 rounded w-1/4 ${step >= 4 ? 'bg-white' : 'bg-gray-300'}`}></div>
+            </div>
+            <div className="mt-2 flex justify-between text-[11px] text-gray-200">
+              <span>Verify</span>
+              <span>Doctor</span>
+              <span>Slot</span>
+              <span>Details</span>
+            </div>
+          </div>
+        </CardHeader>
+            <CardContent>{renderStep()}</CardContent>
+          </Card>
+        </div>
     </div>
   );
 }

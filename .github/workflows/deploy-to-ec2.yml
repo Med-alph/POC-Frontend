@@ -1,0 +1,42 @@
+name: Build & Deploy Frontend to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t react-frontend:latest .
+
+      - name: Save Docker image to tar
+        run: docker save react-frontend:latest -o react-frontend.tar
+
+      - name: Copy image tar to EC2 via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          source: react-frontend.tar
+          target: /home/ec2-user/react-frontend.tar
+
+      - name: SSH to EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            docker load -i /home/ec2-user/react-frontend.tar
+            docker stop react-frontend || true
+            docker rm react-frontend || true
+            docker run -d -p 80:80 --name react-frontend react-frontend:latest

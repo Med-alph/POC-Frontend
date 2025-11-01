@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react"
-import { staffAPI } from "../api/StaffAPI"
+import { staffApi } from "../api/StaffAPI"
 import toast, { Toaster } from 'react-hot-toast'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -144,7 +144,7 @@ export default function Doctors() {
     if (departmentFilter !== "all") params.department = departmentFilter;
     if (statusFilter !== "all") params.status = statusFilter;
 
-    const result = await staffAPI.getAll(params);
+    const result = await staffApi.getAll(params);
     setDoctors(Array.isArray(result.data) ? result.data : []);
   } catch (err) {
     console.error("Error fetching doctors:", err);

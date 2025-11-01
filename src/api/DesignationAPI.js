@@ -47,7 +47,7 @@ const apiRequest = async (endpoint, options = {}) => {
 
 
 // Designation API
-export const designationAPI = {
+export const designationapi = {
   // Fetch all designations grouped by department
   getAllGrouped: async () => {
     return apiRequest('/designations')
@@ -82,4 +82,4 @@ export const designationAPI = {
   },
 }
 
-export default designationAPI
+export default designationapi

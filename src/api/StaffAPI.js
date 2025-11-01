@@ -1,5 +1,5 @@
 import { baseUrl } from '../constants/Constant'
-import { store } from '../../app/store'
+import { getAuthToken } from '../utils/auth'
 
 // API Configuration
 const API_CONFIG = {
@@ -7,12 +7,6 @@ const API_CONFIG = {
   headers: {
     'Content-Type': 'application/json',
   },
-}
-
-// Helper function to get token from Redux store
-const getToken = () => {
-  const state = store.getState()
-  return state.auth.token
 }
 
 // Helper function to handle API responses
@@ -27,22 +21,15 @@ const handleResponse = async (response) => {
 // Helper function to make API requests
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_CONFIG.baseURL}${endpoint}`
-  const token = getToken()
+  const token = getAuthToken()
   
   const config = {
     ...options,
     headers: {
       ...API_CONFIG.headers,
+      ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
-  }
-
-  // Add authorization header if token exists
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-    console.log('StaffAPI: Adding auth token to request:', endpoint)
-  } else {
-    console.warn('StaffAPI: No auth token found for request:', endpoint)
   }
 
   try {
@@ -55,26 +42,18 @@ const apiRequest = async (endpoint, options = {}) => {
 }
 
 // Staff API (handles both doctors and staff)
-export const staffAPI = {
+export const staffApi = {
   // Get all staff/doctors with optional filters
   getAll: async (params = {}) => {
     const { hospital_id, search, limit = 10, offset = 0 } = params
     const queryParams = new URLSearchParams()
     
-    // Get hospital_id from Redux store if not provided
-    const state = store.getState()
-    const userHospitalId = state.auth.user?.hospital_id
-    
-    // Use provided hospital_id or fallback to user's hospital_id
-    const finalHospitalId = hospital_id || userHospitalId
-    
-    if (finalHospitalId) queryParams.append('hospital_id', finalHospitalId)
+    if (hospital_id) queryParams.append('hospital_id', hospital_id)
     if (search) queryParams.append('search', search)
     if (limit) queryParams.append('limit', limit.toString())
     if (offset) queryParams.append('offset', offset.toString())
     
     const endpoint = queryParams.toString() ? `/staffs?${queryParams.toString()}` : '/staffs'
-    console.log('StaffAPI: Making request to:', endpoint)
     return apiRequest(endpoint)
   },
 
@@ -109,32 +88,18 @@ export const staffAPI = {
   // Search staff members
   search: async (query, filters = {}) => {
     const params = { search: query, ...filters }
-    return staffAPI.getAll(params)
+    return staffApi.getAll(params)
   },
 
   // Get staff by hospital
   getByHospital: async (hospitalId, params = {}) => {
-    return staffAPI.getAll({ hospital_id: hospitalId, ...params })
+    return staffApi.getAll({ hospital_id: hospitalId, ...params })
   },
 
   // Get staff by role/type (doctor, nurse, admin, etc.)
   getByRole: async (role, params = {}) => {
     const paramsWithRole = { ...params, role }
-    return staffAPI.getAll(paramsWithRole)
-  },
-
-  // Get staff statistics with hospital_id
-  getStats: async (params = {}) => {
-    const state = store.getState()
-    const userHospitalId = state.auth.user?.hospital_id
-    const finalHospitalId = params.hospital_id || userHospitalId
-    
-    const queryParams = new URLSearchParams()
-    if (finalHospitalId) queryParams.append('hospital_id', finalHospitalId)
-    if (params.period) queryParams.append('period', params.period)
-    
-    const endpoint = queryParams.toString() ? `/staffs/stats?${queryParams.toString()}` : '/staffs/stats'
-    return apiRequest(endpoint)
+    return staffApi.getAll(paramsWithRole)
   },
 
   // Get staff availability
@@ -178,13 +143,12 @@ export const staffAPI = {
     })
   },
 
-  // Add this method to your existing staffAPI exports
-
-getDesignations: async () => {
-  return apiRequest('/designations');  // Assumes backend endpoint returning grouped designations
-},
-
-
+  // Get staff statistics
+  getStats: async (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString()
+    const endpoint = queryParams ? `/staffs/stats?${queryParams}` : '/staffs/stats'
+    return apiRequest(endpoint)
+  },
 }
 
-export default staffAPI
+export default staffApi
