@@ -16,6 +16,8 @@ import tenantsuperadminapi from "../api/tenantsuperadminapi"
 import HospitalListTable from "./Hospitals/HospitalListTable";
 import UsersRolesTab from "./StaffRoles/StaffsRolesTab";
 import StaffsRolesTab from "./StaffRoles/StaffsRolesTab";
+import HospitalPatinets from "./Patients/HospitalPatients";
+import HospitalAppointments from "./Appointments/HospitalAppointments";
 
 
 export default function TenantAdminDashboard() {
@@ -152,8 +154,8 @@ export default function TenantAdminDashboard() {
             // { id: "compliance", label: "Compliance & Documents" },       // New tab: Licensing, certifications, document management
             // { id: "notifications", label: "Notifications & Alerts" },    // New tab: Admin alerts & warnings
             // { id: "audit-logs", label: "Audit Logs" },                   // New tab: Activity logs and change tracking
-            { id: "billing", label: "Subscription & Billing" },
-            { id: "settings", label: "Settings" },
+            { id: "hospitals-patients", label: "Hospitals Patients" },
+            { id: "hospitals-appointments", label: "Hospitals Appointments" },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -282,20 +284,10 @@ export default function TenantAdminDashboard() {
         return <HospitalListTable />;
       case "hospitals-staffs":
        return <StaffsRolesTab />;
-      case "billing":
-        return (
-          <div className="p-6 bg-white rounded shadow mt-6">
-            <h2 className="text-xl font-semibold mb-4">Subscription & Billing</h2>
-            <p>Manage billing plans and subscription.</p>
-          </div>
-        );
-      case "settings":
-        return (
-          <div className="p-6 bg-white rounded shadow mt-6">
-            <h2 className="text-xl font-semibold mb-4">Settings</h2>
-            <p>Tenant integration and notification settings.</p>
-          </div>
-        );
+      case "hospitals-patients":
+        return <HospitalPatinets/>
+      case "hospitals-appointments":
+        return <HospitalAppointments/>
       default:
         return null;
     }
