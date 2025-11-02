@@ -1,0 +1,303 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { clearCredentials } from "../features/auth/authSlice";
+
+import { Bell, ChevronDown, Search, LogOut, Stethoscope, Settings, Loader } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import tenantsuperadminapi from "../api/tenantsuperadminapi"
+import HospitalListTable from "./Hospitals/HospitalListTable";
+import UsersRolesTab from "./StaffRoles/StaffsRolesTab";
+import StaffsRolesTab from "./StaffRoles/StaffsRolesTab";
+import HospitalPatinets from "./Patients/HospitalPatients";
+import HospitalAppointments from "./Appointments/HospitalAppointments";
+
+
+export default function TenantAdminDashboard() {
+  const NAVBAR_HEIGHT = 84; // height of navbar in px
+
+  const [activeTab, setActiveTab] = useState("overview");
+  const [tenantInfo, setTenantInfo] = useState(null);
+  const [loadingTenant, setLoadingTenant] = useState(false);
+  const [tenantError, setTenantError] = useState(null);
+
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
+  const tenantId = user?.tenant_id;
+
+  useEffect(() => {
+    if (!tenantId) return;
+
+    const fetchTenantInfo = async () => {
+      setLoadingTenant(true);
+      setTenantError(null);
+      try {
+        const data = await tenantsuperadminapi.getTenantInfo(tenantId);
+        setTenantInfo(data);
+      } catch (error) {
+        setTenantError(error.message || "Failed to fetch tenant info");
+        setTenantInfo(null);
+      } finally {
+        setLoadingTenant(false);
+      }
+    };
+
+    fetchTenantInfo();
+  }, [tenantId]);
+
+  const handleLogout = () => {
+    dispatch(clearCredentials());
+    navigate("/");
+  };
+
+  const Navbar = () => (
+    <div
+      className="w-full bg-white shadow-lg border-b border-gray-100 fixed top-0 left-0 z-50"
+      style={{ height: NAVBAR_HEIGHT }}
+    >
+      <nav className="w-full flex items-center justify-between px-6 bg-gradient-to-r from-blue-600 to-blue-700 h-full">
+        {/* Logo and Brand */}
+        <div
+          onClick={() => navigate("/dashboard")}
+          className="flex items-center space-x-3 cursor-pointer select-none"
+        >
+          <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-lg hover:bg-white/30 transition duration-200">
+            <Stethoscope className="h-6 w-6" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xl font-bold text-white">MedAssist</span>
+            <span className="text-xs text-blue-100 font-medium">Healthcare Management</span>
+          </div>
+        </div>
+
+        {/* Right side */}
+        <div className="flex items-center space-x-4">
+          {/* Search */}
+          {/* <div className="relative hidden md:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
+            <Input
+              type="text"
+              placeholder="Search patients, doctors..."
+              className="pl-10 pr-4 py-2 w-80 bg-white/10 border-white/20 text-white placeholder-gray-300 focus:bg-white focus:text-gray-900 focus:placeholder-gray-500 transition duration-200"
+            />
+          </div> */}
+
+          {/* Notification */}
+          <button className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition duration-200 group">
+            <Bell className="h-5 w-5 text-white group-hover:scale-110 transition-transform duration-200" />
+            <span className="absolute top-1 right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-blue-700"></span>
+          </button>
+
+          {/* Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-white/10 transition duration-200 group select-none">
+                <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-sm border-2 border-white/30 group-hover:border-white/50 transition duration-200">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                </div>
+                <div className="hidden lg:block">
+                  <div className="text-sm font-semibold text-white">{user?.name || "User"}</div>
+                  <div className="text-xs text-blue-100 capitalize">{user?.role || "Staff"}</div>
+                </div>
+                <ChevronDown className="h-4 w-4 text-white group-hover:rotate-180 transition duration-200" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 mt-2">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center space-x-3">
+                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-gray-900">{user?.name || "User"}</div>
+                    <div className="text-xs text-gray-500">{user?.email || "user@example.com"}</div>
+                    <div className="text-xs text-blue-600 font-medium capitalize">{user?.role || "Staff"}</div>
+                  </div>
+                </div>
+              </div>
+              <DropdownMenuItem className="px-4 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center">
+                <Settings className="h-4 w-4 mr-3" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="px-4 py-2 text-red-600 hover:bg-red-50 cursor-pointer flex items-center">
+                <LogOut className="h-4 w-4 mr-3" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </nav>
+    </div>
+  );
+
+  const renderTabs = () => (
+    <div
+      className="bg-white border-b border-gray-100 sticky z-40"
+      style={{ top: NAVBAR_HEIGHT }}
+    >
+      <div className="px-6">
+        <div className="flex space-x-1 overflow-x-auto">
+          {[
+            { id: "overview", label: "Tenant Overview" },
+            { id: "hospitals", label: "Hospitals" },
+            { id: "hospitals-staffs", label: "Hospitals Staffs" },           // New tab: Operational metrics & health stats per hospital
+            // { id: "hospital-staff", label: "Hospital Staff" },           // New tab: Manage hospital staff & departments
+            // { id: "compliance", label: "Compliance & Documents" },       // New tab: Licensing, certifications, document management
+            // { id: "notifications", label: "Notifications & Alerts" },    // New tab: Admin alerts & warnings
+            // { id: "audit-logs", label: "Audit Logs" },                   // New tab: Activity logs and change tracking
+            { id: "hospitals-patients", label: "Hospitals Patients" },
+            { id: "hospitals-appointments", label: "Hospitals Appointments" },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center px-4 py-3 rounded-lg font-medium text-sm transition duration-200 whitespace-nowrap ${isActive
+                    ? "bg-blue-50 text-blue-700 border-b-2 border-blue-700"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Tenant overview content with neat left-aligned layout
+  const renderTenantOverview = () => {
+    if (loadingTenant) {
+      return (
+        <div className="flex items-center space-x-2 text-gray-600">
+          <Loader className="animate-spin h-5 w-5" />
+          <span>Loading tenant details...</span>
+        </div>
+      );
+    }
+
+    if (tenantError) {
+      return <p className="text-red-600 font-semibold">Error: {tenantError}</p>;
+    }
+
+    if (!tenantInfo) {
+      return <p className="text-gray-600">No tenant information available.</p>;
+    }
+
+    return (
+      <div className="mt-6 max-w-4xl p-6 bg-white rounded-lg shadow space-y-6 text-gray-800">
+        <h2 className="text-3xl font-bold border-b pb-3">{tenantInfo.name}</h2>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <InfoItem label="Legal Name" value={tenantInfo.legal_name || "N/A"} />
+          <InfoItem label="Type" value={tenantInfo.type || "N/A"} />
+          <InfoItem label="Email" value={tenantInfo.email || "N/A"} />
+          <InfoItem label="Phone" value={tenantInfo.phone || "N/A"} />
+          <InfoItem
+            label="Website"
+            value={
+              tenantInfo.website ? (
+                <a href={tenantInfo.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                  {tenantInfo.website}
+                </a>
+              ) : (
+                "N/A"
+              )
+            }
+          />
+          <InfoItem label="Timezone" value={tenantInfo.timezone || "N/A"} />
+          <InfoItem
+            label="Working Hours"
+            value={
+              tenantInfo.working_hours_start && tenantInfo.working_hours_end
+                ? `${tenantInfo.working_hours_start} - ${tenantInfo.working_hours_end}`
+                : "N/A"
+            }
+          />
+          <InfoItem label="Working Days" value={tenantInfo.working_days?.join(", ") || "N/A"} />
+          <InfoItem label="Billing Contact" value={tenantInfo.billing_contact || "N/A"} />
+          <InfoItem label="License No." value={tenantInfo.license_no || "N/A"} />
+          <InfoItem label="Tax ID" value={tenantInfo.tax_id || "N/A"} />
+          <InfoItem label="Status" value={tenantInfo.status || "N/A"} />
+        </section>
+
+        <section className="mt-6 border-t pt-4">
+          <h3 className="text-xl font-semibold mb-3">Subscription Plan</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <PlanInfo label="Plan Type" value={tenantInfo.plan_type || "N/A"} />
+            <PlanInfo
+              label="Start Date"
+              value={tenantInfo.plan_start ? new Date(tenantInfo.plan_start).toLocaleDateString() : "N/A"}
+            />
+            <PlanInfo
+              label="End Date"
+              value={tenantInfo.plan_end ? new Date(tenantInfo.plan_end).toLocaleDateString() : "N/A"}
+            />
+          </div>
+        </section>
+
+        <section className="mt-6 border-t pt-4">
+          <h3 className="text-xl font-semibold mb-3">Address</h3>
+          <address className="not-italic space-y-1 text-gray-700">
+            <div>{tenantInfo.address_street || ""}</div>
+            <div>
+              {tenantInfo.address_city || ""}, {tenantInfo.address_state || ""} {tenantInfo.address_zip || ""}
+            </div>
+            <div>{tenantInfo.address_country || ""}</div>
+          </address>
+        </section>
+      </div>
+    );
+  };
+
+  // Components for improved info presentation
+  const InfoItem = ({ label, value }) => (
+    <div className="flex flex-col">
+      <span className="text-sm font-semibold text-gray-500 mb-1">{label}</span>
+      <span className="text-base text-gray-800">{value}</span>
+    </div>
+  );
+
+  const PlanInfo = ({ label, value }) => (
+    <div className="p-4 bg-blue-50 rounded-lg shadow-sm hover:shadow-md transition duration-200">
+      <span className="block text-gray-500 text-sm mb-1">{label}</span>
+      <span className="block font-semibold text-blue-700 text-lg">{value}</span>
+    </div>
+  );
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "overview":
+        return renderTenantOverview();
+      case "hospitals":
+        return <HospitalListTable />;
+      case "hospitals-staffs":
+       return <StaffsRolesTab />;
+      case "hospitals-patients":
+        return <HospitalPatinets/>
+      case "hospitals-appointments":
+        return <HospitalAppointments/>
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 pt-[84px]">
+      <Navbar />
+      {renderTabs()}
+      <main className="p-6 max-w-6xl mx-auto">{renderContent()}</main>
+    </div>
+  );
+}

@@ -41,37 +41,60 @@ export default function TenantListPage() {
   }, []);
 
   // Handle Add
-  const handleAddTenant = (newTenant) => {
-    if (!newTenant.status) newTenant.status = "Active";
-    setTenants((prev) => [...prev, newTenant]);
-    toast.success(`Tenant "${newTenant.name}" added successfully!`);
-  };
+  // Updated handleAddTenant to receive full API response,
+  // extract tenant data, normalize fields, and then update state
+  const handleAddTenant = (response) => {
+    // Only use the 'tenant' object from the response for the table!
+    const newTenant = response.tenant;
 
-  // Handle Edit (update DB + UI)
- const handleEditTenant = async (updatedTenant) => {
-  try {
-    const res = await tenantsAPI.update(updatedTenant.id, updatedTenant); // PATCH endpoint
-
-    // Apply defaults like in initial fetch
-    const tenantWithDefaults = {
-      ...res,
-      status: res.status || "Active",
-      preferred_languages: res.preferred_languages || [],
-      notification_channels: res.notification_channels || [],
-      branch_type: res.branch_type || "",
+    const normalizedTenant = {
+      ...newTenant,
+      status: newTenant.status || "Active",
+      preferred_languages: Array.isArray(newTenant.preferred_languages)
+        ? newTenant.preferred_languages
+        : [],
+      notification_channels: Array.isArray(newTenant.notification_channels)
+        ? newTenant.notification_channels
+        : [],
+      branch_type: newTenant.branch_type || "",
+      phone: Array.isArray(newTenant.phone)
+        ? newTenant.phone
+        : [newTenant.phone || ""],
+      plan_type: newTenant.plan_type || "N/A",
+      address_city: newTenant.address_city || newTenant.city || "",
     };
 
-    setTenants((prev) =>
-      prev.map((t) => (t.id === tenantWithDefaults.id ? tenantWithDefaults : t))
-    );
+    setTenants((prev) => [...prev, normalizedTenant]);
+    toast.success(`Tenant "${normalizedTenant.name}" added successfully!`);
+  };
 
-    toast.success(`Tenant "${tenantWithDefaults.name}" updated successfully!`);
-    setEditOpen(false);
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to update tenant");
-  }
-};
+
+
+  // Handle Edit (update DB + UI)
+  const handleEditTenant = async (updatedTenant) => {
+    try {
+      const res = await tenantsAPI.update(updatedTenant.id, updatedTenant); // PATCH endpoint
+
+      // Apply defaults like in initial fetch
+      const tenantWithDefaults = {
+        ...res,
+        status: res.status || "Active",
+        preferred_languages: res.preferred_languages || [],
+        notification_channels: res.notification_channels || [],
+        branch_type: res.branch_type || "",
+      };
+
+      setTenants((prev) =>
+        prev.map((t) => (t.id === tenantWithDefaults.id ? tenantWithDefaults : t))
+      );
+
+      toast.success(`Tenant "${tenantWithDefaults.name}" updated successfully!`);
+      setEditOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update tenant");
+    }
+  };
 
 
 
@@ -127,34 +150,36 @@ export default function TenantListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tenants.map((tenant) => (
-                <TableRow key={tenant.id}>
-                  <TableCell>{tenant.id}</TableCell>
-                  <TableCell className="font-medium">{tenant.name}</TableCell>
-                  <TableCell>{tenant.type}</TableCell>
-                  <TableCell>{tenant.email}</TableCell>
-                  <TableCell>{Array.isArray(tenant.phone) ? tenant.phone.join(", ") : tenant.phone}</TableCell>
-                  <TableCell>
-                    <Badge className={getPlanBadgeColor(tenant.plan_type || tenant.planType)}>
-                      {tenant.plan_type || tenant.planType || "N/A"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusBadgeColor(tenant.status)}>
-                      {tenant.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{tenant.address_city || tenant.city}</TableCell>
-                  <TableCell className="flex gap-3">
-                    <Button size="icon" variant="outline" onClick={() => { setSelectedTenant(tenant); setInfoOpen(true); }}>
-                      <Info size={16} />
-                    </Button>
-                    <Button size="icon" variant="outline" onClick={() => { setSelectedTenant(tenant); setEditOpen(true); }}>
-                      <Edit2 size={16} />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {[...tenants]
+                .sort((a, b) => a.id - b.id)
+                .map((tenant) => (
+                  <TableRow key={tenant.id}>
+                    <TableCell>{tenant.id}</TableCell>
+                    <TableCell className="font-medium">{tenant.name}</TableCell>
+                    <TableCell>{tenant.type}</TableCell>
+                    <TableCell>{tenant.email}</TableCell>
+                    <TableCell>{Array.isArray(tenant.phone) ? tenant.phone.join(", ") : tenant.phone}</TableCell>
+                    <TableCell>
+                      <Badge className={getPlanBadgeColor(tenant.plan_type || tenant.planType)}>
+                        {tenant.plan_type || tenant.planType || "N/A"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeColor(tenant.status)}>
+                        {tenant.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{tenant.address_city || tenant.city}</TableCell>
+                    <TableCell className="flex gap-3">
+                      <Button size="icon" variant="outline" onClick={() => { setSelectedTenant(tenant); setInfoOpen(true); }}>
+                        <Info size={16} />
+                      </Button>
+                      <Button size="icon" variant="outline" onClick={() => { setSelectedTenant(tenant); setEditOpen(true); }}>
+                        <Edit2 size={16} />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </CardContent>
