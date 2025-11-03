@@ -112,13 +112,15 @@ export const appointmentsAPI = {
     });
   },
 
-  // Cancel appointment
-  cancel: async (id, reason) => {
-    return apiRequest(`/appointments/${id}/cancel`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    });
-  },
+  // Cancel appointment, expects an object with cancelled_by and reason
+cancel: async (id, data) => {
+  return apiRequest(`/appointments/${id}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data), // data = { cancelled_by, reason }
+  });
+},
+
 
   // Reschedule appointment
   reschedule: async (id, newDateTime) => {

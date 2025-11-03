@@ -13,10 +13,9 @@ function formatAvailability(availString) {
     return "-";
   }
   if (!obj || typeof obj !== "object") return "-";
-  return Object.entries(obj)
-    .map(([day, time]) =>
-      <span key={day} className="block"><span className="font-medium">{day[0].toUpperCase() + day.slice(1)}:</span> <span>{time}</span></span>
-    );
+  return Object.entries(obj).map(([day, time]) =>
+    <span key={day} className="block"><span className="font-medium">{day[0].toUpperCase() + day.slice(1)}:</span> <span>{time}</span></span>
+  );
 }
 
 const StaffsRolesTab = () => {
@@ -29,6 +28,11 @@ const StaffsRolesTab = () => {
   const [selectedHospitalId, setSelectedHospitalId] = useState(null);
   const [editStaff, setEditStaff] = useState(null);
   const [dialogKey, setDialogKey] = useState(0);
+
+  // Delete modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const fetchHospitals = async () => {
@@ -87,13 +91,38 @@ const StaffsRolesTab = () => {
     await fetchStaffsByHospital(selectedHospitalId);
   };
 
+  // Show delete confirmation modal
+  const confirmDeleteStaff = (staff, hospitalId, event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setStaffToDelete({ ...staff, hospitalId });
+    setDeleteModalOpen(true);
+  };
+
+  // Delete staff handler with inline loader
+  const handleDeleteConfirmed = async () => {
+    if (!staffToDelete) return;
+    setDeleting(true);
+    try {
+      await staffApi.softDelete(staffToDelete.id);
+      toast.success(`Staff "${staffToDelete.staff_name}" deleted successfully.`);
+      await fetchStaffsByHospital(staffToDelete.hospitalId);
+    } catch (error) {
+      toast.error("Failed to delete staff: " + error.message);
+    } finally {
+      setDeleting(false);
+      setDeleteModalOpen(false);
+      setStaffToDelete(null);
+    }
+  };
+
   if (loadingHospitals)
     return <div className="text-center py-10 text-gray-600">Loading hospitals...</div>;
   if (!hospitals.length)
     return <div className="text-center py-10 text-gray-600">No hospitals found for this tenant.</div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8">
+    <div className="max-w-5xl mx-auto p-6 space-y-8 relative">
       <h2 className="text-3xl font-semibold text-gray-900">Hospitals & Staff</h2>
       {hospitals.map(({ id, name, email, address }) => {
         const isExpanded = expandedHospitalIds.includes(id);
@@ -138,13 +167,9 @@ const StaffsRolesTab = () => {
                   </button>
                 </div>
                 {staffsLoading ? (
-                  <p className="text-center py-5 text-gray-500 italic">
-                    Loading staffs...
-                  </p>
+                  <p className="text-center py-5 text-gray-500 italic">Loading staffs...</p>
                 ) : staffs.length === 0 ? (
-                  <p className="text-center py-5 text-gray-500 italic">
-                    No staffs found for this hospital.
-                  </p>
+                  <p className="text-center py-5 text-gray-500 italic">No staffs found for this hospital.</p>
                 ) : (
                   <div className="overflow-x-auto rounded-lg border border-gray-200">
                     <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
@@ -185,7 +210,7 @@ const StaffsRolesTab = () => {
                                 ✏️
                               </button>
                               <button
-                                onClick={() => alert(`Delete staff ${staff.id} coming soon`)}
+                                onClick={(e) => confirmDeleteStaff(staff, id, e)}
                                 className="text-red-600 hover:text-red-800"
                                 aria-label={`Delete ${staff.staff_name}`}
                               >
@@ -203,9 +228,10 @@ const StaffsRolesTab = () => {
           </section>
         );
       })}
+
       {dialogOpen && (
         <CreateStaffDialog
-          key={dialogKey} 
+          key={dialogKey}
           hospitalId={selectedHospitalId}
           open={dialogOpen}
           setOpen={setDialogOpen}
@@ -213,7 +239,63 @@ const StaffsRolesTab = () => {
           editStaff={editStaff}
         />
       )}
+
+      {/* Centered delete confirmation modal with delete button loader */}
+      {deleteModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            zIndex: 1000,
+            width: "320px",
+            backgroundColor: "white",
+            border: "1px solid #d1d5db", // Tailwind gray-300
+            borderRadius: "0.5rem",
+            boxShadow: "0 10px 15px rgba(0,0,0,0.1)",
+            padding: "1.5rem",
+            transform: "translate(-50%,-50%)",
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-dialog-title"
+        >
+          <h3 id="delete-dialog-title" className="text-lg font-semibold mb-4">
+            Confirm Delete
+          </h3>
+          <p className="mb-6">
+            Are you sure you want to delete "<strong>{staffToDelete?.staff_name}</strong>"?
+          </p>
+          <div className="flex justify-end space-x-4">
+            <button
+              onClick={() => setDeleteModalOpen(false)}
+              className="rounded border border-gray-300 px-4 py-2 hover:bg-gray-100"
+              disabled={deleting}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteConfirmed}
+              className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 flex items-center justify-center min-w-[90px]"
+              disabled={deleting}
+            >
+              {deleting && (
+                <span
+                  className="inline-block w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"
+                  style={{
+                    borderWidth: "2px",
+                    borderTopColor: "transparent",
+                    marginRight: "0.5rem",
+                  }}
+                ></span>
+              )}
+              {deleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 export default StaffsRolesTab;

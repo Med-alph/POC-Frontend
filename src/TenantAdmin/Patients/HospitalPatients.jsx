@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import hospitalsapi from "../../api/hospitalsAPI";
-
 import toast from "react-hot-toast";
-import CreatePatientsDialog from "../../Patients/AddPatient"; // Adjust if needed
+import CreatePatientsDialog from "../../Patients/AddPatient";
+import EditPatientDialog from "./EditPatientDialog";
 import patientsAPI from "../../API/PatientsAPI";
 
 function formatDate(dateStr) {
@@ -17,10 +17,15 @@ const HospitalPatients = () => {
   const [hospitalPatients, setHospitalPatients] = useState({});
   const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [loadingPatients, setLoadingPatients] = useState({});
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedHospitalId, setSelectedHospitalId] = useState(null);
   const [editPatient, setEditPatient] = useState(null);
   const [dialogKey, setDialogKey] = useState(0);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [patientToDelete, setPatientToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const fetchHospitals = async () => {
@@ -60,22 +65,62 @@ const HospitalPatients = () => {
     }
   };
 
+  // Updated onAdd to call create API
+  const handlePatientSaved = async (patientData) => {
+    try {
+      await patientsAPI.create(patientData);
+      toast.success("Patient created successfully");
+      setAddDialogOpen(false);
+      await fetchPatientsByHospital(selectedHospitalId);
+    } catch (error) {
+      toast.error("Failed to create patient: " + error.message);
+    }
+  };
+
   const openCreatePatientDialog = (hospitalId) => {
     setEditPatient(null);
     setSelectedHospitalId(hospitalId);
     setDialogKey((prev) => prev + 1);
-    setDialogOpen(true);
+    setAddDialogOpen(true);
   };
 
   const openEditPatientDialog = (hospitalId, patient) => {
     setEditPatient(patient);
     setSelectedHospitalId(hospitalId);
     setDialogKey((prev) => prev + 1);
-    setDialogOpen(true);
+    setEditDialogOpen(true);
   };
 
-  const handlePatientSaved = async () => {
-    await fetchPatientsByHospital(selectedHospitalId);
+  const handlePatientUpdated = async (patientId, patientData) => {
+    try {
+      await patientsAPI.update(patientId, patientData);
+      toast.success("Patient updated successfully");
+      setEditDialogOpen(false);
+      await fetchPatientsByHospital(selectedHospitalId);
+    } catch (error) {
+      toast.error("Failed to update patient: " + error.message);
+    }
+  };
+
+  const openDeleteModal = (patient) => {
+    setPatientToDelete(patient);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!patientToDelete) return;
+    setDeleting(true);
+    try {
+      await patientsAPI.delete(patientToDelete.id);
+      toast.success(`Patient "${patientToDelete.patient_name}" deleted successfully.`);
+      await fetchPatientsByHospital(selectedHospitalId);
+    } catch (error) {
+      toast.error("Failed to delete patient: " + error.message);
+    } finally {
+      setDeleting(false);
+      setDeleteModalOpen(false);
+      setPatientToDelete(null);
+    }
   };
 
   if (loadingHospitals)
@@ -84,7 +129,7 @@ const HospitalPatients = () => {
     return <div className="text-center py-10 text-gray-600">No hospitals found for this tenant.</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8">
+    <div className="max-w-7xl mx-auto p-6 space-y-8 relative">
       <h2 className="text-3xl font-semibold text-gray-900">Hospitals & Patients</h2>
       {hospitals.map(({ id, name }) => {
         const isExpanded = expandedHospitalIds.includes(id);
@@ -161,7 +206,10 @@ const HospitalPatients = () => {
                                 ✏️
                               </button>
                               <button
-                                onClick={() => alert(`Delete patient ${patient.id} coming soon`)}
+                                onClick={() => {
+                                  setPatientToDelete(patient);
+                                  setDeleteModalOpen(true);
+                                }}
                                 className="text-red-600 hover:text-red-800"
                                 aria-label={`Delete ${patient.patient_name}`}
                               >
@@ -179,15 +227,70 @@ const HospitalPatients = () => {
           </section>
         );
       })}
-      {dialogOpen && (
+      {addDialogOpen && (
         <CreatePatientsDialog
           key={dialogKey}
           hospitalId={selectedHospitalId}
-          open={dialogOpen}
-          setOpen={setDialogOpen}
+          open={addDialogOpen}
+          setOpen={setAddDialogOpen}
           onAdd={handlePatientSaved}
           editPatient={editPatient}
         />
+      )}
+      {editDialogOpen && (
+        <EditPatientDialog
+          key={dialogKey}
+          open={editDialogOpen}
+          setOpen={setEditDialogOpen}
+          onUpdate={handlePatientUpdated}
+          editPatient={editPatient}
+        />
+      )}
+      {deleteModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            zIndex: 9999,
+            width: "320px",
+            backgroundColor: "white",
+            border: "1px solid #d1d5db",
+            borderRadius: "0.5rem",
+            boxShadow: "0 10px 15px rgba(0,0,0,0.1)",
+            padding: "1.5rem",
+            transform: "translate(-50%, -50%)",
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-dialog-title"
+        >
+          <h3 id="delete-dialog-title" className="text-lg font-semibold mb-4">
+            Confirm Delete
+          </h3>
+          <p className="mb-6">
+            Are you sure you want to delete "<strong>{patientToDelete?.patient_name}</strong>"?
+          </p>
+          <div className="flex justify-end space-x-4">
+            <button
+              onClick={() => setDeleteModalOpen(false)}
+              className="rounded border border-gray-300 px-4 py-2 hover:bg-gray-100"
+              disabled={deleting}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteConfirmed}
+              className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 flex items-center justify-center min-w-[90px]"
+              disabled={deleting}
+            >
+              {deleting && (
+                <span className="inline-block w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></span>
+              )}
+              {deleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

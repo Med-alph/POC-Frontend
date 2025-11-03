@@ -22,7 +22,7 @@ const handleResponse = async (response) => {
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_CONFIG.baseURL}${endpoint}`
   const token = getAuthToken()
-  
+
   const config = {
     ...options,
     headers: {
@@ -41,28 +41,32 @@ const apiRequest = async (endpoint, options = {}) => {
   }
 }
 
+//--- PATCH helper
+const patch = async (endpoint, data) => {
+  return apiRequest(endpoint, {
+    method: 'PATCH',
+    body: data ? JSON.stringify(data) : undefined
+  })
+}
+
 // Staff API (handles both doctors and staff)
 export const staffApi = {
   // Get all staff/doctors with optional filters
   getAll: async (params = {}) => {
     const { hospital_id, search, limit = 10, offset = 0 } = params
     const queryParams = new URLSearchParams()
-    
     if (hospital_id) queryParams.append('hospital_id', hospital_id)
     if (search) queryParams.append('search', search)
     if (limit) queryParams.append('limit', limit.toString())
     if (offset) queryParams.append('offset', offset.toString())
-    
     const endpoint = queryParams.toString() ? `/staffs?${queryParams.toString()}` : '/staffs'
     return apiRequest(endpoint)
   },
 
-  // Get staff member by ID
   getById: async (id) => {
     return apiRequest(`/staffs/${id}`)
   },
 
-  // Create new staff member
   create: async (staffData) => {
     return apiRequest('/staffs', {
       method: 'POST',
@@ -70,7 +74,6 @@ export const staffApi = {
     })
   },
 
-  // Update staff member
   update: async (id, staffData) => {
     return apiRequest(`/staffs/${id}`, {
       method: 'PUT',
@@ -78,37 +81,31 @@ export const staffApi = {
     })
   },
 
-  // Delete staff member
   delete: async (id) => {
     return apiRequest(`/staffs/${id}`, {
       method: 'DELETE',
     })
   },
 
-  // Search staff members
   search: async (query, filters = {}) => {
     const params = { search: query, ...filters }
     return staffApi.getAll(params)
   },
 
-  // Get staff by hospital
   getByHospital: async (hospitalId, params = {}) => {
     return staffApi.getAll({ hospital_id: hospitalId, ...params })
   },
 
-  // Get staff by role/type (doctor, nurse, admin, etc.)
   getByRole: async (role, params = {}) => {
     const paramsWithRole = { ...params, role }
     return staffApi.getAll(paramsWithRole)
   },
 
-  // Get staff availability
   getAvailability: async (id, date) => {
     const params = date ? `?date=${date}` : ''
     return apiRequest(`/staffs/${id}/availability${params}`)
   },
 
-  // Update staff availability
   updateAvailability: async (id, availabilityData) => {
     return apiRequest(`/staffs/${id}/availability`, {
       method: 'PUT',
@@ -116,26 +113,21 @@ export const staffApi = {
     })
   },
 
-  // Get staff specialties (for doctors)
   getSpecialties: async () => {
     return apiRequest('/staffs/specialties')
   },
 
-  // Get staff schedule
   getSchedule: async (id, params = {}) => {
     const { start_date, end_date } = params
     const queryParams = new URLSearchParams()
-    
     if (start_date) queryParams.append('start_date', start_date)
     if (end_date) queryParams.append('end_date', end_date)
-    
     const endpoint = queryParams.toString() 
       ? `/staffs/${id}/schedule?${queryParams.toString()}` 
       : `/staffs/${id}/schedule`
     return apiRequest(endpoint)
   },
 
-  // Update staff schedule
   updateSchedule: async (id, scheduleData) => {
     return apiRequest(`/staffs/${id}/schedule`, {
       method: 'PUT',
@@ -143,12 +135,16 @@ export const staffApi = {
     })
   },
 
-  // Get staff statistics
   getStats: async (params = {}) => {
     const queryParams = new URLSearchParams(params).toString()
     const endpoint = queryParams ? `/staffs/stats?${queryParams}` : '/staffs/stats'
     return apiRequest(endpoint)
   },
+
+  // Fixed: Soft delete staff by ID via PATCH
+  softDelete: async (id) => {
+    return patch(`/staffs/${id}/soft-delete`)
+  }
 }
 
 export default staffApi
