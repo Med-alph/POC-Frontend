@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { staffApi } from "@/api/StaffAPI";
 import AddPatientDialog from "@/Patients/AddPatient";
 import { patientsAPI } from "@/api/PatientsAPI";
-import appointmentsAPI from "../API/AppointmentsAPI";
+import appointmentsAPI from "@/api/AppointmentsAPI";
 
 export default function AppointmentForm() {
   const navigate = useNavigate();
