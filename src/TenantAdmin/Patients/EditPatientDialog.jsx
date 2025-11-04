@@ -10,28 +10,42 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 
-export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
+export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient }) {
     const [formData, setFormData] = useState({
-        hospital_id: hospitalId || "550e8400-e29b-41d4-a716-446655440001",
-        patient_name: "",
-        dob: "",
-        contact_info: "",
-        email: "",
-        address: "",
-        emergency_contact: "",
-        insurance_provider: "",
-        insurance_number: "",
-        medical_history: "",
-        allergies: "",
-        status: "active"
+        hospital_id: editPatient?.hospital_id || "",
+        patient_name: editPatient?.patient_name || "",
+        dob: editPatient?.dob || "",
+        contact_info: editPatient?.contact_info || "",
+        email: editPatient?.email || "",
+        address: editPatient?.address || "",
+        emergency_contact: editPatient?.emergency_contact || "",
+        insurance_provider: editPatient?.insurance_provider || "",
+        insurance_number: editPatient?.insurance_number || "",
+        medical_history: editPatient?.medical_history || "",
+        allergies: editPatient?.allergies || "",
+        status: editPatient?.status || "active",
     });
 
-    // Update hospital_id in form when prop changes
     useEffect(() => {
-        setFormData(prev => ({ ...prev, hospital_id: hospitalId || "550e8400-e29b-41d4-a716-446655440001" }));
-    }, [hospitalId]);
+        if (editPatient) {
+            setFormData({
+                hospital_id: editPatient?.hospital_id || "",
+                patient_name: editPatient?.patient_name || "",
+                dob: editPatient?.dob || "",
+                contact_info: editPatient?.contact_info || "",
+                email: editPatient?.email || "",
+                address: editPatient?.address || "",
+                emergency_contact: editPatient?.emergency_contact || "",
+                insurance_provider: editPatient?.insurance_provider || "",
+                insurance_number: editPatient?.insurance_number || "",
+                medical_history: editPatient?.medical_history || "",
+                allergies: editPatient?.allergies || "",
+                status: editPatient?.status || "active",
+            });
+        }
+    }, [editPatient]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -44,16 +58,13 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Submitting form data:', formData);
-
-        // Basic validation
         if (!formData.patient_name || !formData.contact_info) {
             toast.error("Please fill in required fields (Name and Contact)");
             return;
         }
 
         try {
-            // Calculate age from date of birth
+            // Calculate age from dob if present, else null
             const age = formData.dob
                 ? Math.floor((new Date() - new Date(formData.dob)) / (365.25 * 24 * 60 * 60 * 1000))
                 : null;
@@ -61,36 +72,15 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
             const patientData = {
                 ...formData,
                 age,
-                created_at: new Date().toISOString(),
-                last_visit: null,
-                next_appointment: null
+                updated_at: new Date().toISOString(),
             };
 
-            console.log('Calling onAdd with patientData:', patientData);
-            await onAdd(patientData); // Await API call completion here
-            console.log('onAdd call successful');
+            // Call onUpdate with id and patient data
+            await onUpdate(editPatient.id, patientData);
             setOpen(false);
-
-            // Reset form only after success
-            setFormData({
-                hospital_id: hospitalId || "550e8400-e29b-41d4-a716-446655440001",
-                patient_name: "",
-                dob: "",
-                contact_info: "",
-                email: "",
-                address: "",
-                emergency_contact: "",
-                insurance_provider: "",
-                insurance_number: "",
-                medical_history: "",
-                allergies: "",
-                status: "active"
-            });
-            console.log('Form reset after success');
-
         } catch (error) {
-            console.error('Error in form submission:', error);
-            toast.error("Failed to create patient. Please try again.");
+            console.error('Error updating patient:', error);
+            toast.error("Failed to update patient. Please try again.");
         }
     };
 
@@ -98,11 +88,10 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="max-w-[600px] h-[85vh] sm:h-[90vh] flex flex-col modal-content">
                 <DialogHeader className="flex-shrink-0">
-                    <DialogTitle>Add New Patient</DialogTitle>
+                    <DialogTitle>Edit Patient</DialogTitle>
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
-                    <form id="patient-form" onSubmit={handleSubmit} className="space-y-4">
-
+                    <form id="edit-patient-form" onSubmit={handleSubmit} className="space-y-4">
                         {/* Basic Information */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
@@ -184,10 +173,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="insurance_provider">Insurance Provider</Label>
-                                    <Select
-                                        value={formData.insurance_provider}
-                                        onValueChange={(value) => handleSelectChange('insurance_provider', value)}
-                                    >
+                                    <Select value={formData.insurance_provider} onValueChange={(value) => handleSelectChange('insurance_provider', value)}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select insurance provider" />
                                         </SelectTrigger>
@@ -244,10 +230,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                             </div>
                             <div>
                                 <Label htmlFor="status">Status</Label>
-                                <Select
-                                    value={formData.status}
-                                    onValueChange={(value) => handleSelectChange('status', value)}
-                                >
+                                <Select value={formData.status} onValueChange={(value) => handleSelectChange('status', value)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
@@ -259,15 +242,14 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                                 </Select>
                             </div>
                         </div>
-
                     </form>
                 </div>
                 <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
                     <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                         Cancel
                     </Button>
-                    <Button type="submit" form="patient-form" className="bg-blue-600 hover:bg-blue-700 text-white">
-                        Add Patient
+                    <Button type="submit" form="edit-patient-form" className="bg-blue-600 hover:bg-blue-700 text-white">
+                        Update Patient
                     </Button>
                 </div>
             </DialogContent>
