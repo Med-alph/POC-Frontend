@@ -113,12 +113,12 @@ export const appointmentsAPI = {
   },
 
   // Cancel appointment
-  cancel: async (id, reason) => {
-    return apiRequest(`/appointments/${id}/cancel`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    });
-  },
+ cancel: async (id, data) => {
+  return apiRequest(`/appointments/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify(data),  // directly stringify the data object
+  });
+},
 
   // Reschedule appointment
   reschedule: async (id, newDateTime) => {
