@@ -30,25 +30,34 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
 
     // Update hospital_id in form when prop changes
     useEffect(() => {
+        // console.log("Hospital ID changed, updating formData");
         setFormData(prev => ({ ...prev, hospital_id: hospitalId || "550e8400-e29b-41d4-a716-446655440001" }));
     }, [hospitalId]);
 
+    // Log formData on every change for debugging
+    useEffect(() => {
+        // console.log("Current formData:", formData);
+    }, [formData]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
+        // console.log(`Input changed: ${name} = ${value}`);
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSelectChange = (name, value) => {
+        // console.log(`Select changed: ${name} = ${value}`);
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Submitting form data:', formData);
+        // console.log('Submitting form data:', formData);
 
-        // Basic validation
-        if (!formData.patient_name || !formData.contact_info) {
+        // Basic validation with trimming to avoid whitespace only
+        if (!formData.patient_name.trim() || !formData.contact_info.trim()) {
             toast.error("Please fill in required fields (Name and Contact)");
+            console.warn('Validation failed: Missing patient_name or contact_info');
             return;
         }
 
@@ -66,9 +75,9 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                 next_appointment: null
             };
 
-            console.log('Calling onAdd with patientData:', patientData);
+            // console.log('Calling onAdd with patientData:', patientData);
             await onAdd(patientData); // Await API call completion here
-            console.log('onAdd call successful');
+            // console.log('onAdd call successful');
             setOpen(false);
 
             // Reset form only after success
@@ -86,7 +95,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                 allergies: "",
                 status: "active"
             });
-            console.log('Form reset after success');
+            // console.log('Form reset after success');
 
         } catch (error) {
             console.error('Error in form submission:', error);
@@ -101,7 +110,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                     <DialogTitle>Add New Patient</DialogTitle>
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
-                    <form id="patient-form" onSubmit={handleSubmit} className="space-y-4">
+                    <form id="patient-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
 
                         {/* Basic Information */}
                         <div className="space-y-4">
@@ -263,10 +272,10 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                     </form>
                 </div>
                 <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
-                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    <Button type="button" variant="outline" onClick={() => { setOpen(false); }}>
                         Cancel
                     </Button>
-                    <Button type="submit" form="patient-form" className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button type="submit" form="patient-form" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => console.log("Add Patient clicked")}>
                         Add Patient
                     </Button>
                 </div>
