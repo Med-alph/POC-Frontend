@@ -55,6 +55,10 @@ export default function Appointments() {
   const [appointmentToCancel, setAppointmentToCancel] = useState(null)
   const [cancelReason, setCancelReason] = useState("")
   const [cancelLoading, setCancelLoading] = useState(false)
+  const [page, setPage] = useState(1);
+  const limit = 10;  // fixed page size
+  const [total, setTotal] = useState(0)
+
 
 
   useEffect(() => {
@@ -62,19 +66,30 @@ export default function Appointments() {
     fetchPatients()
   }, [])
 
+  useEffect(() => {
+    fetchAppointments()
+  }, [page])
+
+
+
 
   async function fetchAppointments() {
-    setLoading(true)
+    setLoading(true);
     try {
-      const result = await appointmentsAPI.getAll({ hospital_id: HOSPITAL_ID })
+      const offset = (page - 1) * limit;
+      const result = await appointmentsAPI.getAll({ hospital_id: HOSPITAL_ID, limit, offset })
       setAppointments(Array.isArray(result.data) ? result.data : [])
+      setTotal(result.total || 0)
+
+      // Optionally also track total from API result if available
     } catch {
-      toast.error("Failed to load appointments.")
-      setAppointments([])
+      toast.error("Failed to load appointments.");
+      setAppointments([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
+
 
 
   async function fetchPatients() {
@@ -447,7 +462,7 @@ export default function Appointments() {
 
 
   function renderStep() {
-    switch(step) {
+    switch (step) {
       case 1:
         return (
           <>
@@ -478,7 +493,7 @@ export default function Appointments() {
                   <div
                     key={p.id}
                     className="p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center gap-3"
-                    onClick={() => { setSelectedPatient(p); setPatientSearch(p.patient_name)}}
+                    onClick={() => { setSelectedPatient(p); setPatientSearch(p.patient_name) }}
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>{p.patient_name?.split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
@@ -572,9 +587,8 @@ export default function Appointments() {
                   <Button
                     key={idx}
                     variant={selectedSlot === slot.time ? "default" : "outline"}
-                    className={`flex justify-between items-center ${
-                      slot.status === "unavailable" ? "cursor-not-allowed opacity-50 bg-red-50 border-red-300" : "hover:bg-green-50 hover:border-green-300"
-                    }`}
+                    className={`flex justify-between items-center ${slot.status === "unavailable" ? "cursor-not-allowed opacity-50 bg-red-50 border-red-300" : "hover:bg-green-50 hover:border-green-300"
+                      }`}
                     onClick={() => slot.status !== "unavailable" && setSelectedSlot(slot.time)}
                     disabled={slot.status === "unavailable"}
                     title={slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time has passed" : ""}
@@ -738,8 +752,26 @@ export default function Appointments() {
               ))}
             </TableBody>
           </Table>
+
+
         )}
+        <div className="mt-6 bg-white shadow rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="text-sm text-gray-600">
+              Showing {(page - 1) * limit + 1} - {Math.min(page * limit, total)} of {total} appointments
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>Previous</Button>
+              <span className="text-sm text-gray-600">Page {page} of {Math.ceil(total / limit) || 1}</span>
+              <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page * limit >= total}>Next</Button>
+            </div>
+          </div>
+        </div>
+
+
       </div>
+
+
 
       <Dialog open={viewModalOpen} onOpenChange={() => {
         setViewModalOpen(false)

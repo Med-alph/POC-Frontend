@@ -39,6 +39,8 @@ import PatientDetailsForm from "./AppoinmentFlow/PatientDetailsForm"
 import FulfilledRecords from "./Doctors/FulfilledRecords"
 import TenantAdminLogin from "./TenantAdmin/TenantAdminLogin"
 import TenantAdminDashboard from "./TenantAdmin/TenantAdminDashboard"
+import Notifications from "./Dashboard/Notifications"
+import DoctorCancellationRequests from "./Doctors/DoctorCancellationRequests"
 
 // Component to conditionally render Navbar
 function AppContent() {
@@ -68,6 +70,8 @@ function AppContent() {
         <Route path="/doctors" element={<Doctors />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/reminders" element={<Reminders />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
         <Route path="/TenantListPage" element={<TenantListPage />} />
         <Route path="/Staffs" element={<StaffListPage />} />
         <Route path="/doctor-attendance" element={<DoctorAttendancePage />} />
