@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react"
-import { staffApi } from "../api/StaffAPI"
+
 import toast, { Toaster } from 'react-hot-toast'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -45,6 +45,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import ViewModal from "@/components/ui/view-modal"
+import staffApi from "../api/staffapi"
 
 export default function Doctors() {
     const [doctors, setDoctors] = useState([])

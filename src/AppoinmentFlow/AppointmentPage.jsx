@@ -19,10 +19,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { staffApi } from "@/api/StaffAPI";
+
 import AddPatientDialog from "@/Patients/AddPatient";
 import { patientsAPI } from "@/api/PatientsAPI";
 import appointmentsAPI from "@/api/AppointmentsAPI";
+import staffApi from "../api/staffapi";
 
 export default function AppointmentForm() {
   const navigate = useNavigate();
