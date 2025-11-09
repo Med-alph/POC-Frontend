@@ -3,13 +3,14 @@ import { useParams } from "react-router-dom";
 import { User, ClipboardList, Activity, Stethoscope, Pill, FlaskConical, Play, StopCircle, XCircle, Clock } from "lucide-react";
 import appointmentsAPI from "../api/AppointmentsAPI";
 import consultationsAPI from "../api/ConsultationsAPI";
-import toast from 'react-hot-toast';
-import { useSelector } from 'react-redux';
+import toast from "react-hot-toast";
+import { useSelector } from "react-redux";
+import cancellationRequestAPI from "../api/cancellationrequestapi";
 
 const DoctorConsultation = () => {
     const { appointmentId } = useParams();
     const user = useSelector((state) => state.auth.user);
-    
+
     const [appointmentData, setAppointmentData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isConsultationStarted, setIsConsultationStarted] = useState(false);
@@ -18,6 +19,8 @@ const DoctorConsultation = () => {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancellationReason, setCancellationReason] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    
+    const [cancelRequested, setCancelRequested] = useState(false);
     
     const [soapNotes, setSoapNotes] = useState({
         subjective: "",
@@ -34,39 +37,54 @@ const DoctorConsultation = () => {
         { test_name: "", instructions: "" }
     ]);
 
-    // Fetch appointment details
+
+    async function checkCancellationRequest() {
+  try {
+    // Call an API endpoint you must create:
+    // Should return boolean or details if request exists
+    const exists = await cancellationRequestAPI.hasRequestForAppointment(appointmentId, user.id);
+    setCancelRequested(exists);
+  } catch (err) {
+    console.error("Error checking cancellation request", err);
+  }
+}
+
+
     useEffect(() => {
-        const fetchAppointmentDetails = async () => {
-            if (!appointmentId) {
-                toast.error("No appointment ID provided");
-                setLoading(false);
-                return;
-            }
+  const fetchAppointmentDetails = async () => {
+    if (!appointmentId) {
+      toast.error("No appointment ID provided");
+      setLoading(false);
+      return;
+    }
 
-            try {
-                setLoading(true);
-                const response = await appointmentsAPI.getById(appointmentId);
-                setAppointmentData(response);
-                
-                // Check if consultation already started
-                if (response.status === 'in-progress' && response.actual_start_time) {
-                    setIsConsultationStarted(true);
-                    setConsultationStartTime(new Date(response.actual_start_time));
-                }
-                
-                toast.success("Appointment loaded successfully!");
-            } catch (err) {
-                console.error("Failed to fetch appointment details:", err);
-                toast.error(`Failed to load: ${err.message}`);
-            } finally {
-                setLoading(false);
-            }
-        };
+    try {
+      setLoading(true);
+      const response = await appointmentsAPI.getById(appointmentId);
+      setAppointmentData(response);
 
-        fetchAppointmentDetails();
-    }, [appointmentId]);
+      if (response.status === 'in-progress' && response.actual_start_time) {
+        setIsConsultationStarted(true);
+        setConsultationStartTime(new Date(response.actual_start_time));
+      }
 
-    // Timer for consultation duration
+      // Check if a cancellation request exists for this appointment by this doctor
+      const hasCancelRequest = await cancellationRequestAPI.hasRequestForAppointment(appointmentId, user.id);
+      setCancelRequested(hasCancelRequest);
+
+      toast.success("Appointment loaded successfully!");
+    } catch (err) {
+      console.error("Failed to fetch appointment details:", err);
+      toast.error(`Failed to load: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAppointmentDetails();
+}, [appointmentId, user?.id]);
+
+
     useEffect(() => {
         let interval;
         if (isConsultationStarted && consultationStartTime) {
@@ -86,17 +104,13 @@ const DoctorConsultation = () => {
         return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // START CONSULTATION
     const handleStartConsultation = async () => {
         try {
             const startTime = new Date();
-            
-            // Update appointment status to in-progress
             await appointmentsAPI.update(appointmentId, {
                 status: 'in-progress',
                 actual_start_time: startTime.toISOString(),
             });
-            
             setIsConsultationStarted(true);
             setConsultationStartTime(startTime);
             setAppointmentData(prev => ({
@@ -104,7 +118,6 @@ const DoctorConsultation = () => {
                 status: 'in-progress',
                 actual_start_time: startTime.toISOString(),
             }));
-            
             toast.success("Consultation started!");
         } catch (err) {
             console.error("Failed to start consultation:", err);
@@ -112,9 +125,7 @@ const DoctorConsultation = () => {
         }
     };
 
-    // END & SAVE CONSULTATION
     const handleEndConsultation = async () => {
-        // Validation
         if (!soapNotes.subjective && !soapNotes.objective && !soapNotes.assessment && !soapNotes.plan) {
             toast.error("Please fill in at least one SOAP note section");
             return;
@@ -123,9 +134,8 @@ const DoctorConsultation = () => {
         try {
             setIsSaving(true);
             const endTime = new Date();
-            const actualDuration = Math.floor((endTime - consultationStartTime) / 60000); // minutes
-            
-            // Prepare consultation data
+            const actualDuration = Math.floor((endTime - consultationStartTime) / 60000);
+
             const consultationData = {
                 appointment_id: appointmentId,
                 patient_id: appointmentData.patient_id,
@@ -153,19 +163,15 @@ const DoctorConsultation = () => {
                     })),
             };
 
-            // Save consultation (this will save to all 3 tables)
             await consultationsAPI.create(consultationData);
-            
-            // Update appointment status to fulfilled
+
             await appointmentsAPI.update(appointmentId, {
                 status: 'fulfilled',
                 actual_end_time: endTime.toISOString(),
                 actual_duration: actualDuration,
             });
-            
+
             toast.success("Consultation completed and saved successfully!");
-            
-            // Navigate back after 2 seconds
             setTimeout(() => {
                 window.history.back();
             }, 2000);
@@ -177,7 +183,6 @@ const DoctorConsultation = () => {
         }
     };
 
-    // CANCEL APPOINTMENT
     const handleCancelAppointment = async () => {
         if (!cancellationReason.trim()) {
             toast.error("Please provide a cancellation reason");
@@ -185,28 +190,26 @@ const DoctorConsultation = () => {
         }
 
         try {
-            await appointmentsAPI.update(appointmentId, {
-                status: 'cancelled',
-                cancelled_by: 'doctor',
-                cancellation_reason: cancellationReason,
-                cancelled_at: new Date().toISOString(),
+            setIsSaving(true);
+
+            await cancellationRequestAPI.createCancellationRequest({
+                appointmentId,
+                doctorId: user.id,
+                reason: cancellationReason,
             });
-            
-            setAppointmentData(prev => ({
-                ...prev,
-                status: 'cancelled',
-            }));
-            
-            toast.success("Appointment cancelled");
+
+            toast.success("Cancellation request sent to admin for approval!");
             setShowCancelModal(false);
-            
-            // Navigate back after 2 seconds
-            setTimeout(() => {
-                window.history.back();
-            }, 2000);
+            setCancellationReason("");
+            setCancelRequested(true);
+
+            // Navigate to doctor's cancellation requests page
+            window.location.href = "/CancellationRequests";
         } catch (err) {
-            console.error("Failed to cancel appointment:", err);
-            toast.error("Failed to cancel appointment");
+            console.error("Failed to create cancellation request:", err);
+            toast.error("Failed to send cancellation request");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -312,7 +315,6 @@ const DoctorConsultation = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-6 space-y-6">
-            {/* Consultation Timer Bar */}
             {isConsultationStarted && !isCompleted && !isCancelled && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -328,7 +330,6 @@ const DoctorConsultation = () => {
                 </div>
             )}
 
-            {/* Patient Header */}
             <div className="bg-white shadow rounded-lg p-6 border-l-4 border-blue-500">
                 <div className="flex justify-between items-start">
                     <div>
@@ -372,7 +373,6 @@ const DoctorConsultation = () => {
                 </div>
             </div>
 
-            {/* Action Buttons */}
             {!isCompleted && !isCancelled && (
                 <div className="flex gap-3 justify-end">
                     {canStartConsultation && (
@@ -384,8 +384,8 @@ const DoctorConsultation = () => {
                             Start Consultation
                         </button>
                     )}
-                    
-                    {canCancelAppointment && (
+
+                    {canCancelAppointment && !cancelRequested && (
                         <button 
                             onClick={() => setShowCancelModal(true)}
                             className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
@@ -394,10 +394,20 @@ const DoctorConsultation = () => {
                             Cancel Appointment
                         </button>
                     )}
+                    {cancelRequested && (
+                        <button 
+                            disabled
+                            className="flex items-center gap-2 px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed"
+                        >
+                            <XCircle className="h-4 w-4" />
+                            Cancellation Requested
+                        </button>
+                    )}
                 </div>
             )}
 
-            {/* Medical History + Alerts */}
+            {/* Rest of your UI like Medical History, Allergies, SOAP Notes, Prescriptions, Lab Orders, Bottom Action Buttons... */}
+{/* Medical History + Alerts */}
             <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-white shadow rounded-lg p-5">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-2">
@@ -628,14 +638,18 @@ const DoctorConsultation = () => {
                                     setCancellationReason("");
                                 }}
                                 className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                                disabled={isSaving}
                             >
                                 Close
                             </button>
                             <button
                                 onClick={handleCancelAppointment}
                                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                                disabled={isSaving}
                             >
-                                Confirm Cancel
+                                {isSaving ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>
+                                ) : 'Request Admin Approval'}
                             </button>
                         </div>
                     </div>
