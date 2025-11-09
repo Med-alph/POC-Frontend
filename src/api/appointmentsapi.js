@@ -116,12 +116,12 @@ update: async (id, data) => {
   },
 
   // Cancel appointment
- cancel: async (id, data) => {
-  return apiRequest(`/appointments/${id}/cancel`, {
-    method: 'POST',
-    body: JSON.stringify(data),  // directly stringify the data object
-  });
-},
+  cancel: async (id, reason) => {
+    return apiRequest(`/appointments/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
 
   // Reschedule appointment
   reschedule: async (id, newDateTime) => {
