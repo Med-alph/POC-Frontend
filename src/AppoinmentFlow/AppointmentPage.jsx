@@ -21,8 +21,8 @@ import { toast } from "sonner";
 
 
 import AddPatientDialog from "@/Patients/AddPatient";
-import { patientsAPI } from "@/api/PatientsAPI";
-import appointmentsAPI from "@/api/AppointmentsAPI";
+import { patientsAPI } from "@/api/patientsapi";
+import appointmentsAPI from "@/api/appointmentsapi";
 import staffApi from "../api/staffapi";
 
 export default function AppointmentForm() {
@@ -74,6 +74,19 @@ export default function AppointmentForm() {
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
   const userId = "system_user";
+
+
+  const isDateTodayOrFuture = (dateString) => {
+  if (!dateString) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to midnight
+
+  const apptDate = new Date(dateString);
+  apptDate.setHours(0, 0, 0, 0); // Normalize to midnight
+
+  return apptDate >= today;
+};
+
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -418,38 +431,55 @@ export default function AppointmentForm() {
                             <th className="border border-gray-300 p-2">Actions</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {patientAppointments.map((apt) => (
-                            <tr key={apt.id} className="odd:bg-white even:bg-gray-50">
-                              <td className="border border-gray-300 p-2">{formatDate(apt.appointment_date)}</td>
-                              <td className="border border-gray-300 p-2">{apt.appointment_time || "-"}</td>
-                              <td className="border border-gray-300 p-2">{apt.staff_name || "-"}</td>
-                              <td className="border border-gray-300 p-2">{apt.status || "-"}</td>
-                              <td className="border border-gray-300">
-                                {apt.status !== "fulfilled" && apt.status !== "cancelled" ? (
-                                  <div className="flex flex-col gap-2 items-start py-1">
-                                    <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      className="!bg-neutral-900 !text-white !rounded-lg !px-4 !py-1 !min-w-[110px]"
-                                      onClick={() => openRescheduleModal(apt)}
-                                    >
-                                      Reschedule
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      className="!rounded-lg !px-4 !py-1 !min-w-[110px]"
-                                      onClick={() => openCancelModal(apt)}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                ) : null}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
+                       <tbody>
+  {patientAppointments.map((apt) => {
+    const isDateFutureOrToday = (() => {
+      if (!apt.appointment_date) return false;
+      const aptDate = new Date(apt.appointment_date);
+      aptDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return aptDate >= today;
+    })();
+
+    const canModify = 
+      apt.status !== "fulfilled" &&
+      apt.status !== "cancelled" &&
+      isDateFutureOrToday;
+
+    return (
+      <tr key={apt.id} className="odd:bg-white even:bg-gray-50">
+        <td className="border border-gray-300 p-2">{formatDate(apt.appointment_date)}</td>
+        <td className="border border-gray-300 p-2">{apt.appointment_time || "-"}</td>
+        <td className="border border-gray-300 p-2">{apt.staff_name || "-"}</td>
+        <td className="border border-gray-300 p-2">{apt.status || "-"}</td>
+        <td className="border border-gray-300">
+          {canModify ? (
+            <div className="flex flex-col gap-2 items-start py-1">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="!bg-neutral-900 !text-white !rounded-lg !px-4 !py-1 !min-w-[110px]"
+                onClick={() => openRescheduleModal(apt)}
+              >
+                Reschedule
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="!rounded-lg !px-4 !py-1 !min-w-[110px]"
+                onClick={() => openCancelModal(apt)}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : null}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+
                       </table>
                     </div>
                   )}

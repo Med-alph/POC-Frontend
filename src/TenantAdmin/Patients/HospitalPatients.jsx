@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import hospitalsapi from "../../api/hospitalsAPI";
+import hospitalsapi from "../../api/hospitalsapi";
 import toast from "react-hot-toast";
 import CreatePatientsDialog from "../../Patients/AddPatient";
 import EditPatientDialog from "./EditPatientDialog";
-import patientsAPI from "../../API/PatientsAPI";
+import patientsAPI from "../../api/patientsapi";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";

@@ -194,16 +194,18 @@ export default function Appointments() {
     if (!reason.trim()) return toast.error("Enter reason")
     setFormLoading(true)
     try {
-      await appointmentsAPI.create({
-        hospital_id: HOSPITAL_ID,
-        patient_id: selectedPatient.id,
-        staff_id: selectedStaff.id,
-        appointment_date: selectedDate,
-        appointment_time: selectedSlot,
-        appointment_type: appointmentType,
-        reason: reason.trim(),
-        status: "booked",
-      })
+ await appointmentsAPI.create({
+  hospital_id: HOSPITAL_ID,
+  patient_id: selectedPatient.id,
+  staff_id: selectedStaff.id,
+  appointment_date: selectedDate,
+  appointment_time: selectedSlot,
+  appointment_type: appointmentType,
+  reason: reason.trim(),
+  status: "booked",
+  updated_by: user?.id,  // Use updated_by here to match backend
+});
+
       toast.success("Appointment booked!")
       setOpen(false)
       resetModal()
@@ -297,13 +299,15 @@ export default function Appointments() {
       return
     }
     setEditLoading(true)
-    try {
-      await appointmentsAPI.update(selectedAppointment.id, {
-        staff_id: editDoctor.id,
-        appointment_date: editDate,
-        appointment_time: editSelectedSlot,
-        appointment_type: editAppointmentType,
-      })
+    // When calling the update API, include updated_by (e.g., current user ID)
+try {
+  await appointmentsAPI.update(selectedAppointment.id, {
+    staff_id: editDoctor.id,
+    appointment_date: editDate,
+    appointment_time: editSelectedSlot,
+    appointment_type: editAppointmentType,
+    updated_by: user?.id,
+  });
       toast.success("Appointment updated")
       setViewModalOpen(false)
       setIsEditing(false)

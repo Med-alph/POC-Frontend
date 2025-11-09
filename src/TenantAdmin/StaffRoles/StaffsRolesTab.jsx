@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import hospitalsapi from "../../api/hospitalsAPI";
+import hospitalsapi from "../../api/hospitalsapi";
 import staffApi from "../../api/staffapi";
 import toast from "react-hot-toast";
 import CreateStaffDialog from "../../Staff/AddStaff";
