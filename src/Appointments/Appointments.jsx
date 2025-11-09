@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { appointmentsAPI } from "../api/AppointmentsAPI"
 import { patientsAPI } from "../api/PatientsAPI"
-import { staffApi } from "../api/staffApi"
+import { staffApi } from "../api/staffapi"
 import AddPatientDialog from "../Patients/AddPatient"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
