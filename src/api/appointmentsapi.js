@@ -91,19 +91,22 @@ export const appointmentsAPI = {
 
   // Create new appointment
   create: async (appointmentData) => {
-    return apiRequest('/appointments', {
-      method: 'POST',
-      body: JSON.stringify(appointmentData),
-    });
-  },
+  return apiRequest('/appointments', {
+    method: 'POST',
+    body: JSON.stringify(appointmentData),
+  });
+},
+
 
   // Update appointment (use PATCH method)
-  update: async (id, data) => {
-    return apiRequest(`/appointments/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
+  // API call method to update appointment
+update: async (id, data) => {
+  return apiRequest(`/appointments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+},
+
 
   // Delete appointment
   delete: async (id) => {
