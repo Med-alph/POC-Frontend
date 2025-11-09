@@ -21,8 +21,8 @@ import { toast } from "sonner";
 
 
 import AddPatientDialog from "@/Patients/AddPatient";
-import { patientsAPI } from "@/api/PatientsAPI";
-import appointmentsAPI from "@/api/AppointmentsAPI";
+import { patientsAPI } from "@/api/patientsapi";
+import appointmentsAPI from "@/api/appointmentsapi";
 import staffApi from "../api/staffapi";
 
 export default function AppointmentForm() {

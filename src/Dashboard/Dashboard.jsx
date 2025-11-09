@@ -15,8 +15,8 @@ import {
   Title,
 } from "chart.js";
 import { useNavigate } from "react-router-dom";
-import appointmentsAPI from "../api/AppointmentsAPI";
-import patientsAPI from "../api/PatientsAPI";
+import appointmentsAPI from "../api/appointmentsapi";
+import patientsAPI from "../api/patientsapi";
 
 ChartJS.register(
   CategoryScale,

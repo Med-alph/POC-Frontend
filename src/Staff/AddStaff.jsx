@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "react-hot-toast";
 import { Clock, AlertCircle } from "lucide-react";
 import designationapi from "@/api/designationapi";
-import staffApi from "@/api/staffApi";
+import staffApi from "@/api/staffapi";
 
 const WEEKDAYS = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"

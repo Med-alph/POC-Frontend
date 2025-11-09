@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import hospitalsapi from "../../api/hospitalsAPI";
+import hospitalsapi from "../../api/hospitalsapi";
 import toast from "react-hot-toast";
 import AddHospitalDialog from "./AddHospitalDialog";
 

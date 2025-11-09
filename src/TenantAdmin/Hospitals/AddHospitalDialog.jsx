@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import toast from "react-hot-toast";
-import hospitalsapi from "../../api/hospitalsAPI";
+import hospitalsapi from "../../api/hospitalsapi";
 
 export default function AddHospitalDialog({ onAdd, children }) {
   const [open, setOpen] = useState(false);
