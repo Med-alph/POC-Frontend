@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import CreateStaffDialog from "./AddStaff"
 import { toast } from "react-hot-toast"
-import staffApi from "@/api/staffApi" // Import your staff API client
+import staffApi from "@/api/staffapi" // Import your staff API client
 
 export default function StaffListPage() {
   const [hospitalId, setHospitalId] = useState(null)
