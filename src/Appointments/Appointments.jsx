@@ -10,7 +10,7 @@ import {
   Loader2, Search, ArrowLeft, CheckCircleIcon, XCircleIcon, Stethoscope, Plus, Edit as EditIcon,
 } from "lucide-react"
 import { appointmentsAPI } from "../api/appointmentsapi"
-import { patientsAPI } from "../api/patientapi"
+import { patientsAPI } from "../api/patientsapi"
 import { staffApi } from "../api/staffapi"
 import AddPatientDialog from "../Patients/AddPatient"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
