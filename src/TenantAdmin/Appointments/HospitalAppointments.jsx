@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import hospitalsapi from "../../api/hospitalsapi";
+import hospitalsapi from "../../api/HospitalsAPI";
 import toast from "react-hot-toast";
-import appointmentsAPI from "../../API/AppointmentsAPI";
+import appointmentsAPI from "../../api/appointmentsapi";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
