@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft } from "lucide-react";
-
+import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -266,257 +267,407 @@ const DoctorPatientRecord = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-lg text-gray-600">Loading patient records...</p>
-                </div>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6 flex items-center justify-center">
+                <Card className="shadow-xl border-0 rounded-2xl p-8">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
+                        <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">Loading patient records...</p>
+                    </div>
+                </Card>
             </div>
         );
     }
 
     if (!patientData) {
         return (
-            <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-lg text-gray-600">No patient records found</p>
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                        Go Back
-                    </button>
-                </div>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6 flex items-center justify-center">
+                <Card className="shadow-xl border-0 rounded-2xl p-8">
+                    <div className="text-center">
+                        <Stethoscope className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                        <p className="text-lg text-gray-600 dark:text-gray-400 font-medium mb-4">No patient records found</p>
+                        <Button
+                            onClick={() => navigate(-1)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Go Back
+                        </Button>
+                    </div>
+                </Card>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-5xl mx-auto bg-white shadow rounded-lg p-6">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-6">
-                    <div className="flex items-center gap-3">
-                        <button
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 sm:p-6 lg:p-8 transition-all">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header Section */}
+                <div className="mb-6">
+                    {/* <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg mb-4">
+                        <Stethoscope className="h-6 w-6" />
+                        <span className="text-sm font-semibold">Patient Medical Records</span>
+                    </div> */}
+                    <div className="flex items-center gap-4 mb-6">
+                        <Button
                             onClick={() => navigate(-1)}
-                            className="p-2 hover:bg-gray-100 rounded-full"
+                            variant="outline"
+                            className="border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                         >
-                            <ArrowLeft className="h-5 w-5 text-gray-600" />
-                        </button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-800">{patientData.patient_name}</h1>
-                            <p className="text-gray-600">
-                                {patientData.age || calculateAge(patientData.dob)} yrs / {patientData.gender || 'N/A'} |
-                                Blood Type: {patientData.blood_type || 'N/A'}
-                            </p>
-                            <p className="text-gray-600 mt-1">Contact: {patientData.contact_info || 'N/A'}</p>
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back
+                        </Button>
+                        <Button
+                            onClick={downloadAllSOAPNotes}
+                            disabled={consultations.length === 0}
+                            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                        >
+                            <Download className="h-4 w-4" />
+                            Download SOAP Notes
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Patient Info Card */}
+                <Card className="shadow-xl border-0 rounded-2xl overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+                    <CardHeader className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 text-white p-6">
+                        <CardTitle className="text-2xl font-bold flex items-center gap-3">
+                            <div className="p-2.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                                <User className="h-6 w-6" />
+                            </div>
+                            {patientData.patient_name || 'Unknown Patient'}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Age / Gender</p>
+                                </div>
+                                <p className="font-bold text-gray-900 dark:text-white">
+                                    {patientData.age || calculateAge(patientData.dob)} yrs / {patientData.gender || 'N/A'}
+                                </p>
+                            </div>
+                            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Droplet className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Blood Type</p>
+                                </div>
+                                <p className="font-bold text-gray-900 dark:text-white">
+                                    {patientData.blood_type || 'N/A'}
+                                </p>
+                            </div>
+                            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Phone className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Contact</p>
+                                </div>
+                                <p className="font-bold text-gray-900 dark:text-white">
+                                    {patientData.contact_info || 'N/A'}
+                                </p>
+                            </div>
                             {patientData.email && (
-                                <p className="text-gray-600">Email: {patientData.email}</p>
+                                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Mail className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Email</p>
+                                    </div>
+                                    <p className="font-bold text-gray-900 dark:text-white text-sm truncate">
+                                        {patientData.email}
+                                    </p>
+                                </div>
                             )}
                         </div>
-                    </div>
-
-                    <button
-                        onClick={downloadAllSOAPNotes}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                        disabled={consultations.length === 0}
-                    >
-                        <Download className="h-4 w-4" />
-                        Download SOAP Notes
-                    </button>
-                </div>
+                    </CardContent>
+                </Card>
 
                 {/* Tabs */}
-                <div className="border-b border-gray-200 mb-4">
-                    <nav className="-mb-px flex space-x-4">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`whitespace-nowrap py-2 px-4 border-b-2 font-medium text-sm ${activeTab === tab
-                                        ? "border-blue-500 text-blue-600"
-                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                    }`}
-                            >
-                                {tab}
-                            </button>
-                        ))}
-                    </nav>
-                </div>
+                <Card className="shadow-xl border-0 rounded-2xl overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800/50 p-4 border-b border-gray-200 dark:border-gray-600">
+                        <nav className="flex space-x-2 overflow-x-auto scrollbar-hide">
+                            {tabs.map((tab) => {
+                                const tabIcons = {
+                                    "Appointments": CalendarDays,
+                                    "SOAP Notes": FileText,
+                                    "Medications": Pill,
+                                    "Lab Results": FlaskConical,
+                                    "Allergies & Notes": AlertCircle,
+                                };
+                                const Icon = tabIcons[tab] || FileText;
+                                return (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`whitespace-nowrap flex items-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm transition-all ${
+                                            activeTab === tab
+                                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                        }`}
+                                    >
+                                        <Icon className="h-4 w-4" />
+                                        {tab}
+                                    </button>
+                                );
+                            })}
+                        </nav>
+                    </div>
 
-                {/* Tab Content */}
-                <div>
-                    {activeTab === "Appointments" && (
-                        <div className="space-y-3">
-                            {consultations.length > 0 ? (
-                                consultations.map((consultation, i) => (
-                                    <div key={i} className="p-3 border rounded-md flex justify-between items-center hover:shadow-md transition">
-                                        <div>
-                                            <p className="font-semibold text-gray-800">
-                                                Consultation with Dr. {consultation.staff?.staff_name || 'Unknown'}
-                                            </p>
-                                            <p className="text-gray-500 text-sm">
-                                                {formatDate(consultation.consultation_date)} at {formatTime(consultation.consultation_start_time)}
-                                            </p>
-                                            <p className="text-gray-500 text-sm">
-                                                Duration: {consultation.duration_minutes || 'N/A'} minutes
-                                            </p>
-                                        </div>
-                                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                                            {consultation.status}
-                                        </span>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">No consultations found</p>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === "SOAP Notes" && (
-                        <div className="space-y-4">
-                            {consultations.length > 0 ? (
-                                consultations.map((consultation, i) => (
-                                    <div key={i} className="p-4 border rounded-md hover:shadow-md transition">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div>
-                                                <p className="font-semibold text-gray-800">
-                                                    {formatDate(consultation.consultation_date)} - Dr. {consultation.staff?.staff_name}
-                                                </p>
-                                                <p className="text-xs text-gray-500">
-                                                    Duration: {consultation.duration_minutes} minutes
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <div>
-                                                <p className="text-sm font-semibold text-blue-600">Subjective:</p>
-                                                <p className="text-sm text-gray-700 ml-2">
-                                                    {consultation.subjective || 'Not recorded'}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <p className="text-sm font-semibold text-blue-600">Objective:</p>
-                                                <p className="text-sm text-gray-700 ml-2">
-                                                    {consultation.objective || 'Not recorded'}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <p className="text-sm font-semibold text-blue-600">Assessment:</p>
-                                                <p className="text-sm text-gray-700 ml-2">
-                                                    {consultation.assessment || 'Not recorded'}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <p className="text-sm font-semibold text-blue-600">Plan:</p>
-                                                <p className="text-sm text-gray-700 ml-2">
-                                                    {consultation.plan || 'Not recorded'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">No SOAP notes found</p>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === "Medications" && (
-                        <div className="space-y-3">
-                            {consultations.flatMap(c => c.prescriptions || []).length > 0 ? (
-                                consultations.map((consultation) =>
-                                    consultation.prescriptions?.map((med, i) => (
-                                        <div key={`${consultation.id}-${i}`} className="p-3 border rounded-md hover:shadow-md transition">
-                                            <p className="font-semibold text-gray-800">{med.medicine_name}</p>
-                                            <p className="text-gray-500 text-sm">
-                                                {med.dosage} | {med.frequency} | {med.duration}
-                                            </p>
-                                            {med.instructions && (
-                                                <p className="text-gray-500 text-sm">Notes: {med.instructions}</p>
-                                            )}
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                Prescribed on {formatDate(consultation.consultation_date)}
-                                            </p>
-                                        </div>
+                    {/* Tab Content */}
+                    <CardContent className="p-6">
+                        {activeTab === "Appointments" && (
+                            <div className="space-y-4">
+                                {consultations.length > 0 ? (
+                                    consultations.map((consultation, i) => (
+                                        <Card key={i} className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                                            <CardContent className="p-5">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                                                <CalendarDays className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-lg text-gray-900 dark:text-white">
+                                                                    Consultation with Dr. {consultation.staff?.staff_name || 'Unknown'}
+                                                                </p>
+                                                                <div className="flex items-center gap-4 mt-1">
+                                                                    <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                                                                        <Clock className="h-4 w-4" />
+                                                                        {formatDate(consultation.consultation_date)} at {formatTime(consultation.consultation_start_time)}
+                                                                    </div>
+                                                                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                                                                        Duration: {consultation.duration_minutes || 'N/A'} min
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700">
+                                                        {consultation.status?.toUpperCase() || 'COMPLETED'}
+                                                    </span>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
                                     ))
-                                )
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">No medications prescribed</p>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === "Lab Results" && (
-                        <div className="space-y-3">
-                            {consultations.flatMap(c => c.lab_orders || []).length > 0 ? (
-                                consultations.map((consultation) =>
-                                    consultation.lab_orders?.map((lab, i) => (
-                                        <div key={`${consultation.id}-${i}`} className="p-3 border rounded-md hover:shadow-md transition flex justify-between items-center">
-                                            <div>
-                                                <p className="font-semibold text-gray-800">{lab.test_name}</p>
-                                                <p className="text-gray-500 text-sm">
-                                                    Ordered on {formatDate(consultation.consultation_date)}
-                                                </p>
-                                                {lab.instructions && (
-                                                    <p className="text-gray-500 text-sm">Instructions: {lab.instructions}</p>
-                                                )}
-                                            </div>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${lab.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                    lab.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                                                        'bg-gray-100 text-gray-700'
-                                                }`}>
-                                                {lab.status}
-                                            </span>
-                                        </div>
-                                    ))
-                                )
-                            ) : (
-                                <p className="text-gray-500 text-center py-4">No lab orders found</p>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === "Allergies & Notes" && (
-                        <div className="space-y-3">
-                            <div className="p-3 border rounded-md">
-                                <p className="font-semibold text-gray-800 flex items-center gap-2">
-                                    <AlertCircle className="h-5 w-5 text-red-500" />
-                                    Allergies
-                                </p>
-                                {patientData.allergies ? (
-                                    <ul className="list-disc list-inside text-gray-500 mt-2">
-                                        {patientData.allergies.split(',').map((allergy, i) => (
-                                            <li key={i} className="text-red-600">{allergy.trim()}</li>
-                                        ))}
-                                    </ul>
                                 ) : (
-                                    <p className="text-gray-500 mt-2">No known allergies</p>
+                                    <div className="text-center py-12">
+                                        <CalendarDays className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                                        <p className="text-gray-500 dark:text-gray-400">No consultations found</p>
+                                    </div>
                                 )}
                             </div>
+                        )}
 
-                            <div className="p-3 border rounded-md">
-                                <p className="font-semibold text-gray-800">Medical History</p>
-                                {patientData.medical_history ? (
-                                    <p className="text-gray-500 mt-2">{patientData.medical_history}</p>
+                        {activeTab === "SOAP Notes" && (
+                            <div className="space-y-4">
+                                {consultations.length > 0 ? (
+                                    consultations.map((consultation, i) => (
+                                        <Card key={i} className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+                                            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <CardTitle className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                            {formatDate(consultation.consultation_date)} - Dr. {consultation.staff?.staff_name}
+                                                        </CardTitle>
+                                                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                                            Duration: {consultation.duration_minutes} minutes
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-5 space-y-4">
+                                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                                    <p className="text-sm font-bold text-blue-700 dark:text-blue-400 mb-2">Subjective:</p>
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        {consultation.subjective || 'Not recorded'}
+                                                    </p>
+                                                </div>
+
+                                                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+                                                    <p className="text-sm font-bold text-green-700 dark:text-green-400 mb-2">Objective:</p>
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        {consultation.objective || 'Not recorded'}
+                                                    </p>
+                                                </div>
+
+                                                <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 border border-yellow-200 dark:border-yellow-800">
+                                                    <p className="text-sm font-bold text-yellow-700 dark:text-yellow-400 mb-2">Assessment:</p>
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        {consultation.assessment || 'Not recorded'}
+                                                    </p>
+                                                </div>
+
+                                                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+                                                    <p className="text-sm font-bold text-purple-700 dark:text-purple-400 mb-2">Plan:</p>
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        {consultation.plan || 'Not recorded'}
+                                                    </p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))
                                 ) : (
-                                    <p className="text-gray-500 mt-2">No medical history recorded</p>
+                                    <div className="text-center py-12">
+                                        <FileText className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                                        <p className="text-gray-500 dark:text-gray-400">No SOAP notes found</p>
+                                    </div>
                                 )}
                             </div>
+                        )}
 
-                            <div className="p-3 border rounded-md">
-                                <p className="font-semibold text-gray-800">Insurance Information</p>
-                                <p className="text-gray-500 mt-2">
-                                    Provider: {patientData.insurance_provider || 'N/A'}
-                                </p>
+                        {activeTab === "Medications" && (
+                            <div className="space-y-4">
+                                {consultations.flatMap(c => c.prescriptions || []).length > 0 ? (
+                                    consultations.map((consultation) =>
+                                        consultation.prescriptions?.map((med, i) => (
+                                            <Card key={`${consultation.id}-${i}`} className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                                                <CardContent className="p-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                                            <Pill className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="font-bold text-lg text-gray-900 dark:text-white mb-2">{med.medicine_name}</p>
+                                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                                <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
+                                                                    {med.dosage}
+                                                                </span>
+                                                                <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-semibold">
+                                                                    {med.frequency}
+                                                                </span>
+                                                                <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
+                                                                    {med.duration}
+                                                                </span>
+                                                            </div>
+                                                            {med.instructions && (
+                                                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                                                    <span className="font-semibold">Instructions:</span> {med.instructions}
+                                                                </p>
+                                                            )}
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                Prescribed on {formatDate(consultation.consultation_date)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))
+                                    )
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <Pill className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                                        <p className="text-gray-500 dark:text-gray-400">No medications prescribed</p>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    )}
-                </div>
+                        )}
+
+                        {activeTab === "Lab Results" && (
+                            <div className="space-y-4">
+                                {consultations.flatMap(c => c.lab_orders || []).length > 0 ? (
+                                    consultations.map((consultation) =>
+                                        consultation.lab_orders?.map((lab, i) => (
+                                            <Card key={`${consultation.id}-${i}`} className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20">
+                                                <CardContent className="p-5">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="flex items-start gap-3 flex-1">
+                                                            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                                                                <FlaskConical className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <p className="font-bold text-lg text-gray-900 dark:text-white mb-2">{lab.test_name}</p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                                                    Ordered on {formatDate(consultation.consultation_date)}
+                                                                </p>
+                                                                {lab.instructions && (
+                                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                                        <span className="font-semibold">Instructions:</span> {lab.instructions}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                                                            lab.status === 'completed' 
+                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700' 
+                                                                : lab.status === 'in_progress' 
+                                                                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
+                                                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                                                        }`}>
+                                                            {lab.status?.toUpperCase() || 'PENDING'}
+                                                        </span>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))
+                                    )
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <FlaskConical className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                                        <p className="text-gray-500 dark:text-gray-400">No lab orders found</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === "Allergies & Notes" && (
+                            <div className="space-y-4">
+                                <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20">
+                                    <CardContent className="p-5">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                            </div>
+                                            <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">Allergies</CardTitle>
+                                        </div>
+                                        {patientData.allergies ? (
+                                            <ul className="space-y-2">
+                                                {patientData.allergies.split(',').map((allergy, i) => (
+                                                    <li key={i} className="flex items-center gap-2 p-2 bg-white dark:bg-gray-700/50 rounded-lg border border-red-200 dark:border-red-800">
+                                                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                        <span className="text-red-700 dark:text-red-400 font-semibold">{allergy.trim()}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-gray-500 dark:text-gray-400">No known allergies</p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                                    <CardContent className="p-5">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                            </div>
+                                            <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">Medical History</CardTitle>
+                                        </div>
+                                        {patientData.medical_history ? (
+                                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{patientData.medical_history}</p>
+                                        ) : (
+                                            <p className="text-gray-500 dark:text-gray-400">No medical history recorded</p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+                                    <CardContent className="p-5">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                                <Heart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                            </div>
+                                            <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">Insurance Information</CardTitle>
+                                        </div>
+                                        <p className="text-gray-700 dark:text-gray-300">
+                                            <span className="font-semibold">Provider:</span> {patientData.insurance_provider || 'N/A'}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

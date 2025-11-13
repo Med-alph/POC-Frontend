@@ -39,38 +39,85 @@ const todayStr = () => {
 };
 
 function AppointmentsModal({ title, appointments, onClose }) {
+  const isCancelled = title.toLowerCase().includes("cancellation");
+  
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-4 relative">
-        <button
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-          onClick={onClose}
-        >
-          <X className="w-6 h-6" />
-        </button>
-        <h2 className="text-lg font-bold mb-2">{title}</h2>
-        <div className="max-h-96 overflow-auto">
-          {appointments.length === 0 && (
-            <div className="text-gray-500 text-center py-6">No records found.</div>
-          )}
-          {appointments.map(appt => (
-            <div key={appt.id} className="p-2 border-b last:border-b-0 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center">
-              <div>
-                <span className="text-blue-600 font-semibold">
-                  {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
-                </span>
-                &nbsp;–&nbsp;
-                <span className="font-semibold">{appt.patient_name ?? "Unnamed Patient"}</span>
-                &nbsp;with&nbsp;
-                <span className="font-semibold">{appt.staff_name ?? "Unknown Doctor"}</span>
-              </div>
-              <div className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">
-                {appt.appointment_type ?? "N/A"}
-                {appt.reason ? ` (${appt.reason})` : ""}
-                {appt.cancellation_reason ? ` | Reason: ${appt.cancellation_reason}` : ""}
-              </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative z-50 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-in fade-in-0 zoom-in-95">
+        <div className={`bg-gradient-to-r ${isCancelled ? 'from-red-600 to-red-500' : 'from-blue-600 to-blue-500'} text-white p-6`}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">{title}</h2>
+            <button
+              className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+              onClick={onClose}
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          <p className="text-white/90 mt-2 text-sm">
+            {appointments.length} {appointments.length === 1 ? 'appointment' : 'appointments'} found
+          </p>
+        </div>
+        <div className="max-h-[calc(90vh-140px)] overflow-y-auto p-6">
+          {appointments.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-6xl mb-4">📋</div>
+              <p className="text-gray-500 dark:text-gray-400 text-lg">No records found.</p>
             </div>
-          ))}
+          ) : (
+            <div className="space-y-3">
+              {appointments.map((appt, idx) => (
+                <div 
+                  key={appt.id || idx} 
+                  className={`p-4 rounded-xl border-2 transition-all hover:shadow-lg ${
+                    isCancelled 
+                      ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
+                      : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className={`font-bold text-lg ${isCancelled ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                          {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
+                        </span>
+                        <span className="font-bold text-gray-900 dark:text-white">
+                          {appt.patient_name ?? "Unnamed Patient"}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        with <span className="font-semibold">{appt.staff_name ?? "Unknown Doctor"}</span>
+                      </div>
+                    </div>
+                    <div className="text-sm">
+                      <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                        isCancelled 
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>
+                        {appt.appointment_type ?? "N/A"}
+                      </div>
+                      {appt.reason && (
+                        <p className="text-gray-600 dark:text-gray-400 mt-2 text-xs">
+                          {appt.reason}
+                        </p>
+                      )}
+                      {appt.cancellation_reason && (
+                        <p className="text-red-600 dark:text-red-400 mt-2 text-xs font-medium">
+                          Reason: {appt.cancellation_reason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -342,212 +389,287 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Loading dashboard data...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6"></div>
+          <p className="text-xl font-semibold text-gray-700 dark:text-gray-300">Loading dashboard data...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Please wait</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 transition-all duration-1000 opacity-100 translate-y-0">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-all duration-1000 opacity-100 translate-y-0">
       {/* <Navbar /> */}
-      <main className="flex-1 p-2 sm:p-6">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <Toaster position="top-right" />
-        <div className="mb-4 sm:mb-6 px-2 sm:px-6">
-          <h1 className="text-lg sm:text-2xl font-bold">Good Morning, Care Coordinator</h1>
-          <p className="text-gray-600 mt-1 text-xs sm:text-base">
+        <div className="mb-6 sm:mb-8">
+          {/* <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg mb-4">
+            <Stethoscope className="h-6 w-6" />
+            <span className="text-sm font-semibold">MedAssist Dashboard</span>
+          </div> */}
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+            Good Morning, Care Coordinator
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg">
             Here's your clinic overview for today
           </p>
         </div>
-        <div className="mt-2 sm:mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 px-1 sm:px-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-4">
           {/* Card 1 - Today's Appointments */}
-          <div className="col-span-1 lg:col-span-2 bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-blue-500 transition-all duration-700 hover:shadow-xl hover:scale-105 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-xs sm:text-base font-semibold text-gray-700">Today's Appointments</h2>
-              <CalendarDays className="h-4 w-4 sm:h-6 sm:w-6 text-blue-500" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold mt-1 sm:mt-3">
-              {animatedValues.appointments}
-            </p>
-            <div className="mt-2 sm:mt-4 space-y-2 sm:space-y-3 text-xs sm:text-sm">
-              {todaysAppointments.slice(0, 3).map((appt, idx) => (
-                <div key={appt.id || idx} className="flex flex-col sm:flex-row sm:justify-between bg-blue-50 rounded p-1 sm:p-2">
-                  <div>
-                    <span className="text-blue-600 font-semibold">
-                      {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
-                    </span>
-                    &nbsp;–&nbsp;
-                    <span className="font-bold">{appt.patient_name ?? "Unnamed Patient"}</span>
-                    &nbsp;with&nbsp;
-                    <span className="font-bold">{appt.staff_name ?? "Unknown Doctor"}</span>
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
+            <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 text-white p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <CalendarDays className="h-6 w-6" />
                   </div>
-                </div>
-              ))}
+                  Today's Appointments
+                </h2>
+              </div>
+              <p className="text-5xl font-bold mb-2">
+                {animatedValues.appointments}
+              </p>
+              <p className="text-blue-100 text-sm">Scheduled for today</p>
             </div>
-            {todaysAppointments.length > 3 && (
-              <button
-                className="mt-2 sm:mt-3 text-blue-500 text-xs sm:text-sm font-medium hover:underline"
-                onClick={() => setShowAllModal(true)}
-              >
-                +{todaysAppointments.length - 3} more
-              </button>
-            )}
+            <div className="p-6">
+              <div className="space-y-3 mb-4">
+                {todaysAppointments.slice(0, 3).map((appt, idx) => (
+                  <div 
+                    key={appt.id || idx} 
+                    className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-16 text-center">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">
+                          {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-900 dark:text-white truncate">
+                          {appt.patient_name ?? "Unnamed Patient"}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                          with {appt.staff_name ?? "Unknown Doctor"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {todaysAppointments.length > 3 && (
+                <button
+                  className="w-full py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold rounded-xl transition-all text-sm"
+                  onClick={() => setShowAllModal(true)}
+                >
+                  View {todaysAppointments.length - 3} more appointments →
+                </button>
+              )}
+            </div>
           </div>
           {/* Card 2 - New Patients Today */}
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-green-500 transition-all duration-700 delay-400 hover:shadow-xl hover:scale-105 hover:-translate-y-1 cursor-pointer ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          <div 
+            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
             onClick={() => navigate("/patients")}
           >
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-xs sm:text-base font-semibold text-gray-700">New Patients Today</h2>
-              <Users className="h-4 w-4 sm:h-6 sm:w-6 text-green-500" />
+            <div className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 text-white p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <Users className="h-6 w-6" />
+                  </div>
+                  New Patients
+                </h2>
+              </div>
+              <p className="text-5xl font-bold mb-2">{animatedValues.newPatients}</p>
+              <p className="text-green-100 text-sm">Registered today</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold mt-1 sm:mt-3">{animatedValues.newPatients}</p>
-            <div className="mt-3 space-y-1 text-xs sm:text-sm text-gray-700 max-h-24 overflow-auto">
-              {newPatientsToday.slice(0, 3).map((patient) => (
-                <div key={patient.id} className="flex justify-between">
-                  <span>{patient.patient_name}</span>
-                  <span>{patient.contact_info}</span>
-                </div>
-              ))}
+            <div className="p-6">
+              <div className="space-y-3 mb-4">
+                {newPatientsToday.slice(0, 3).map((patient) => (
+                  <div 
+                    key={patient.id} 
+                    className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-3 border border-green-200 dark:border-green-800"
+                  >
+                    <p className="font-bold text-gray-900 dark:text-white text-sm truncate">
+                      {patient.patient_name}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                      {patient.contact_info}
+                    </p>
+                  </div>
+                ))}
+              </div>
               {newPatientsToday.length > 3 && (
-                <div className="text-xs text-green-600 font-medium mt-1">
-                  +{newPatientsToday.length - 3} more
+                <div className="text-center">
+                  <span className="text-sm text-green-600 dark:text-green-400 font-semibold">
+                    +{newPatientsToday.length - 3} more
+                  </span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Card 3 - Cancellations Today */}
-          <div className="bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-red-500 transition-all duration-700 hover:shadow-xl hover:scale-105 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-xs sm:text-base font-semibold text-gray-700">Cancellations Today</h2>
-              <UserX className="h-4 w-4 sm:h-6 sm:w-6 text-red-500" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold mt-1 sm:mt-3">{animatedValues.cancellations}</p>
-            <div className="mt-2 sm:mt-4 space-y-2 sm:space-y-3 text-xs sm:text-sm">
-              {cancelledAppointments.slice(0, 3).map((appt, idx) => (
-                <div key={appt.id || idx} className="flex flex-col sm:flex-row sm:justify-between bg-red-50 rounded p-1 sm:p-2">
-                  <div>
-                    <span className="text-red-600 font-semibold">
-                      {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
-                    </span>
-                    &nbsp;–&nbsp;
-                    <span className="font-bold">{appt.patient_name ?? "Unnamed Patient"}</span>
-                    &nbsp;with&nbsp;
-                    <span className="font-bold">{appt.staff_name ?? "Unknown Doctor"}</span>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
+            <div className="bg-gradient-to-r from-red-600 via-red-500 to-rose-500 text-white p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <UserX className="h-6 w-6" />
                   </div>
-                  <div className="text-xs text-gray-500 mt-1 sm:mt-0">
-                    {appt.appointment_type ?? "N/A"}
-                    {appt.cancellation_reason ? ` (${appt.cancellation_reason})` : ""}
-                  </div>
-                </div>
-              ))}
+                  Cancellations
+                </h2>
+              </div>
+              <p className="text-5xl font-bold mb-2">{animatedValues.cancellations}</p>
+              <p className="text-red-100 text-sm">Cancelled today</p>
             </div>
-            {cancelledAppointments.length > 3 && (
-              <button
-                className="mt-2 sm:mt-3 text-red-500 text-xs sm:text-sm font-medium hover:underline"
-                onClick={() => setShowCancelledModal(true)}
-              >
-                +{cancelledAppointments.length - 3} more
-              </button>
-            )}
+            <div className="p-6">
+              <div className="space-y-3 mb-4">
+                {cancelledAppointments.slice(0, 3).map((appt, idx) => (
+                  <div 
+                    key={appt.id || idx} 
+                    className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-xl p-3 border border-red-200 dark:border-red-800"
+                  >
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-red-600 dark:text-red-400 font-bold text-sm">
+                        {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
+                      </span>
+                      <span className="font-bold text-gray-900 dark:text-white text-sm truncate">
+                        {appt.patient_name ?? "Unnamed Patient"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                      with {appt.staff_name ?? "Unknown Doctor"}
+                    </p>
+                    {appt.cancellation_reason && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1 truncate">
+                        {appt.cancellation_reason}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {cancelledAppointments.length > 3 && (
+                <button
+                  className="w-full py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-semibold rounded-xl transition-all text-sm"
+                  onClick={() => setShowCancelledModal(true)}
+                >
+                  View {cancelledAppointments.length - 3} more cancellations →
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Charts section */}
-        <div className="mt-4 sm:mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 px-1 sm:px-6">
+        <div className="mt-6 sm:mt-8 grid grid-cols-1 gap-6">
           <LiveAppointmentList />
-
         </div>
-        <div className="mt-4 sm:mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 px-1 sm:px-6">
+        <div className="mt-6 sm:mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Weekly Patient Visits Chart */}
-          <div className="bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col transition-all duration-700 hover:shadow-xl hover:scale-105 hover:-translate-y-1">
-            <div className="flex items-center mb-1 sm:mb-3">
-              <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-blue-500 mr-2" />
-              <h3 className="text-xs sm:text-lg font-semibold text-gray-700">Weekly Patient Visits</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden p-6 h-80 flex flex-col transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white -m-6 mb-4 p-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <TrendingUp className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">Weekly Patient Visits</h3>
+              </div>
+              <p className="text-blue-100 text-sm">Patient visits over the last 7 days</p>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-4">Patient visits over the last 7 days</p>
-            <div className="flex-1">
-              {/* DEBUG render inspection */}
-              <pre className="text-xs text-gray-400 mb-2 bg-gray-50 px-2 py-1 rounded hidden">
-                {JSON.stringify(weeklyVisitsData, null, 2)}
-              </pre>
+            <div className="flex-1 -mt-2">
               <Line data={weeklyVisitsData} options={weeklyVisitsOptions} />
             </div>
           </div>
           {/* Add other chart cards if needed */}
 
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col transition-all duration-700 delay-800 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="flex items-center mb-1 sm:mb-3">
-              <BarChart2 className="h-4 w-4 sm:h-6 sm:w-6 text-green-500 mr-2" />
-              <h3 className="text-xs sm:text-lg font-semibold text-gray-700">Appointments per Department</h3>
+          <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden p-6 h-80 flex flex-col transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white -m-6 mb-4 p-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <BarChart2 className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">Appointments per Department</h3>
+              </div>
+              <p className="text-green-100 text-sm">Today's appointments by department</p>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-4">Today's appointments by department</p>
-            <div className="flex-1 bg-gray-100 rounded-md p-2 max-h-64 overflow-auto">
+            <div className="flex-1 -mt-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 max-h-64 overflow-auto">
               {Object.keys(appointmentsPerDept).length === 0 ? (
-                <p className="text-gray-500 text-center">No appointment data available</p>
+                <div className="text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">No appointment data available</p>
+                </div>
               ) : (
-                Object.entries(appointmentsPerDept).map(([dept, count]) => (
-                  <div key={dept} className="text-gray-600 text-xs sm:text-sm mb-1 flex justify-between">
-                    <span>{dept}</span>
-                    <span>{count}</span>
-                  </div>
-                ))
+                <div className="space-y-3">
+                  {Object.entries(appointmentsPerDept).map(([dept, count]) => (
+                    <div 
+                      key={dept} 
+                      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 flex items-center justify-between hover:shadow-md transition-all"
+                    >
+                      <span className="font-semibold text-gray-900 dark:text-white">{dept}</span>
+                      <span className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-bold rounded-full text-sm">
+                        {count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
 
-          <div className={`bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col items-center justify-start transition-all duration-700 delay-900 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="w-full mb-2 sm:mb-4">
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-purple-500 mr-2" />
-                <h3 className="text-xs sm:text-lg font-semibold text-gray-700">Appointment Status</h3>
+          <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden p-6 h-80 flex flex-col items-center justify-start transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white -m-6 mb-4 p-6 w-full">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Clock className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">Appointment Status</h3>
               </div>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">Status breakdown for this week</p>
+              <p className="text-purple-100 text-sm">Status breakdown for this week</p>
             </div>
-            <div className="flex flex-col items-center justify-center h-24 sm:h-32 w-full mt-4 sm:mt-10">
-              <Doughnut
-                data={{
-                  labels: ["Completed", "Pending", "Cancelled"],
-                  datasets: [
-                    {
-                      data: [
-                        appointmentStatusCounts.fulfilled || 0,
-                        appointmentStatusCounts.pending || 0,
-                        appointmentStatusCounts.cancelled || 0,
-                      ],
-                      backgroundColor: ["#34D399", "#FBBF24", "#F87171"],
-                      borderWidth: 0,
+            <div className="flex flex-col items-center justify-center flex-1 w-full -mt-2">
+              <div className="mb-6">
+                <Doughnut
+                  data={{
+                    labels: ["Completed", "Pending", "Cancelled"],
+                    datasets: [
+                      {
+                        data: [
+                          appointmentStatusCounts.fulfilled || 0,
+                          appointmentStatusCounts.pending || 0,
+                          appointmentStatusCounts.cancelled || 0,
+                        ],
+                        backgroundColor: ["#10B981", "#F59E0B", "#EF4444"],
+                        borderWidth: 0,
+                      },
+                    ],
+                  }}
+                  options={{
+                    plugins: { legend: { display: false } },
+                    maintainAspectRatio: false,
+                    animation: {
+                      duration: 2000,
+                      easing: 'easeOutCubic',
+                      delay: 1000,
                     },
-                  ],
-                }}
-                options={{
-                  plugins: { legend: { display: false } },
-                  maintainAspectRatio: false,
-                  animation: {
-                    duration: 2000,
-                    easing: 'easeOutCubic',
-                    delay: 1000,
-                  },
-                }}
-                className="w-24 sm:w-32 h-24 sm:h-32"
-              />
-              <div className="flex gap-2 sm:gap-4 text-xs sm:text-sm mt-3 sm:mt-8">
-                <div className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full"></span>
-                  <span>Completed</span>
+                  }}
+                  className="w-40 h-40"
+                />
+              </div>
+              <div className="flex flex-wrap justify-center gap-4 text-sm">
+                <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
+                  <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span className="font-semibold text-gray-900 dark:text-white">Completed</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full"></span>
-                  <span>Pending</span>
+                <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-lg">
+                  <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                  <span className="font-semibold text-gray-900 dark:text-white">Pending</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full"></span>
-                  <span>Cancelled</span>
+                <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
+                  <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                  <span className="font-semibold text-gray-900 dark:text-white">Cancelled</span>
                 </div>
               </div>
             </div>

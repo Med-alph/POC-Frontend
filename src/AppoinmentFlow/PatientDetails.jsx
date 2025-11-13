@@ -133,89 +133,103 @@ const PatientDetails = () => {
 
                 {/* Patient Summary Card */}
                 {patient && (
-                    <Card className="shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden mb-6">
-                        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-700 dark:to-blue-600 text-white">
-                            <CardTitle className="flex items-center gap-3 text-xl">
-                                <User className="h-6 w-6" />
+                    <Card className="shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden mb-6 animate-in fade-in-0">
+                        <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 dark:from-blue-700 dark:via-blue-600 dark:to-indigo-600 text-white">
+                            <CardTitle className="flex items-center gap-3 text-2xl">
+                                <div className="p-2 bg-white/20 rounded-lg">
+                                    <User className="h-6 w-6" />
+                                </div>
                                 Personal Information
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="flex items-start gap-3">
-                                    <User className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">Full Name</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            {patient.patient_name || "N/A"}
-                                        </p>
+                        <CardContent className="p-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-start gap-3">
+                                        <User className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Full Name</p>
+                                            <p className="font-bold text-lg text-gray-900 dark:text-white">
+                                                {patient.patient_name || "N/A"}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">Date of Birth</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            {formatDate(patient.dob)}
-                                        </p>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-start gap-3">
+                                        <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Date of Birth</p>
+                                            <p className="font-bold text-lg text-gray-900 dark:text-white">
+                                                {formatDate(patient.dob)}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <Phone className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">Phone Number</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            {patient.contact_info || phone}
-                                        </p>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-start gap-3">
+                                        <Phone className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Phone Number</p>
+                                            <p className="font-bold text-lg text-gray-900 dark:text-white">
+                                                {patient.contact_info || phone}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                            {patient.email || "Not provided"}
-                                        </p>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-start gap-3">
+                                        <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Email</p>
+                                            <p className="font-bold text-lg text-gray-900 dark:text-white">
+                                                {patient.email || "Not provided"}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                                 {patient.age && (
-                                    <div className="flex items-start gap-3">
-                                        <User className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                                        <div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Age</p>
-                                            <p className="font-semibold text-gray-900 dark:text-white">
-                                                {patient.age} years
-                                            </p>
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                        <div className="flex items-start gap-3">
+                                            <User className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                            <div className="flex-1">
+                                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Age</p>
+                                                <p className="font-bold text-lg text-gray-900 dark:text-white">
+                                                    {patient.age} years
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
                                 {patient.insurance_provider && (
-                                    <div className="flex items-start gap-3">
-                                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                                        <div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Insurance</p>
-                                            <p className="font-semibold text-gray-900 dark:text-white">
-                                                {patient.insurance_provider}
-                                            </p>
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                        <div className="flex items-start gap-3">
+                                            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                            <div className="flex-1">
+                                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Insurance</p>
+                                                <p className="font-bold text-lg text-gray-900 dark:text-white">
+                                                    {patient.insurance_provider}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                            <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                                 <Button
                                     onClick={() => navigate("/patient-details-form", { state: { patient, phone } })}
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white"
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
                                 >
-                                    <Edit className="h-4 w-4 mr-2" />
+                                    <Edit className="h-5 w-5 mr-2" />
                                     Edit Details
                                 </Button>
                                 <Button
                                     onClick={() => navigate("/appointment", { state: { phone, patientId: patient.id } })}
-                                    className="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white"
+                                    className="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
                                 >
-                                    <PlusCircle className="h-4 w-4 mr-2" />
+                                    <PlusCircle className="h-5 w-5 mr-2" />
                                     Book Appointment
                                 </Button>
                             </div>
@@ -224,34 +238,38 @@ const PatientDetails = () => {
                 )}
 
                 {/* Recent Activity Section */}
-                <Card className="shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-gray-700 to-gray-600 dark:from-gray-700 dark:to-gray-600 text-white">
-                        <CardTitle className="flex items-center gap-3 text-xl">
-                            <FileText className="h-6 w-6" />
+                <Card className="shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden animate-in fade-in-0">
+                    <CardHeader className="bg-gradient-to-r from-gray-700 via-gray-600 to-gray-500 dark:from-gray-700 dark:via-gray-600 dark:to-gray-500 text-white">
+                        <CardTitle className="flex items-center gap-3 text-2xl">
+                            <div className="p-2 bg-white/20 rounded-lg">
+                                <FileText className="h-6 w-6" />
+                            </div>
                             Recent Activity
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
                         {recentActivity.length === 0 ? (
-                            <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-                                No recent activity
-                            </p>
+                            <div className="text-center py-12 bg-gray-50 dark:bg-gray-700/30 rounded-xl">
+                                <p className="text-gray-500 dark:text-gray-400">
+                                    No recent activity
+                                </p>
+                            </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {recentActivity.map((activity) => (
                                     <div
                                         key={activity.id}
-                                        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 hover:shadow-md transition-shadow"
+                                        className="flex items-center justify-between p-5 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-600 hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
                                     >
-                                        <div>
-                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                        <div className="flex-1">
+                                            <p className="font-bold text-lg text-gray-900 dark:text-white mb-1">
                                                 {activity.description}
                                             </p>
                                             <p className="text-sm text-gray-600 dark:text-gray-400">
                                                 {activity.type} • {formatDate(activity.date)}
                                             </p>
                                         </div>
-                                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                        <span className="px-4 py-2 text-xs font-bold rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shadow-sm">
                                             {activity.status}
                                         </span>
                                     </div>

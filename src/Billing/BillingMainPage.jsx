@@ -21,21 +21,44 @@ export default function BillingPage() {
     ];
 
     return (
-        <div className="p-4">
-            <PatientHeader {...patient} />
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto">
+                <div className="mb-6">
+                    {/* <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg mb-4">
+                        <span className="text-sm font-semibold">💰 Billing & Payments</span>
+                    </div> */}
+                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                        Patient Billing
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Manage billing details and process payments
+                    </p>
+                </div>
 
-            <Tabs defaultValue="billing">
-                <TabsList>
-                    <TabsTrigger value="billing">Billing Details</TabsTrigger>
-                    <TabsTrigger value="payment">Payment</TabsTrigger>
-                </TabsList>
+                <PatientHeader {...patient} />
 
-                <TabsContent value="billing">
-                    <div className="md:flex gap-4">
-                        <div className="md:w-3/4">
+                <Tabs defaultValue="billing" className="mt-6">
+                    <TabsList className="grid w-full max-w-md grid-cols-2 bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-200 dark:border-gray-700">
+                        <TabsTrigger 
+                            value="billing" 
+                            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                        >
+                            Billing Details
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="payment"
+                            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                        >
+                            Payment
+                        </TabsTrigger>
+                    </TabsList>
+
+                <TabsContent value="billing" className="mt-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <div className="lg:col-span-3">
                             <ItemTable items={items} onTotalChange={setTotalToday} />
                         </div>
-                        <div className="md:w-1/4">
+                        <div className="lg:col-span-1">
                             <PendingPayments appointments={pendingAppointments} />
                         </div>
                     </div>
@@ -48,7 +71,7 @@ export default function BillingPage() {
                     />
                 </TabsContent>
 
-                <TabsContent value="payment">
+                <TabsContent value="payment" className="mt-6">
                     <PaymentTab
                         amount={totalToday + totalToday * 0.1}
                         onPay={(method) => console.log("Pay via", method)}
@@ -56,6 +79,7 @@ export default function BillingPage() {
                     />
                 </TabsContent>
             </Tabs>
+            </div>
         </div>
     );
 };

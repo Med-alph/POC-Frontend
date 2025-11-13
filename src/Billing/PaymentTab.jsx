@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Smartphone, Wallet } from "lucide-react";
+import { CreditCard, Smartphone, Wallet, Receipt } from "lucide-react";
 
 const PaymentTab = ({ amount = 500, currency = "INR", patient }) => {
     const [method, setMethod] = useState("card");
@@ -63,78 +63,147 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient }) => {
     };
 
     return (
-        <div className="p-6 flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
             {/* LEFT SIDE: Payment options */}
-            <Card className="w-full lg:w-2/3 shadow-md rounded-2xl">
-                <CardHeader>
-                    <h2 className="text-xl font-semibold">Select Payment Method</h2>
+            <Card className="w-full lg:w-2/3 shadow-xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 text-white">
+                    <h2 className="text-2xl font-bold flex items-center gap-3">
+                        <div className="p-2 bg-white/20 rounded-lg">
+                            <CreditCard className="h-6 w-6" />
+                        </div>
+                        Select Payment Method
+                    </h2>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                     <Tabs value={method} onValueChange={setMethod}>
-                        <TabsList className="grid grid-cols-4 w-full mb-4">
-                            <TabsTrigger value="card">
+                        <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full mb-6 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
+                            <TabsTrigger 
+                                value="card"
+                                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                            >
                                 <CreditCard className="h-4 w-4 mr-2" /> Card
                             </TabsTrigger>
-                            <TabsTrigger value="upi">
+                            <TabsTrigger 
+                                value="upi"
+                                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                            >
                                 <Smartphone className="h-4 w-4 mr-2" /> UPI
                             </TabsTrigger>
-                            <TabsTrigger value="wallet">
+                            <TabsTrigger 
+                                value="wallet"
+                                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                            >
                                 <Wallet className="h-4 w-4 mr-2" /> Wallet
                             </TabsTrigger>
-                            <TabsTrigger value="later">Pay Later</TabsTrigger>
+                            <TabsTrigger 
+                                value="later"
+                                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                            >
+                                Pay Later
+                            </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="card">
-                            <p className="text-gray-600 mb-3">
-                                Pay securely using your debit/credit card.
-                            </p>
-                            <Label>Cardholder Name</Label>
-                            <Input placeholder="Enter cardholder name" />
+                        <TabsContent value="card" className="space-y-4">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                                    Pay securely using your debit/credit card.
+                                </p>
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                                            Cardholder Name
+                                        </Label>
+                                        <Input 
+                                            placeholder="Enter cardholder name" 
+                                            className="h-12 border-2 focus:border-blue-500 dark:focus:border-blue-400"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </TabsContent>
 
-                        <TabsContent value="upi">
-                            <p className="text-gray-600 mb-3">Enter your UPI ID to continue.</p>
-                            <Label>UPI ID</Label>
-                            <Input placeholder="username@upi" />
+                        <TabsContent value="upi" className="space-y-4">
+                            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+                                <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                                    Enter your UPI ID to continue with instant payment.
+                                </p>
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                                            UPI ID
+                                        </Label>
+                                        <Input 
+                                            placeholder="username@upi" 
+                                            className="h-12 border-2 focus:border-purple-500 dark:focus:border-purple-400"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </TabsContent>
 
-                        <TabsContent value="wallet">
-                            <p className="text-gray-600">You can pay using wallets like Paytm, PhonePe, etc.</p>
+                        <TabsContent value="wallet" className="space-y-4">
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 border border-yellow-200 dark:border-yellow-800">
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
+                                    You can pay using digital wallets like Paytm, PhonePe, Google Pay, etc.
+                                </p>
+                            </div>
                         </TabsContent>
 
-                        <TabsContent value="later">
-                            <p className="text-gray-600">
-                                The amount will be added to the patient’s pending balance.
-                            </p>
+                        <TabsContent value="later" className="space-y-4">
+                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
+                                    The amount will be added to the patient's pending balance and can be paid later.
+                                </p>
+                            </div>
                         </TabsContent>
                     </Tabs>
                 </CardContent>
             </Card>
 
             {/* RIGHT SIDE: Summary & Button */}
-            <Card className="w-full lg:w-1/3 h-fit shadow-md rounded-2xl">
-                <CardHeader>
-                    <h2 className="text-xl font-semibold">Billing Summary</h2>
+            <Card className="w-full lg:w-1/3 h-fit shadow-xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 text-white">
+                    <h2 className="text-xl font-bold flex items-center gap-3">
+                        <div className="p-2 bg-white/20 rounded-lg">
+                            <Receipt className="h-5 w-5" />
+                        </div>
+                        Payment Summary
+                    </h2>
                 </CardHeader>
-                <CardContent>
-                    <div className="flex justify-between mb-2 text-gray-700">
-                        <span>Amount</span>
-                        <span>₹{amount}</span>
-                    </div>
-                    <hr className="my-2" />
-                    <div className="flex justify-between text-lg font-semibold">
-                        <span>Total</span>
-                        <span>₹{amount}</span>
+                <CardContent className="p-6">
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">Amount</span>
+                            <span className="text-xl font-bold text-gray-900 dark:text-white">₹{amount.toFixed(2)}</span>
+                        </div>
+                        <div className="border-t-2 border-gray-200 dark:border-gray-700 pt-4">
+                            <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+                                <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
+                                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">₹{amount.toFixed(2)}</span>
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="p-6 pt-0">
                     <Button
                         disabled={loading || method === "later"}
-                        className="w-full text-lg py-6 bg-blue-600 hover:bg-blue-700"
+                        className="w-full text-lg py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={openRazorpay}
                     >
-                        {loading ? "Processing..." : "Pay Now"}
+                        {loading ? (
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline" />
+                                Processing...
+                            </>
+                        ) : (
+                            "Pay Now"
+                        )}
                     </Button>
+                    {method === "later" && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                            Payment will be added to pending balance
+                        </p>
+                    )}
                 </CardFooter>
             </Card>
         </div>
