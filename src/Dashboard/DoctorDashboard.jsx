@@ -3,7 +3,7 @@ import DoctorAppointments from "./DoctorAppointments";
 import { CalendarDays, UserX } from "lucide-react";
 import TodaysSchedule from "./comps/TodaysSchedule";
 import { useSelector } from "react-redux";
-import appointmentsAPI from "../api/AppointmentsAPI";
+import appointmentsAPI from "../api/appointmentsapi";
 import toast from 'react-hot-toast';
 
 const DoctorDashboard = () => {

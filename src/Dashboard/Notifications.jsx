@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { Pencil, X } from "lucide-react";
 import notificationAPI from "../api/notificationapi";
 import cancellationRequestAPI from "../api/cancellationrequestapi";
-import appointmentsAPI from "../api/AppointmentsAPI";
+import appointmentsAPI from "../api/appointmentsapi";
 
 export default function Notifications() {
   const user = useSelector((state) => state.auth.user);
