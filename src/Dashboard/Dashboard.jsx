@@ -16,7 +16,7 @@ import {
 } from "chart.js";
 import { useNavigate } from "react-router-dom";
 import appointmentsAPI from "../api/appointmentsapi";
-import patientsAPI from "../api/patientapi"; // Assume you have this API file
+import patientsAPI from "../api/patientsapi"; // Assume you have this API file
 import LiveAppointmentList from "./comps/LiveAppoinment";
 
 ChartJS.register(
