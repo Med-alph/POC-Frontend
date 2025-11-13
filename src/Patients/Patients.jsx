@@ -211,25 +211,25 @@ export default function Patients() {
         setViewModalOpen(true)
     }
 
-   const handleAddPatient = async (newPatient) => {
-  try {
-    const response = await patientsAPI.create(newPatient)
-    const createdPatient = response?.data ?? response  // <-- key fix here
+    const handleAddPatient = async (newPatient) => {
+        try {
+            const response = await patientsAPI.create(newPatient)
+            const createdPatient = response?.data ?? response  // <-- key fix here
 
-    console.log("Created patient object:", createdPatient)
+            console.log("Created patient object:", createdPatient)
 
-    if (!isValidPatient(createdPatient)) {
-      throw new Error("Created patient data invalid")
+            if (!isValidPatient(createdPatient)) {
+                throw new Error("Created patient data invalid")
+            }
+
+            setPatients(prev => [...prev.filter(p => p.id !== createdPatient.id), createdPatient])
+            toast.success(`Patient "${createdPatient.patient_name}" added!`)
+            setOpenDialog(false)
+        } catch (error) {
+            console.error("Add patient error:", error)
+            toast.error("Failed to add patient, please try again.")
+        }
     }
-
-    setPatients(prev => [...prev.filter(p => p.id !== createdPatient.id), createdPatient])
-    toast.success(`Patient "${createdPatient.patient_name}" added!`)
-    setOpenDialog(false)
-  } catch (error) {
-    console.error("Add patient error:", error)
-    toast.error("Failed to add patient, please try again.")
-  }
-}
 
 
 
