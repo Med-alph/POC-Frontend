@@ -15,8 +15,9 @@ import {
   Title,
 } from "chart.js";
 import { useNavigate } from "react-router-dom";
-import appointmentsAPI from "../api/appointmentsapi";
-import patientsAPI from "../api/patientsapi";
+import appointmentsAPI from "../api/AppointmentsAPI";
+import patientsAPI from "../api/PatientsAPI"; // Assume you have this API file
+import LiveAppointmentList from "./comps/LiveAppoinment";
 
 ChartJS.register(
   CategoryScale,
@@ -396,7 +397,7 @@ export default function Dashboard() {
             )}
           </div>
           {/* Card 2 - New Patients Today */}
-          <div className="bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-green-500 transition-all duration-700 hover:shadow-xl hover:scale-105 hover:-translate-y-1 cursor-pointer"
+          <div className={`bg-white rounded-lg shadow p-3 sm:p-5 border-l-4 border-green-500 transition-all duration-700 delay-400 hover:shadow-xl hover:scale-105 hover:-translate-y-1 cursor-pointer ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
             onClick={() => navigate("/patients")}
           >
             <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -457,6 +458,10 @@ export default function Dashboard() {
         </div>
 
         {/* Charts section */}
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 px-1 sm:px-6">
+          <LiveAppointmentList />
+
+        </div>
         <div className="mt-4 sm:mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 px-1 sm:px-6">
           {/* Weekly Patient Visits Chart */}
           <div className="bg-white rounded-lg shadow p-3 sm:p-6 h-64 sm:h-80 flex flex-col transition-all duration-700 hover:shadow-xl hover:scale-105 hover:-translate-y-1">
