@@ -1,5 +1,5 @@
-import { Input } from "@/components/ui/input";
-import { Bell, ChevronDown, Search, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings } from "lucide-react";
+import { Input } from "@/components/ui/input"
+import { Bell, ChevronDown, Search, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, CoinsIcon } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,11 +49,11 @@ export default function Navbar() {
   }, [location.pathname]);
 
   useEffect(() => {
-  console.log("Notifications updated:", notifications);
-  const unread = notifications.filter(n => n.status !== "read").map(n => n.notificationId);
-  setUnreadIds(unread);
-  console.log("Unread notifications count computed:", unread.length);
-}, [notifications]);
+    console.log("Notifications updated:", notifications);
+    const unread = notifications.filter(n => n.status !== "read").map(n => n.notificationId);
+    setUnreadIds(unread);
+    console.log("Unread notifications count computed:", unread.length);
+  }, [notifications]);
 
 
   const handleLogout = () => {
@@ -72,24 +72,24 @@ export default function Navbar() {
   const toggleNotifications = () => {
     setShowNotifDropdown((prev) => !prev);
   };
-const handleNotificationClick = async (notif) => {
-  console.log("Notification clicked:", notif);
-  navigate("/notifications");
-  setShowNotifDropdown(false);
-  if (notif.status !== "read" && notif.notificationId) {
-    try {
-      await notificationAPI.markAsRead(notif.notificationId);
-      setUnreadIds((prev) => {
-        const updated = prev.filter(id => id !== notif.notificationId);
-        console.log("Updated unreadIds after markAsRead:", updated);
-        return updated;
-      });
-    } catch (e) {
-      toast.error("Failed to mark notification as read");
-      console.error("markAsRead error:", e);
+  const handleNotificationClick = async (notif) => {
+    console.log("Notification clicked:", notif);
+    navigate("/notifications");
+    setShowNotifDropdown(false);
+    if (notif.status !== "read" && notif.notificationId) {
+      try {
+        await notificationAPI.markAsRead(notif.notificationId);
+        setUnreadIds((prev) => {
+          const updated = prev.filter(id => id !== notif.notificationId);
+          console.log("Updated unreadIds after markAsRead:", updated);
+          return updated;
+        });
+      } catch (e) {
+        toast.error("Failed to mark notification as read");
+        console.error("markAsRead error:", e);
+      }
     }
-  }
-};
+  };
 
 
   return (
@@ -207,11 +207,10 @@ const handleNotificationClick = async (notif) => {
                 <button
                   key={item.id}
                   onClick={() => handleTabClick(item.path)}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap ${
-                    isActive
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap ${isActive
                       ? "bg-blue-50 text-blue-700 border-b-2 border-blue-700"
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   <IconComponent className={`h-4 w-4 ${isActive ? "text-blue-700" : "text-gray-500"}`} />
                   <span>{item.label}</span>

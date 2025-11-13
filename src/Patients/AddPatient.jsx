@@ -251,7 +251,8 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                                     rows={2}
                                 />
                             </div>
-                            <div>
+
+                            {/* <div>
                                 <Label htmlFor="status">Status</Label>
                                 <Select
                                     value={formData.status}
@@ -266,7 +267,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                                         <SelectItem value="pending">Pending</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
+                            </div> */}
                         </div>
 
                     </form>
@@ -275,8 +276,8 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                     <Button type="button" variant="outline" onClick={() => { setOpen(false); }}>
                         Cancel
                     </Button>
-                    <Button type="submit" form="patient-form" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => console.log("Add Patient clicked")}>
-                        Add Patient
+                    <Button type="submit" form="patient-form" className="bg-blue-600 hover:bg-blue-700 text-white">
+                        Create
                     </Button>
                 </div>
             </DialogContent>

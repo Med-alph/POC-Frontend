@@ -19,59 +19,59 @@ export default function AddHospitalDialog({
   const setControlledOpen = setOpen || setIsOpen;
 
   const [formData, setFormData] = useState({
-  // Basic Info
-  name: tenantData.name || "",
-  legal_name: tenantData.legal_name || "",
-  type: tenantData.type || "",
+    // Basic Info
+    name: tenantData.name || "",
+    legal_name: tenantData.legal_name || "",
+    type: tenantData.type || "",
 
-  // Contact Info
-  email: tenantData.email || "",
-  phone: tenantData.phone || [],
-  website: tenantData.website || "",
-  address_street: tenantData.address_street || "",
-  address_city: tenantData.address_city || "",
-  address_state: tenantData.address_state || "",
-  address_zip: tenantData.address_zip || "",
-  address_country: tenantData.address_country || "",
+    // Contact Info
+    email: tenantData.email || "",
+    phone: tenantData.phone || [],
+    website: tenantData.website || "",
+    address_street: tenantData.address_street || "",
+    address_city: tenantData.address_city || "",
+    address_state: tenantData.address_state || "",
+    address_zip: tenantData.address_zip || "",
+    address_country: tenantData.address_country || "",
 
-  // Branding
-  logo: tenantData.logo || "",
-  theme_color: tenantData.theme_color || "",
+    // Branding
+    logo: tenantData.logo || "",
+    theme_color: tenantData.theme_color || "",
 
-  // Operational Info
-  timezone: tenantData.timezone || "",
-  working_days: tenantData.working_days || [],
-  working_hours_start: tenantData.working_hours_start || "",
-  working_hours_end: tenantData.working_hours_end || "",
-  departments: tenantData.departments || [],
+    // Operational Info
+    timezone: tenantData.timezone || "",
+    working_days: tenantData.working_days || [],
+    working_hours_start: tenantData.working_hours_start || "",
+    working_hours_end: tenantData.working_hours_end || "",
+    departments: tenantData.departments || [],
 
-  // Subscription & Plan
-  plan_type: tenantData.plan_type || "",
-  plan_start: tenantData.plan_start || "",
-  plan_end: tenantData.plan_end || "",
-  allowed_users: tenantData.allowed_users || "",
-  billing_contact: tenantData.billing_contact || "",
+    // Subscription & Plan
+    plan_type: tenantData.plan_type || "",
+    plan_start: tenantData.plan_start || "",
+    plan_end: tenantData.plan_end || "",
+    allowed_users: tenantData.allowed_users || "",
+    billing_contact: tenantData.billing_contact || "",
 
-  // Regulatory Info
-  license_no: tenantData.license_no || "",
-  tax_id: tenantData.tax_id || "",
-  healthcare_id: tenantData.healthcare_id || "",
+    // Regulatory Info
+    license_no: tenantData.license_no || "",
+    tax_id: tenantData.tax_id || "",
+    healthcare_id: tenantData.healthcare_id || "",
 
-  // Super Admin
-  super_admin_name: tenantData.super_admin_name || "",
-  super_admin_email: tenantData.super_admin_email || "",
-  super_admin_phone: tenantData.super_admin_phone || "",
+    // Super Admin
+    super_admin_name: tenantData.super_admin_name || "",
+    super_admin_email: tenantData.super_admin_email || "",
+    super_admin_phone: tenantData.super_admin_phone || "",
 
-  // System Setup
-  currency: tenantData.currency || "",
-  preferred_languages: tenantData.preferred_languages || [],
-  notification_channels: tenantData.notification_channels || [],
-  status: tenantData.status || "Active", // ✅ Add status here
+    // System Setup
+    currency: tenantData.currency || "",
+    preferred_languages: tenantData.preferred_languages || [],
+    notification_channels: tenantData.notification_channels || [],
+    status: tenantData.status || "Active", // ✅ Add status here
 
-  // Integrations
-  integration_keys: tenantData.integration_keys || {},
-  branch_type: tenantData.branch_type || "",
-});
+    // Integrations
+    integration_keys: tenantData.integration_keys || null,
+    branch_type: tenantData.branch_type || "",
+  });
 
 
   const handleChange = (e) => {
@@ -91,37 +91,37 @@ export default function AddHospitalDialog({
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setFormLoading(true);
+    e.preventDefault();
+    setFormLoading(true);
 
-  try {
-    const payload = {
-      ...formData,
-      plan_start: formData.plan_start ? new Date(formData.plan_start) : undefined,
-      plan_end: formData.plan_end ? new Date(formData.plan_end) : undefined,
-      allowed_users: formData.allowed_users ? Number(formData.allowed_users) : undefined,
-      status: formData.status || "Active",
-    };
+    try {
+      const payload = {
+        ...formData,
+        plan_start: formData.plan_start ? new Date(formData.plan_start) : undefined,
+        plan_end: formData.plan_end ? new Date(formData.plan_end) : undefined,
+        allowed_users: formData.allowed_users ? Number(formData.allowed_users) : undefined,
+        status: formData.status || "Active",
+      };
 
-    let response;
-    if (editMode && tenantData?.id) {
-      // Edit mode: PATCH endpoint
-      response = await tenantsAPI.update(tenantData.id, payload);
-    } else {
-      // Create mode: POST endpoint
-      response = await tenantsAPI.create(payload);
+      let response;
+      if (editMode && tenantData?.id) {
+        // Edit mode: PATCH endpoint
+        response = await tenantsAPI.update(tenantData.id, payload);
+      } else {
+        // Create mode: POST endpoint
+        response = await tenantsAPI.create(payload);
+      }
+
+      onAdd?.(response); // Callback to update parent table
+      toast.success(editMode ? "Tenant updated successfully!" : "Tenant added successfully!");
+      setControlledOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || (editMode ? "Failed to update tenant." : "Failed to create tenant."));
+    } finally {
+      setFormLoading(false);
     }
-
-    onAdd?.(response); // Callback to update parent table
-    toast.success(editMode ? "Tenant updated successfully!" : "Tenant added successfully!");
-    setControlledOpen(false);
-  } catch (error) {
-    console.error(error);
-    toast.error(error.message || (editMode ? "Failed to update tenant." : "Failed to create tenant."));
-  } finally {
-    setFormLoading(false);
-  }
-};
+  };
 
 
   return (
@@ -149,7 +149,7 @@ export default function AddHospitalDialog({
               <Input name="email" type="email" placeholder="Official Email" value={formData.email} onChange={handleChange} />
               <Input
                 name="phone"
-                placeholder="+919876543210, +919812345678"
+                placeholder="Enter Phone"
                 value={formData.phone.join(", ")}
                 onChange={handleChange}
               />
@@ -212,44 +212,44 @@ export default function AddHospitalDialog({
 
           {/* System Setup */}
           {/* System Setup */}
-<Section title="System Setup">
-  <div className="grid grid-cols-2 gap-4">
-    <Input
-      name="currency"
-      placeholder="Currency"
-      value={formData.currency}
-      onChange={handleChange}
-    />
-    <Input
-      name="preferred_languages"
-      placeholder="Languages (comma separated)"
-      value={formData.preferred_languages.join(", ")}
-      onChange={handleChange}
-    />
-    <Input
-      name="notification_channels"
-      placeholder="Notification Channels (comma separated)"
-      value={formData.notification_channels.join(", ")}
-      onChange={handleChange}
-    />
-    {/* Status Dropdown */}
-    <div className="col-span-2">
-      <label className="block mb-1 font-medium">Status</label>
-      <select
-        name="status"
-        value={formData.status || "Active"}
-        onChange={(e) =>
-          setFormData({ ...formData, status: e.target.value })
-        }
-        className="border rounded p-2 w-full"
-      >
-        <option value="Active">Active</option>
-        <option value="Inactive">Inactive</option>
-        <option value="Suspended">Suspended</option>
-      </select>
-    </div>
-  </div>
-</Section>
+          <Section title="System Setup">
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                name="currency"
+                placeholder="Currency"
+                value={formData.currency}
+                onChange={handleChange}
+              />
+              <Input
+                name="preferred_languages"
+                placeholder="Languages (comma separated)"
+                value={formData.preferred_languages.join(", ")}
+                onChange={handleChange}
+              />
+              <Input
+                name="notification_channels"
+                placeholder="Notification Channels (comma separated)"
+                value={formData.notification_channels.join(", ")}
+                onChange={handleChange}
+              />
+              {/* Status Dropdown */}
+              <div className="col-span-2">
+                <label className="block mb-1 font-medium">Status</label>
+                <select
+                  name="status"
+                  value={formData.status || "Active"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, status: e.target.value })
+                  }
+                  className="border rounded p-2 w-full"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+          </Section>
 
 
           {/* Integrations / Branches */}

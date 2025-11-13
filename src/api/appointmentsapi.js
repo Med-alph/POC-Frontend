@@ -91,21 +91,21 @@ export const appointmentsAPI = {
 
   // Create new appointment
   create: async (appointmentData) => {
-  return apiRequest('/appointments', {
-    method: 'POST',
-    body: JSON.stringify(appointmentData),
-  });
-},
+    return apiRequest('/appointments', {
+      method: 'POST',
+      body: JSON.stringify(appointmentData),
+    });
+  },
 
 
   // Update appointment (use PATCH method)
   // API call method to update appointment
-update: async (id, data) => {
-  return apiRequest(`/appointments/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
-},
+  update: async (id, data) => {
+    return apiRequest(`/appointments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
 
 
   // Delete appointment
@@ -117,9 +117,10 @@ update: async (id, data) => {
 
   // Cancel appointment
   cancel: async (id, reason) => {
+    console.log(reason)
     return apiRequest(`/appointments/${id}/cancel`, {
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify(reason),
     });
   },
 

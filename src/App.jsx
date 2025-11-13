@@ -42,6 +42,9 @@ import TenantAdminDashboard from "./TenantAdmin/TenantAdminDashboard"
 import Notifications from "./Dashboard/Notifications"
 import DoctorCancellationRequests from "./Doctors/DoctorCancellationRequests"
 
+// Billing Page
+import BillingPage from "./Billing/BillingMainPage"
+
 // Component to conditionally render Navbar
 function AppContent() {
   const location = useLocation()
@@ -49,11 +52,14 @@ function AppContent() {
 
 
   // Routes that should NOT show the navbar
-  const authRoutes = ['/', '/signup', '/forgotpassword', '/admin/login']
-  const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs','/tenantadmin/login','/tenantadmin/dashboard']
+  const authRoutes = ['/', '/signup', '/forgotpassword', '/admin/login', '/tenantadmin/dashboard', '/tenantadmin/login']
+  // const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs','/tenantadmin/login','/tenantadmin/dashboard']
   // Patient portal flow routes (phone/otp login + booking steps)
+  const adminRoutes = ['/admin/login', '/admin/dashboard', '/admin/roles', '/admin/permissions', '/admin/staffs', '/landing', '/patient-details', '/otp-verification', '/appointment', '/confirmation', '/patient-details-form']
+
   const patientRoutes = ['/landing', '/otp-verification', '/appointment', '/confirmation', '/patient-details', '/patient-details-form']
   const shouldShowNavbar = !authRoutes.includes(location.pathname) && !adminRoutes.includes(location.pathname) && !patientRoutes.includes(location.pathname)
+  // const shouldShowNavbar = !authRoutes.includes(location.pathname) && !adminRoutes.includes(location.pathname)
 
   return (
     <div className="min-h-svh flex flex-col">
@@ -78,10 +84,10 @@ function AppContent() {
 
         {/* Doctor view routes */}
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-       <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
-       <Route path="/fulfilled-records" element={<FulfilledRecords />} />
+        <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
+        <Route path="/fulfilled-records" element={<FulfilledRecords />} />
 
-     <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
+        <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
 
         {/* Admin routes */}
         {/* <Route path="/admin/login" element={<AdminLogin />} /> */}
@@ -114,6 +120,11 @@ function AppContent() {
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/confirmation" element={<ConfirmationPage />} />
         <Route path="/patient-details-form" element={<PatientDetailsForm />} />
+
+
+
+        {/* Billing  */}
+        <Route path="/billing/:appoinmentid" element={<BillingPage />} />
       </Routes>
     </div>
   )
