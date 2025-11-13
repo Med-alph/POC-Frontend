@@ -212,12 +212,14 @@ const PatientDetailsForm = () => {
                     ))}
                 </div>
 
-                <Card className="w-full shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-700 dark:to-blue-600 text-white">
+                <Card className="w-full shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden animate-in fade-in-0">
+                    <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 dark:from-blue-700 dark:via-blue-600 dark:to-indigo-600 text-white">
                         <CardTitle className="text-2xl flex items-center gap-3">
-                            {activeSection === 1 && <User className="h-6 w-6" />}
-                            {activeSection === 2 && <Phone className="h-6 w-6" />}
-                            {activeSection === 3 && <Heart className="h-6 w-6" />}
+                            <div className="p-2 bg-white/20 rounded-lg">
+                                {activeSection === 1 && <User className="h-6 w-6" />}
+                                {activeSection === 2 && <Phone className="h-6 w-6" />}
+                                {activeSection === 3 && <Heart className="h-6 w-6" />}
+                            </div>
                             {activeSection === 1 && "Personal Information"}
                             {activeSection === 2 && "Contact & Emergency"}
                             {activeSection === 3 && "Medical History"}
@@ -272,11 +274,11 @@ const PatientDetailsForm = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-between pt-4">
+                                <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                                     <Button
                                         variant="outline"
                                         onClick={() => navigate(-1)}
-                                        className="px-6"
+                                        className="px-8 h-12 rounded-xl font-semibold"
                                     >
                                         Cancel
                                     </Button>
@@ -288,9 +290,9 @@ const PatientDetailsForm = () => {
                                             }
                                             setActiveSection(2);
                                         }}
-                                        className="px-8 bg-blue-600 hover:bg-blue-700"
+                                        className="px-8 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
                                     >
-                                        Next: Contact Info
+                                        Next: Contact Info →
                                     </Button>
                                 </div>
                             </div>
@@ -352,13 +354,13 @@ const PatientDetailsForm = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-between pt-4">
+                                <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                                     <Button
                                         variant="outline"
                                         onClick={() => setActiveSection(1)}
-                                        className="px-6"
+                                        className="px-8 h-12 rounded-xl font-semibold"
                                     >
-                                        Back
+                                        ← Back
                                     </Button>
                                     <Button
                                         onClick={() => {
@@ -368,9 +370,9 @@ const PatientDetailsForm = () => {
                                             }
                                             setActiveSection(3);
                                         }}
-                                        className="px-8 bg-blue-600 hover:bg-blue-700"
+                                        className="px-8 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
                                     >
-                                        Next: Medical History
+                                        Next: Medical History →
                                     </Button>
                                 </div>
                             </div>
@@ -447,26 +449,26 @@ const PatientDetailsForm = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-between pt-4">
+                                <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                                     <Button
                                         variant="outline"
                                         onClick={() => setActiveSection(2)}
-                                        className="px-6"
+                                        className="px-8 h-12 rounded-xl font-semibold"
                                     >
-                                        Back
+                                        ← Back
                                     </Button>
                                     <Button 
                                         onClick={handleSubmit} 
                                         disabled={loading}
-                                        className="px-8 bg-green-600 hover:bg-green-700"
+                                        className="px-8 h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
                                     >
                                         {loading ? (
                                             <>
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline" />
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline" />
                                                 Saving...
                                             </>
                                         ) : (
-                                            "Save & Continue"
+                                            "✓ Save & Continue"
                                         )}
                                     </Button>
                                 </div>

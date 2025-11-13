@@ -106,7 +106,7 @@ const DoctorDashboard = () => {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 transition-all">
       <div className="mb-6 flex items-center justify-between">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold">Good Morning, {user.name}</h1>
+          <h1 className="text-2xl font-bold">Good Morning, {user?.name}</h1>
           <p className="text-gray-600">Here's your live attendance tracker</p>
         </div>
         <div className="flex items-center gap-4">

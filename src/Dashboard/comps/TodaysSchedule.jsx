@@ -44,86 +44,109 @@ const TodaysSchedule = () => {
     return (
         <>
             <div
-                className={`bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500 transition-all duration-700 delay-500 hover:shadow-xl hover:scale-105 hover:-translate-y-1 ${isLoaded
+                className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${isLoaded
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-8"
                     }`}
             >
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-blue-500" />
-                        Next Few Hours
-                    </h2>
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="text-blue-500 text-xs flex items-center hover:underline"
-                    >
-                        View More <ChevronRight className="h-3 w-3 ml-1" />
-                    </button>
-                </div>
-
-                <div className="space-y-3">
-                    {upcomingView.map((time) => {
-                        const appt = appointmentsByTime[time]
-                        return (
-                            <div
-                                key={time}
-                                className={`flex justify-between items-center p-2 rounded-md border ${appt
-                                    ? "border-blue-300 bg-blue-50"
-                                    : "border-gray-200 bg-gray-50"
-                                    }`}
-                            >
-                                <span className="font-medium text-sm text-gray-700">{time}</span>
-                                {appt ? (
-                                    <div className="text-xs text-gray-600">
-                                        <p className="font-semibold text-gray-800">{appt.patientName}</p>
-                                        <p>{appt.reason}</p>
-                                    </div>
-                                ) : (
-                                    <span className="text-xs text-gray-400 italic">No appointment</span>
-                                )}
+                <div className="bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 text-white p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-xl font-bold flex items-center gap-3">
+                            <div className="p-2 bg-white/20 rounded-lg">
+                                <Clock className="h-6 w-6" />
                             </div>
-                        )
-                    })}
+                            Next Few Hours
+                        </h2>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all"
+                        >
+                            View More <ChevronRight className="h-4 w-4" />
+                        </button>
+                    </div>
+                    <p className="text-yellow-100 text-sm">Upcoming appointments schedule</p>
+                </div>
+                <div className="p-6">
+
+                    <div className="space-y-3">
+                        {upcomingView.map((time) => {
+                            const appt = appointmentsByTime[time]
+                            return (
+                                <div
+                                    key={time}
+                                    className={`flex justify-between items-center p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                                        appt
+                                            ? "border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
+                                            : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"
+                                    }`}
+                                >
+                                    <span className="font-bold text-base text-gray-900 dark:text-white">{time}</span>
+                                    {appt ? (
+                                        <div className="text-sm text-right">
+                                            <p className="font-bold text-gray-900 dark:text-white">{appt.patientName}</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400">{appt.reason}</p>
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 italic">No appointment</span>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
                 </div>
             </div>
 
             {/* 🔹 Full-Day Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex justify-center items-center z-50">
-                    <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-2xl p-6 max-h-[80vh] overflow-y-auto relative">
-                        <button
-                            onClick={() => setShowModal(false)}
-                            className="absolute top-3 right-4 text-gray-500 hover:text-black"
-                        >
-                            ✖
-                        </button>
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <Calendar className="h-5 w-5 text-blue-500" /> Full Day Schedule
-                        </h3>
-                        <div className="space-y-3">
-                            {allSlots.map((time) => {
-                                const appt = appointmentsByTime[time]
-                                return (
-                                    <div
-                                        key={time}
-                                        className={`flex justify-between items-center p-3 rounded-md border ${appt
-                                            ? "border-blue-300 bg-blue-50"
-                                            : "border-gray-100"
-                                            }`}
-                                    >
-                                        <span className="font-medium text-sm text-gray-700">{time}</span>
-                                        {appt ? (
-                                            <div className="text-sm text-gray-700">
-                                                <p className="font-semibold">{appt.patientName}</p>
-                                                <p className="text-xs">{appt.reason}</p>
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-gray-400 italic">No appointment</span>
-                                        )}
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div 
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setShowModal(false)}
+                    />
+                    <div className="relative z-50 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-in fade-in-0 zoom-in-95">
+                        <div className="bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 text-white p-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-2xl font-bold flex items-center gap-3">
+                                    <div className="p-2 bg-white/20 rounded-lg">
+                                        <Calendar className="h-6 w-6" />
                                     </div>
-                                )
-                            })}
+                                    Full Day Schedule
+                                </h3>
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                                    aria-label="Close"
+                                >
+                                    ✖
+                                </button>
+                            </div>
+                        </div>
+                        <div className="max-h-[calc(90vh-120px)] overflow-y-auto p-6">
+                            <div className="space-y-3">
+                                {allSlots.map((time) => {
+                                    const appt = appointmentsByTime[time]
+                                    return (
+                                        <div
+                                            key={time}
+                                            className={`flex justify-between items-center p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                                                appt
+                                                    ? "border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
+                                                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"
+                                            }`}
+                                        >
+                                            <span className="font-bold text-base text-gray-900 dark:text-white">{time}</span>
+                                            {appt ? (
+                                                <div className="text-sm text-right">
+                                                    <p className="font-bold text-gray-900 dark:text-white">{appt.patientName}</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">{appt.reason}</p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400 dark:text-gray-500 italic">No appointment</span>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>

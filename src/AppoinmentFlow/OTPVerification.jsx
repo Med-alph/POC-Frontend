@@ -114,57 +114,67 @@ const OTPVerification = () => {
           <span className="text-sm font-semibold">MedPortal — Patient Access</span>
         </div>
         
-        <Card className="shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-700 dark:to-blue-600 text-white">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <ShieldCheck className="h-6 w-6" />
+        <Card className="shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden animate-in fade-in-0 zoom-in-95">
+          <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 dark:from-blue-700 dark:via-blue-600 dark:to-indigo-600 text-white">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
               Verify OTP
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-8 space-y-6">
             {/* Step indicator */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-semibold">1</span>
-              <span>of</span>
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 font-semibold">2</span>
-              <span className="ml-2">Appointment booking</span>
+            <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold shadow-lg">1</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">of</span>
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 font-bold">2</span>
+              </div>
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-2">Appointment booking</span>
             </div>
 
-            <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
-              <Smartphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <span>Enter the 6-digit code sent to</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{countryCode} {phone}</span>
-            </p>
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-3">
+                <Smartphone className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <span>Enter the 6-digit code sent to</span>
+                <span className="font-bold text-gray-900 dark:text-white">{countryCode} {phone}</span>
+              </p>
+            </div>
             
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
+            <div className="space-y-4">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 text-center">
                 Enter the 6-digit code
               </label>
-              <InputOtp 
-                length={6}
-                value={otp}
-                onChange={setOtp}
-                disabled={loading}
-                autoFocus={true}
-              />
+              <div className="flex justify-center">
+                <InputOtp 
+                  length={6}
+                  value={otp}
+                  onChange={setOtp}
+                  disabled={loading}
+                  autoFocus={true}
+                />
+              </div>
             </div>
 
-            <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 pt-2">
+            <div className="flex justify-between items-center text-sm bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
               <button
                 disabled={loading || timer > 0}
-                className="underline hover:text-blue-600 dark:hover:text-blue-400 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-colors underline"
                 onClick={handleResend}
               >
                 Resend code
               </button>
               {timer > 0 && (
-                <span className="font-medium">{timer}s remaining</span>
+                <span className="font-bold text-gray-700 dark:text-gray-300">
+                  {timer}s remaining
+                </span>
               )}
             </div>
             
             <Button 
               onClick={handleVerifyOtp} 
-              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white h-12 text-base font-semibold rounded-xl transition-all duration-200 hover:shadow-lg" 
+              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white h-14 text-base font-bold rounded-xl transition-all duration-200 hover:shadow-xl shadow-lg" 
               disabled={loading || otp.length !== 6}
             >
               {loading ? (
@@ -180,7 +190,7 @@ const OTPVerification = () => {
             <Button
               variant="ghost"
               onClick={() => navigate("/landing")}
-              className="w-full text-gray-600 dark:text-gray-400"
+              className="w-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 h-12 rounded-xl font-medium"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Change phone number

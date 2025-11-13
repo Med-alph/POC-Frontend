@@ -1,11 +1,6 @@
-
-import { useState } from "react";
-import { Calendar } from "react-calendar";
-import "react-calendar/dist/Calendar.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip } from "@/components/ui/tooltip";
-import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, XCircle, AlertTriangle, Calendar as CalendarIcon, Clock, FileText } from "lucide-react";
 import DoctorAttendanceCalendar from "./CalendarComp";
 
 const attendanceRecords = [
@@ -21,111 +16,117 @@ const attendanceRecords = [
     { date: "2025-10-10", status: "present", checkIn: "09:00", checkOut: "17:10" },
 ];
 
-const statusColor = {
-    present: "green",
-    absent: "red",
-    late: "yellow",
-};
-
-const statusIcon = {
-    present: CheckCircle,
-    absent: XCircle,
-    late: AlertTriangle,
-};
-
 export default function DoctorAttendancePage() {
-    const [selectedDate, setSelectedDate] = useState(null);
-
-    const tileContent = ({ date, view }) => {
-        if (view === "month") {
-            const record = attendanceRecords.find(
-                (r) => r.date === date.toISOString().split("T")[0]
-            );
-            if (record) {
-                const Icon = statusIcon[record.status];
-                return (
-                    <Tooltip
-                        content={
-                            record.status === "absent"
-                                ? "Absent"
-                                : `Check-in: ${record.checkIn} | Check-out: ${record.checkOut}`
-                        }
-                    >
-                        <div className="flex items-center justify-center mt-1 space-x-1">
-                            <Icon
-                                className={`h-4 w-4 text-${statusColor[record.status]}-600`}
-                            />
-                            <Badge
-                                variant="outline"
-                                className={`text-xs capitalize border-${statusColor[record.status]}-500 text-${statusColor[record.status]}-700`}
-                            >
-                                {record.status}
-                            </Badge>
-                        </div>
-                    </Tooltip>
-                );
-            }
-        }
-        return null;
-    };
-
     const totalPresent = attendanceRecords.filter((r) => r.status === "present").length;
     const totalAbsent = attendanceRecords.filter((r) => r.status === "absent").length;
     const totalLate = attendanceRecords.filter((r) => r.status === "late").length;
 
     return (
-        <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
-            {/* Header */}
-            <h1 className="text-3xl font-bold text-gray-800">Doctor Attendance</h1>
-            <p className="text-gray-600">Track your attendance records at a glance</p>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-6 gap-6">
-                {/* Cards */}
-                <Card className="sm:col-span-1 shadow-lg border-l-4 border-green-500">
-                    <CardContent className="flex items-center space-x-4">
-                        <CheckCircle className="h-8 w-8 text-green-500" />
-                        <div>
-                            <p className="text-2xl font-bold">{totalPresent}</p>
-                            <p className="text-gray-600">Present</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="sm:col-span-1 shadow-lg border-l-4 border-red-500">
-                    <CardContent className="flex items-center space-x-4">
-                        <XCircle className="h-8 w-8 text-red-500" />
-                        <div>
-                            <p className="text-2xl font-bold">{totalAbsent}</p>
-                            <p className="text-gray-600">Absent</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="sm:col-span-1 shadow-lg border-l-4 border-yellow-500">
-                    <CardContent className="flex items-center space-x-4">
-                        <AlertTriangle className="h-8 w-8 text-yellow-500" />
-                        <div>
-                            <p className="text-2xl font-bold">{totalLate}</p>
-                            <p className="text-gray-600">Late</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Buttons: span remaining columns */}
-                <div className="sm:col-span-3 flex flex-col sm:flex-row sm:justify-end sm:space-x-4 space-y-2 sm:space-y-0 mt-0">
-                    <button className="px-4 py-1.5 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition cursor-pointer">
-                        Apply Leave
-                    </button>
-                    <button className="px-4 py-1.5 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 transition cursor-pointer">
-                        Adjust Attendance
-                    </button>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 sm:p-6 lg:p-8 transition-all">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header Section */}
+                <div className="mb-6">
+                    {/* <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg mb-4">
+                        <CalendarIcon className="h-6 w-6" />
+                        <span className="text-sm font-semibold">Doctor Attendance</span>
+                    </div> */}
+                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                        Attendance Tracker
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg">
+                        Track your attendance records and view detailed history
+                    </p>
                 </div>
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-6 mb-6">
+                    {/* Present Card */}
+                    <Card className="shadow-xl border-0 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
+                        <CardHeader className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 text-white p-6">
+                            <CardTitle className="text-xl font-bold flex items-center gap-3">
+                                <div className="p-2.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                                    <CheckCircle className="h-6 w-6" />
+                                </div>
+                                Present Days
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="text-center">
+                                <p className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                                    {totalPresent}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                    Days attended
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Absent Card */}
+                    <Card className="shadow-xl border-0 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
+                        <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-rose-500 text-white p-6">
+                            <CardTitle className="text-xl font-bold flex items-center gap-3">
+                                <div className="p-2.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                                    <XCircle className="h-6 w-6" />
+                                </div>
+                                Absent Days
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="text-center">
+                                <p className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                                    {totalAbsent}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                    Days missed
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Late Card */}
+                    <Card className="shadow-xl border-0 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
+                        <CardHeader className="bg-gradient-to-r from-yellow-600 via-yellow-500 to-orange-500 text-white p-6">
+                            <CardTitle className="text-xl font-bold flex items-center gap-3">
+                                <div className="p-2.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                                    <AlertTriangle className="h-6 w-6" />
+                                </div>
+                                Late Arrivals
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="text-center">
+                                <p className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                                    {totalLate}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                    Late check-ins
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <Button
+                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white h-12 px-6 font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                    >
+                        <FileText className="h-5 w-5" />
+                        Apply Leave
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="border-yellow-600 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 h-12 px-6 font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                    >
+                        <Clock className="h-5 w-5" />
+                        Adjust Attendance
+                    </Button>
+                </div>
+
+                {/* Calendar */}
+                <DoctorAttendanceCalendar />
             </div>
-
-
-            {/* Calendar */}
-            <DoctorAttendanceCalendar />
         </div>
     );
 }

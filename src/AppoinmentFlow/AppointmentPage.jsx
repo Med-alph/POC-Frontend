@@ -376,269 +376,346 @@ export default function AppointmentForm() {
               <div style={{ width: 40 }} />
             </div>
             {checkingPatient ? (
-              <Loader2 className="animate-spin mx-auto text-blue-500" />
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">Verifying patient information...</p>
+              </div>
             ) : showPatientConfirmation && existingPatientData ? (
               <>
-                <Card className="bg-green-50 border-green-300">
-                  <CardContent>
-                    <h3 className="font-semibold text-green-800 mb-2">Patient Info</h3>
-                    <div className="space-y-1 text-gray-900">
-                      <p>
-                        <strong>Name:</strong> {existingPatientData.patient_name || "N/A"}
-                      </p>
-                      <p>
-                        <strong>Date of Birth:</strong> {formatDate(existingPatientData.dob)}
-                      </p>
-                      <p>
-                        <strong>Contact:</strong> {existingPatientData.contact_info || phone}
-                      </p>
-                      <p>
-                        <strong>Age:</strong> {existingPatientData.age || "N/A"}
-                      </p>
-                      {existingPatientData.email && (
-                        <p><strong>Email:</strong> {existingPatientData.email}</p>
-                      )}
-                      {existingPatientData.address && (
-                        <p><strong>Address:</strong> {existingPatientData.address}</p>
-                      )}
-                      {existingPatientData.insurance_provider && (
-                        <p><strong>Insurance:</strong> {existingPatientData.insurance_provider}</p>
-                      )}
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-green-600 rounded-lg">
+                        <CheckCircleIcon className="h-6 w-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-green-900 dark:text-green-100">Patient Verified</h3>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Full Name</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {existingPatientData.patient_name || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Date of Birth</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {formatDate(existingPatientData.dob)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Contact</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {existingPatientData.contact_info || phone}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Age</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {existingPatientData.age || "N/A"} years
+                          </p>
+                        </div>
+                        {existingPatientData.email && (
+                          <div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Email</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {existingPatientData.email}
+                            </p>
+                          </div>
+                        )}
+                        {existingPatientData.insurance_provider && (
+                          <div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Insurance</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {existingPatientData.insurance_provider}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {existingPatientData.address && (
+                      <div className="mb-6 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Address</p>
+                        <p className="text-sm text-gray-900 dark:text-white">{existingPatientData.address}</p>
+                      </div>
+                    )}
                     <Button
-                      className="mt-4 w-full bg-green-600 hover:bg-green-700"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
                       onClick={handleContinueWithExistingPatient}
                     >
-                      Continue
+                      Continue to Appointment Booking
                     </Button>
                   </CardContent>
                 </Card>
-                <div className="mt-6">
-                  <h4 className="text-lg font-semibold mb-3">Your Appointments</h4>
+                <div className="mt-8">
+                  <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Your Appointments</h4>
                   {loadingAppointments ? (
-                    <p>Loading appointments...</p>
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="animate-spin text-blue-600 h-8 w-8 mr-3" />
+                      <p className="text-gray-600 dark:text-gray-400">Loading appointments...</p>
+                    </div>
                   ) : patientAppointments.length === 0 ? (
-                    <p>No appointments found.</p>
+                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <p className="text-gray-500 dark:text-gray-400">No appointments found.</p>
+                    </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse border border-gray-300 rounded">
-                        <thead>
-                          <tr className="bg-gray-100">
-                            <th className="border border-gray-300 p-2">Date</th>
-                            <th className="border border-gray-300 p-2">Time</th>
-                            <th className="border border-gray-300 p-2">Doctor</th>
-                            <th className="border border-gray-300 p-2">Status</th>
-                            <th className="border border-gray-300 p-2">Actions</th>
-                          </tr>
-                        </thead>
-                       <tbody>
-  {patientAppointments.map((apt) => {
-    const isDateFutureOrToday = (() => {
-      if (!apt.appointment_date) return false;
-      const aptDate = new Date(apt.appointment_date);
-      aptDate.setHours(0, 0, 0, 0);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return aptDate >= today;
-    })();
+                    <div className="space-y-3">
+                      {patientAppointments.map((apt) => {
+                        const isDateFutureOrToday = (() => {
+                          if (!apt.appointment_date) return false;
+                          const aptDate = new Date(apt.appointment_date);
+                          aptDate.setHours(0, 0, 0, 0);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return aptDate >= today;
+                        })();
 
-    const canModify = 
-      apt.status !== "fulfilled" &&
-      apt.status !== "cancelled" &&
-      isDateFutureOrToday;
+                        const canModify = 
+                          apt.status !== "fulfilled" &&
+                          apt.status !== "cancelled" &&
+                          isDateFutureOrToday;
 
-    return (
-      <tr key={apt.id} className="odd:bg-white even:bg-gray-50">
-        <td className="border border-gray-300 p-2">{formatDate(apt.appointment_date)}</td>
-        <td className="border border-gray-300 p-2">{apt.appointment_time || "-"}</td>
-        <td className="border border-gray-300 p-2">{apt.staff_name || "-"}</td>
-        <td className="border border-gray-300 p-2">{apt.status || "-"}</td>
-        <td className="border border-gray-300">
-          {canModify ? (
-            <div className="flex flex-col gap-2 items-start py-1">
-              <Button
-                size="sm"
-                variant="secondary"
-                className="!bg-neutral-900 !text-white !rounded-lg !px-4 !py-1 !min-w-[110px]"
-                onClick={() => openRescheduleModal(apt)}
-              >
-                Reschedule
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="!rounded-lg !px-4 !py-1 !min-w-[110px]"
-                onClick={() => openCancelModal(apt)}
-              >
-                Cancel
-              </Button>
-            </div>
-          ) : null}
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+                        const statusColors = {
+                          booked: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                          confirmed: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                          fulfilled: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+                          cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                        };
 
-                      </table>
+                        return (
+                          <div
+                            key={apt.id}
+                            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Date</p>
+                                  <p className="font-semibold text-gray-900 dark:text-white">
+                                    {formatDate(apt.appointment_date)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Time</p>
+                                  <p className="font-semibold text-gray-900 dark:text-white">
+                                    {apt.appointment_time || "-"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Doctor</p>
+                                  <p className="font-semibold text-gray-900 dark:text-white">
+                                    {apt.staff_name || "-"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                <span
+                                  className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                                    statusColors[apt.status?.toLowerCase()] || statusColors.booked
+                                  }`}
+                                >
+                                  {apt.status || "Booked"}
+                                </span>
+                                {canModify && (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                      onClick={() => openRescheduleModal(apt)}
+                                    >
+                                      Reschedule
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => openCancelModal(apt)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
                 {cancelModalOpen && (
-                  <div
-                    style={{
-                      position: "fixed",
-                      top: "50%",
-                      left: "50%",
-                      zIndex: 9999,
-                      width: "350px",
-                      backgroundColor: "white",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "0.5rem",
-                      boxShadow: "0 10px 25px rgba(0,0,0,0.18)",
-                      padding: "1.7rem 1.5rem",
-                      transform: "translate(-50%, -50%)",
-                    }}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="cancel-dialog-title"
-                  >
-                    <h3 id="cancel-dialog-title" className="text-lg font-semibold mb-4">
-                      Cancel Appointment?
-                    </h3>
-                    <p className="mb-4 text-sm">Please provide a reason for cancellation:</p>
-                    <Input
-                      type="text"
-                      value={cancelReason}
-                      onChange={(e) => setCancelReason(e.target.value)}
-                      placeholder="Reason for cancellation"
-                      disabled={cancelling}
-                      className="mb-4"
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div 
+                      className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                      onClick={() => setCancelModalOpen(false)}
                     />
-                    <div className="flex justify-end space-x-3">
-                      <Button
-                        variant="ghost"
-                        onClick={() => setCancelModalOpen(false)}
+                    <div
+                      className="relative z-50 w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 animate-in fade-in-0 zoom-in-95"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="cancel-dialog-title"
+                    >
+                      <h3 id="cancel-dialog-title" className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        Cancel Appointment?
+                      </h3>
+                      <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+                        Please provide a reason for cancellation:
+                      </p>
+                      <Input
+                        type="text"
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Enter cancellation reason..."
                         disabled={cancelling}
-                      >
-                        Close
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        className="min-w-[90px]"
-                        onClick={handleCancelConfirm}
-                        disabled={cancelling || !cancelReason.trim()}
-                      >
-                        {cancelling ? (
-                          <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Confirm Cancel
-                      </Button>
+                        className="mb-6 h-12"
+                      />
+                      <div className="flex justify-end gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={() => setCancelModalOpen(false)}
+                          disabled={cancelling}
+                          className="min-w-[100px]"
+                        >
+                          Close
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className="min-w-[130px]"
+                          onClick={handleCancelConfirm}
+                          disabled={cancelling || !cancelReason.trim()}
+                        >
+                          {cancelling ? (
+                            <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Confirm Cancel
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
                 {rescheduleModalOpen && (
-                  <div
-                    style={{
-                      position: "fixed",
-                      top: "50%",
-                      left: "50%",
-                      zIndex: 9999,
-                      width: "350px",
-                      backgroundColor: "white",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "0.5rem",
-                      boxShadow: "0 10px 25px rgba(0,0,0,0.18)",
-                      padding: "1.7rem 1.5rem",
-                      transform: "translate(-50%, -50%)",
-                    }}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="reschedule-dialog-title"
-                  >
-                    <h3 id="reschedule-dialog-title" className="text-lg font-semibold mb-4">
-                      Reschedule Appointment
-                    </h3>
-                    <Input
-                      type="date"
-                      value={rescheduleDate}
-                      min={new Date().toISOString().split("T")[0]}
-                      onChange={async (e) => {
-                        setRescheduleDate(e.target.value);
-                        await fetchRescheduleSlots(
-                          appointmentToReschedule.staff_id,
-                          e.target.value
-                        );
-                        setRescheduleSlot("");
-                      }}
-                      className="mb-4"
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div 
+                      className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                      onClick={() => setRescheduleModalOpen(false)}
                     />
-                    {loadingRescheduleSlots ? (
-                      <Loader2 className="animate-spin text-blue-500 mb-4" />
-                    ) : rescheduleSlots.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto mb-4">
-                        {rescheduleSlots.map((slot, idx) => {
-                          const isSelected = rescheduleSlot === slot.time;
-                          return (
-                            <button
-                              key={idx}
-                              type="button"
-                              className={`w-full rounded-md py-2 px-2 text-sm font-medium outline-none border transition ${
-                                slot.status === "unavailable"
-                                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                                  : isSelected
-                                  ? "bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300"
-                                  : "bg-white text-gray-900 border-gray-300 hover:bg-blue-50"
-                              }`}
-                              style={{
-                                opacity: slot.status === "unavailable" ? 0.6 : 1,
-                              }}
-                              disabled={slot.status === "unavailable"}
-                              onClick={() => setRescheduleSlot(slot.time)}
-                              title={
-                                slot.reason === "booked"
-                                  ? "Already booked"
-                                  : slot.reason === "past"
-                                  ? "Time has passed"
-                                  : ""
-                              }
-                            >
-                              {slot.display_time}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p>No slots available</p>
-                    )}
-                    <div className="flex justify-end space-x-3 mt-2">
-                      <Button
-                        variant="secondary"
-                        className="min-w-[90px]"
-                        onClick={() => setRescheduleModalOpen(false)}
-                        disabled={rescheduleLoading}
-                      >
-                        Close
-                      </Button>
-                      <Button
-                        variant="default"
-                        className="bg-blue-600 hover:bg-blue-700 text-white min-w-[90px]"
-                        onClick={handleRescheduleConfirm}
-                        disabled={rescheduleLoading || !rescheduleDate || !rescheduleSlot}
-                      >
-                        {rescheduleLoading ? (
-                          <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                    <div
+                      className="relative z-50 w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 animate-in fade-in-0 zoom-in-95 max-h-[90vh] overflow-y-auto"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="reschedule-dialog-title"
+                    >
+                      <h3 id="reschedule-dialog-title" className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        Reschedule Appointment
+                      </h3>
+                      <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+                        Select a new date and time for your appointment
+                      </p>
+                      <div className="space-y-4 mb-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Select Date
+                          </label>
+                          <Input
+                            type="date"
+                            value={rescheduleDate}
+                            min={new Date().toISOString().split("T")[0]}
+                            onChange={async (e) => {
+                              setRescheduleDate(e.target.value);
+                              await fetchRescheduleSlots(
+                                appointmentToReschedule.staff_id,
+                                e.target.value
+                              );
+                              setRescheduleSlot("");
+                            }}
+                            className="h-12"
+                          />
+                        </div>
+                        {loadingRescheduleSlots ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="animate-spin text-blue-600 h-8 w-8" />
+                          </div>
+                        ) : rescheduleSlots.length > 0 ? (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                              Available Time Slots
+                            </label>
+                            <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto p-1">
+                              {rescheduleSlots.map((slot, idx) => {
+                                const isSelected = rescheduleSlot === slot.time;
+                                return (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    className={`w-full rounded-xl py-3 px-4 text-sm font-semibold outline-none border-2 transition-all duration-200 ${
+                                      slot.status === "unavailable"
+                                        ? "bg-gray-100 dark:bg-gray-700 text-gray-400 border-gray-200 dark:border-gray-600 cursor-not-allowed"
+                                        : isSelected
+                                        ? "bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300 shadow-lg scale-105"
+                                        : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400"
+                                    }`}
+                                    disabled={slot.status === "unavailable"}
+                                    onClick={() => setRescheduleSlot(slot.time)}
+                                    title={
+                                      slot.reason === "booked"
+                                        ? "Already booked"
+                                        : slot.reason === "past"
+                                        ? "Time has passed"
+                                        : ""
+                                    }
+                                  >
+                                    {slot.display_time}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : rescheduleDate ? (
+                          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <p>No slots available for this date</p>
+                          </div>
                         ) : null}
-                        Save
-                      </Button>
+                      </div>
+                      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <Button
+                          variant="outline"
+                          className="min-w-[100px]"
+                          onClick={() => setRescheduleModalOpen(false)}
+                          disabled={rescheduleLoading}
+                        >
+                          Close
+                        </Button>
+                        <Button
+                          variant="default"
+                          className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
+                          onClick={handleRescheduleConfirm}
+                          disabled={rescheduleLoading || !rescheduleDate || !rescheduleSlot}
+                        >
+                          {rescheduleLoading ? (
+                            <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Save Changes
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
               </>
             ) : (
-              <Button className="w-full" onClick={() => setShowAddPatientDialog(true)}>
-                Register New Patient
-              </Button>
+              <div className="text-center py-8">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  No patient record found. Please register to continue.
+                </p>
+                <Button 
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all" 
+                  onClick={() => setShowAddPatientDialog(true)}
+                >
+                  Register New Patient
+                </Button>
+              </div>
             )}
             <AddPatientDialog
               open={showAddPatientDialog}
@@ -649,26 +726,31 @@ export default function AppointmentForm() {
         );
       case 2:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Go Back">
                 <ArrowLeft className="w-6 h-6" />
               </Button>
-              <h2 className="text-xl font-semibold">Select Doctor</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Select Doctor</h2>
             </div>
             {loadingDoctors ? (
-              <Loader2 className="animate-spin mx-auto text-blue-500" />
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">Loading doctors...</p>
+              </div>
             ) : doctors.length === 0 ? (
-              <p className="text-center text-gray-500">No doctors available</p>
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                <p className="text-gray-500 dark:text-gray-400">No doctors available</p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-4">
                 {doctors.map((doc) => (
                   <div
                     key={doc.id}
-                    className={`border rounded-md p-3 cursor-pointer transition-colors ${
+                    className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${
                       selectedDoctor?.id === doc.id
-                        ? "border-blue-600 bg-blue-50"
-                        : "hover:border-blue-300"
+                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-lg scale-[1.02]"
+                        : "border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:shadow-md"
                     }`}
                     onClick={() => {
                       setSelectedDoctor(doc);
@@ -676,13 +758,18 @@ export default function AppointmentForm() {
                     }}
                   >
                     <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-gray-900">{doc.staff_name}</div>
-                        <div className="text-xs text-gray-600">{doc.department || "General"}</div>
+                      <div className="flex-1">
+                        <div className="font-bold text-lg text-gray-900 dark:text-white mb-1">
+                          {doc.staff_name}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {doc.department || "General Medicine"}
+                        </div>
                       </div>
                       <Button
                         size="sm"
                         variant={selectedDoctor?.id === doc.id ? "default" : "outline"}
+                        className={selectedDoctor?.id === doc.id ? "bg-blue-600" : ""}
                       >
                         {selectedDoctor?.id === doc.id ? "Selected" : "Select"}
                       </Button>
@@ -695,108 +782,148 @@ export default function AppointmentForm() {
         );
       case 3:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Go Back">
                 <ArrowLeft className="w-6 h-6" />
               </Button>
-              <h2 className="text-xl font-semibold">Select Date & Time Slot</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Select Date & Time</h2>
             </div>
-            <Input
-              type="date"
-              value={selectedDate}
-              min={new Date().toISOString().split("T")[0]}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
-            <Button
-              onClick={handleSelectDate}
-              disabled={!selectedDate || loadingSlots}
-              className="w-full"
-            >
-              {loadingSlots ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2 inline" />
-                  Loading Slots...
-                </>
-              ) : (
-                "Load Available Slots"
-              )}
-            </Button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Select Date
+                </label>
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+              <Button
+                onClick={handleSelectDate}
+                disabled={!selectedDate || loadingSlots}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 font-semibold rounded-xl"
+              >
+                {loadingSlots ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2 inline" />
+                    Loading Available Slots...
+                  </>
+                ) : (
+                  "Load Available Slots"
+                )}
+              </Button>
+            </div>
             {slots.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto mt-4">
-                {slots.map((slot, i) => (
-                  <Button
-                    key={i}
-                    variant={selectedSlot === slot.time ? "default" : "outline"}
-                    className={`flex justify-between items-center ${
-                      slot.status === "unavailable"
-                        ? "cursor-not-allowed opacity-50 bg-red-50 border-red-300"
-                        : "hover:bg-green-50 hover:border-green-300"
-                    }`}
-                    onClick={() => {
-                      if (slot.status === "unavailable") return;
-                      setSelectedSlot(slot.time);
-                      setStep(4);
-                    }}
-                    disabled={slot.status === "unavailable"}
-                    title={
-                      slot.reason === "booked"
-                        ? "Already booked"
-                        : slot.reason === "past"
-                        ? "Time has passed"
-                        : ""
-                    }
-                  >
-                    <span>{slot.display_time}</span>
-                    <div className="flex items-center gap-1">
-                      {renderSlotIcon(slot.status)}
-                      {slot.reason === "past" && <span className="text-xs">(Past)</span>}
-                      {slot.reason === "booked" && <span className="text-xs">(Booked)</span>}
-                    </div>
-                  </Button>
-                ))}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Available Time Slots
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-80 overflow-y-auto p-1">
+                  {slots.map((slot, i) => (
+                    <Button
+                      key={i}
+                      variant={selectedSlot === slot.time ? "default" : "outline"}
+                      className={`h-auto py-4 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
+                        slot.status === "unavailable"
+                          ? "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                          : selectedSlot === slot.time
+                          ? "bg-blue-600 text-white border-blue-700 shadow-lg scale-105"
+                          : "hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400"
+                      }`}
+                      onClick={() => {
+                        if (slot.status === "unavailable") return;
+                        setSelectedSlot(slot.time);
+                        setStep(4);
+                      }}
+                      disabled={slot.status === "unavailable"}
+                      title={
+                        slot.reason === "booked"
+                          ? "Already booked"
+                          : slot.reason === "past"
+                          ? "Time has passed"
+                          : ""
+                      }
+                    >
+                      <span className="font-semibold">{slot.display_time}</span>
+                      <div className="flex items-center gap-1">
+                        {renderSlotIcon(slot.status)}
+                      </div>
+                    </Button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         );
       case 4:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={handleBack} aria-label="Go Back">
                 <ArrowLeft className="w-6 h-6" />
               </Button>
-              <h2 className="text-xl font-semibold">Appointment Details</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Appointment Details</h2>
             </div>
-            <select
-              className="w-full border p-2 rounded-md"
-              value={appointmentType}
-              onChange={(e) => setAppointmentType(e.target.value)}
-            >
-              <option value="consultation">Consultation</option>
-              <option value="follow-up">Follow-up</option>
-              <option value="emergency">Emergency</option>
-              <option value="vaccination">Vaccination</option>
-              <option value="checkup">Checkup</option>
-            </select>
-            <textarea
-              className="w-full border p-2 rounded-md resize-none focus:ring-2 focus:ring-blue-500"
-              rows={3}
-              placeholder="Please describe your reason for visit..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-            {reason.trim().length > 0 && (
-              <p className="text-xs text-gray-500">{reason.trim().length} characters</p>
-            )}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Appointment Type
+                </label>
+                <select
+                  className="w-full h-12 border-2 border-gray-200 dark:border-gray-700 rounded-xl px-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  value={appointmentType}
+                  onChange={(e) => setAppointmentType(e.target.value)}
+                >
+                  <option value="consultation">Consultation</option>
+                  <option value="follow-up">Follow-up</option>
+                  <option value="emergency">Emergency</option>
+                  <option value="vaccination">Vaccination</option>
+                  <option value="checkup">Checkup</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Reason for Visit <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  className="w-full h-32 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
+                  placeholder="Please describe your reason for visit..."
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+                {reason.trim().length > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    {reason.trim().length} characters
+                  </p>
+                )}
+              </div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Appointment Summary</h4>
+                <div className="space-y-2 text-sm">
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <span className="font-medium">Doctor:</span> {selectedDoctor?.staff_name}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <span className="font-medium">Date:</span> {formatDate(selectedDate)}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <span className="font-medium">Time:</span> {selectedSlot}
+                  </p>
+                </div>
+              </div>
+            </div>
             <Button
               onClick={handleConfirm}
               disabled={loading || !reason.trim()}
-              className="w-full"
+              className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-5 w-5 animate-spin mr-2 inline" />
                   Booking Appointment...
                 </>
               ) : (
