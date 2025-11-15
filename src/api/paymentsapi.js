@@ -41,12 +41,13 @@ const paymentsAPI = {
 
 
   // Verify payment signature and complete the payment process
-  verifyPayment: async ({ orderId, paymentId, signature }) => {
-    return apiRequest('/payments/verify', {
-      method: 'POST',
-      body: JSON.stringify({ orderId, paymentId, signature }),
-    });
-  },
+  verifyPayment: async ({ orderId, paymentId, signature, paymentMethod }) => {
+  return apiRequest('/payments/verify', {
+    method: 'POST',
+    body: JSON.stringify({ orderId, paymentId, signature, paymentMethod }),
+  });
+},
+
 
   // Additional payment related APIs can be added here, for example webhook logs retrieval or refunds
 };

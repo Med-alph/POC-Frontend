@@ -1,3 +1,4 @@
+// PaymentTab.tsx
 import React, { useState } from "react";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -6,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, Smartphone, Wallet, Receipt } from "lucide-react";
 import paymentsAPI from "../api/paymentsapi";
-
 
 const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymentSuccess }) => {
   const [method, setMethod] = useState("card");
@@ -52,6 +52,7 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
             orderId: response.razorpay_order_id,
             paymentId: response.razorpay_payment_id,
             signature: response.razorpay_signature,
+            paymentMethod: method,
           });
           onPaymentSuccess && onPaymentSuccess();
         } catch (error) {
