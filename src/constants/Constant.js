@@ -1,5 +1,5 @@
-const isProd = false
-const isLocal = true
+const isProd = true
+const isLocal = false
 
 export const baseUrl = isProd 
   ? "https://backend-emr.medalph.com" 
