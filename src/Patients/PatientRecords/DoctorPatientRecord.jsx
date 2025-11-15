@@ -23,49 +23,35 @@ const DoctorPatientRecord = () => {
         fetchPatientRecords();
     }, [patientId]);
 
-    const fetchPatientRecords = async () => {
-        try {
-            setLoading(true);
+   const fetchPatientRecords = async () => {
+  try {
+    setLoading(true);
 
-            let consultationsData = [];
-            let actualPatientId = patientId;
+    if (patientId) {
+      const response = await consultationsAPI.getByPatient(patientId); // now returns { patient, consultations }
 
-            console.log("Fetching consultations for patient:", patientId);
+      if (response.patient) {
+        setPatientData(response.patient);
+      } else {
+        setPatientData(null); // or empty object to handle no patient found
+      }
 
-            // Fetch all consultations for patient
-            if (actualPatientId) {
-                consultationsData = await consultationsAPI.getByPatient(actualPatientId);
-                console.log("Consultations response:", consultationsData);
+      if (response.consultations && response.consultations.length > 0) {
+        setConsultations(response.consultations);
+        toast.success("Patient records loaded");
+      } else {
+        setConsultations([]); // no consultations but patient data present
+        toast.info("No consultation records found");
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch patient records:", err);
+    toast.error(`Failed to load patient records: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
-                if (consultationsData && consultationsData.length > 0) {
-                    // Try to get patient from consultation
-                    if (consultationsData[0].patient) {
-                        setPatientData(consultationsData[0].patient);
-                    } else {
-                        // If patient relation not loaded, fetch patient separately
-                        console.log("Patient not in consultation, creating from data...");
-                        // Create patient object from consultation data
-                        setPatientData({
-                            id: consultationsData[0].patient_id,
-                            patient_name: "Patient", // You might need to fetch this separately
-                            contact_info: "N/A",
-                            // Add other fields as needed
-                        });
-                    }
-                    setConsultations(consultationsData);
-                    toast.success("Patient records loaded");
-                } else {
-                    console.log("No consultations found");
-                    toast.info("No consultation records found");
-                }
-            }
-        } catch (err) {
-            console.error("Failed to fetch patient records:", err);
-            toast.error(`Failed to load patient records: ${err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
 
 
     const calculateAge = (dob) => {
