@@ -29,19 +29,19 @@ const LiveAppointmentList = () => {
 
     return (
         <div
-            className={`w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+            className={`w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden ${isLoaded ? "opacity-100" : "opacity-0"
                 }`}
         >
             {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 text-white px-6 py-4 flex items-center font-bold text-sm">
-                <div className="w-1/5 flex items-center gap-2">
-                    <Stethoscope className="h-5 w-5" /> Doctor
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex items-center text-xs font-semibold text-gray-900 dark:text-white">
+                <div className="w-1/5 flex items-center gap-1.5">
+                    <Stethoscope className="h-4 w-4 text-gray-500 dark:text-gray-400" /> Doctor
                 </div>
-                <div className="w-1/5 flex items-center gap-2">
-                    <User className="h-5 w-5" /> Patient
+                <div className="w-1/5 flex items-center gap-1.5">
+                    <User className="h-4 w-4 text-gray-500 dark:text-gray-400" /> Patient
                 </div>
-                <div className="w-1/5 flex items-center gap-2">
-                    <Clock className="h-5 w-5" /> Start Time
+                <div className="w-1/5 flex items-center gap-1.5">
+                    <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" /> Start Time
                 </div>
                 <div className="w-1/5">Status</div>
                 <div className="w-1/5 text-center">Action</div>
@@ -53,12 +53,12 @@ const LiveAppointmentList = () => {
                     appointments.map((appt) => (
                         <div
                             key={appt.id}
-                            className="flex items-center px-6 py-4 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
+                            className="flex items-center px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                         >
-                            <div className="w-1/5 text-gray-900 dark:text-white font-bold truncate">
+                            <div className="w-1/5 text-gray-900 dark:text-white font-medium truncate text-sm">
                                 Dr. {appt.doctorName}
                             </div>
-                            <div className="w-1/5 text-gray-700 dark:text-gray-300 font-medium truncate">
+                            <div className="w-1/5 text-gray-700 dark:text-gray-300 truncate text-sm">
                                 {appt.patientName}
                             </div>
                             <div className="w-1/5 text-gray-600 dark:text-gray-400 whitespace-normal break-words text-xs">
@@ -66,11 +66,11 @@ const LiveAppointmentList = () => {
                             </div>
                             <div className="w-1/5">
                                 {appt.status === "ongoing" ? (
-                                    <span className="text-green-700 dark:text-green-400 text-xs font-bold bg-green-100 dark:bg-green-900/30 px-3 py-1.5 rounded-full">
+                                    <span className="text-green-700 dark:text-green-400 text-xs font-medium bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800">
                                         Ongoing
                                     </span>
                                 ) : (
-                                    <span className="text-gray-700 dark:text-gray-300 text-xs font-bold bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-full">
+                                    <span className="text-gray-700 dark:text-gray-300 text-xs font-medium bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600">
                                         Ended
                                     </span>
                                 )}
@@ -79,10 +79,10 @@ const LiveAppointmentList = () => {
                                 {appt.status === "ended" ? (
                                     <Button
                                         variant="outline"
-                                        className="border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-xs font-semibold flex items-center gap-1 rounded-xl px-4 py-2"
+                                        className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-medium flex items-center gap-1 rounded-md px-3 py-1.5 h-7"
                                         onClick={() => handleBilling(appt.id)}
                                     >
-                                        <CheckCircle2 className="h-4 w-4" /> Billing
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> Billing
                                     </Button>
                                 ) : (
                                     <p className="text-xs text-gray-400 dark:text-gray-500 italic">In progress</p>
@@ -92,7 +92,7 @@ const LiveAppointmentList = () => {
                     ))
                 ) : (
                     <div className="text-center py-12">
-                        <p className="text-gray-400 dark:text-gray-500 text-sm">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             No appointments found.
                         </p>
                     </div>

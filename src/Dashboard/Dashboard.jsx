@@ -44,71 +44,71 @@ function AppointmentsModal({ title, appointments, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/50"
         onClick={onClose}
       />
-      <div className="relative z-50 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-in fade-in-0 zoom-in-95">
-        <div className={`bg-gradient-to-r ${isCancelled ? 'from-red-600 to-red-500' : 'from-blue-600 to-blue-500'} text-white p-6`}>
+      <div className="relative z-50 bg-white dark:bg-gray-800 rounded-md shadow-lg w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700">
+        <div className={`border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${isCancelled ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'} px-6 py-4`}>
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">{title}</h2>
+            <h2 className="text-lg font-semibold">{title}</h2>
             <button
-              className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+              className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
               onClick={onClose}
               aria-label="Close"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-white/90 mt-2 text-sm">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {appointments.length} {appointments.length === 1 ? 'appointment' : 'appointments'} found
           </p>
         </div>
-        <div className="max-h-[calc(90vh-140px)] overflow-y-auto p-6">
+        <div className="max-h-[calc(90vh-140px)] overflow-y-auto p-4">
           {appointments.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">📋</div>
-              <p className="text-gray-500 dark:text-gray-400 text-lg">No records found.</p>
+              <div className="text-gray-300 dark:text-gray-600 text-4xl mb-3">📋</div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No records found.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {appointments.map((appt, idx) => (
                 <div 
                   key={appt.id || idx} 
-                  className={`p-4 rounded-xl border-2 transition-all hover:shadow-lg ${
+                  className={`p-3 rounded-md border transition-colors ${
                     isCancelled 
                       ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
                       : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                   }`}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`font-bold text-lg ${isCancelled ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-semibold text-sm ${isCancelled ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
                           {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
                         </span>
-                        <span className="font-bold text-gray-900 dark:text-white">
+                        <span className="font-medium text-sm text-gray-900 dark:text-white">
                           {appt.patient_name ?? "Unnamed Patient"}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        with <span className="font-semibold">{appt.staff_name ?? "Unknown Doctor"}</span>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        with <span className="font-medium">{appt.staff_name ?? "Unknown Doctor"}</span>
                       </div>
                     </div>
-                    <div className="text-sm">
-                      <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                    <div className="text-xs">
+                      <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                         isCancelled 
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800' 
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
                       }`}>
                         {appt.appointment_type ?? "N/A"}
                       </div>
                       {appt.reason && (
-                        <p className="text-gray-600 dark:text-gray-400 mt-2 text-xs">
+                        <p className="text-gray-500 dark:text-gray-400 mt-1 text-xs">
                           {appt.reason}
                         </p>
                       )}
                       {appt.cancellation_reason && (
-                        <p className="text-red-600 dark:text-red-400 mt-2 text-xs font-medium">
+                        <p className="text-red-600 dark:text-red-400 mt-1 text-xs font-medium">
                           Reason: {appt.cancellation_reason}
                         </p>
                       )}
@@ -389,68 +389,62 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6"></div>
-          <p className="text-xl font-semibold text-gray-700 dark:text-gray-300">Loading dashboard data...</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Please wait</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mx-auto mb-3"></div>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Loading dashboard data...</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Please wait</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-all duration-1000 opacity-100 translate-y-0">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* <Navbar /> */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 p-6 lg:p-8">
         <Toaster position="top-right" />
-        <div className="mb-6 sm:mb-8">
-          {/* <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg mb-4">
-            <Stethoscope className="h-6 w-6" />
-            <span className="text-sm font-semibold">MedAssist Dashboard</span>
-          </div> */}
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
             Good Morning, Care Coordinator
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Here's your clinic overview for today
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
           {/* Card 1 - Today's Appointments */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
-            <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 text-white p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <CalendarDays className="h-6 w-6" />
-                  </div>
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                   Today's Appointments
                 </h2>
               </div>
-              <p className="text-5xl font-bold mb-2">
+              <p className="text-4xl font-semibold text-gray-900 dark:text-white mb-1">
                 {animatedValues.appointments}
               </p>
-              <p className="text-blue-100 text-sm">Scheduled for today</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Scheduled for today</p>
             </div>
-            <div className="p-6">
-              <div className="space-y-3 mb-4">
+            <div className="p-4">
+              <div className="space-y-2 mb-3">
                 {todaysAppointments.slice(0, 3).map((appt, idx) => (
                   <div 
                     key={appt.id || idx} 
-                    className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all"
+                    className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-3 border border-blue-200 dark:border-blue-800"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-16 text-center">
-                        <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-shrink-0 w-12 text-center">
+                        <span className="text-blue-600 dark:text-blue-400 font-semibold text-sm">
                           {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-900 dark:text-white truncate">
+                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                           {appt.patient_name ?? "Unnamed Patient"}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           with {appt.staff_name ?? "Unknown Doctor"}
                         </p>
                       </div>
@@ -460,7 +454,7 @@ export default function Dashboard() {
               </div>
               {todaysAppointments.length > 3 && (
                 <button
-                  className="w-full py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold rounded-xl transition-all text-sm"
+                  className="w-full py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400 font-medium rounded-md transition-colors text-xs"
                   onClick={() => setShowAllModal(true)}
                 >
                   View {todaysAppointments.length - 3} more appointments →
@@ -470,32 +464,30 @@ export default function Dashboard() {
           </div>
           {/* Card 2 - New Patients Today */}
           <div 
-            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
             onClick={() => navigate("/patients")}
           >
-            <div className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 text-white p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <Users className="h-6 w-6" />
-                  </div>
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Users className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                   New Patients
                 </h2>
               </div>
-              <p className="text-5xl font-bold mb-2">{animatedValues.newPatients}</p>
-              <p className="text-green-100 text-sm">Registered today</p>
+              <p className="text-4xl font-semibold text-gray-900 dark:text-white mb-1">{animatedValues.newPatients}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Registered today</p>
             </div>
-            <div className="p-6">
-              <div className="space-y-3 mb-4">
+            <div className="p-4">
+              <div className="space-y-2 mb-3">
                 {newPatientsToday.slice(0, 3).map((patient) => (
                   <div 
                     key={patient.id} 
-                    className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-3 border border-green-200 dark:border-green-800"
+                    className="bg-green-50 dark:bg-green-900/20 rounded-md p-2 border border-green-200 dark:border-green-800"
                   >
-                    <p className="font-bold text-gray-900 dark:text-white text-sm truncate">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
                       {patient.patient_name}
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                       {patient.contact_info}
                     </p>
                   </div>
@@ -503,7 +495,7 @@ export default function Dashboard() {
               </div>
               {newPatientsToday.length > 3 && (
                 <div className="text-center">
-                  <span className="text-sm text-green-600 dark:text-green-400 font-semibold">
+                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">
                     +{newPatientsToday.length - 3} more
                   </span>
                 </div>
@@ -512,39 +504,37 @@ export default function Dashboard() {
           </div>
 
           {/* Card 3 - Cancellations Today */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
-            <div className="bg-gradient-to-r from-red-600 via-red-500 to-rose-500 text-white p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <UserX className="h-6 w-6" />
-                  </div>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <UserX className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                   Cancellations
                 </h2>
               </div>
-              <p className="text-5xl font-bold mb-2">{animatedValues.cancellations}</p>
-              <p className="text-red-100 text-sm">Cancelled today</p>
+              <p className="text-4xl font-semibold text-gray-900 dark:text-white mb-1">{animatedValues.cancellations}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Cancelled today</p>
             </div>
-            <div className="p-6">
-              <div className="space-y-3 mb-4">
+            <div className="p-4">
+              <div className="space-y-2 mb-3">
                 {cancelledAppointments.slice(0, 3).map((appt, idx) => (
                   <div 
                     key={appt.id || idx} 
-                    className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-xl p-3 border border-red-200 dark:border-red-800"
+                    className="bg-red-50 dark:bg-red-900/20 rounded-md p-2 border border-red-200 dark:border-red-800"
                   >
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="text-red-600 dark:text-red-400 font-bold text-sm">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-red-600 dark:text-red-400 font-semibold text-xs">
                         {appt.appointment_time ? appt.appointment_time.slice(0, 5) : "--"}
                       </span>
-                      <span className="font-bold text-gray-900 dark:text-white text-sm truncate">
+                      <span className="font-medium text-xs text-gray-900 dark:text-white truncate">
                         {appt.patient_name ?? "Unnamed Patient"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                       with {appt.staff_name ?? "Unknown Doctor"}
                     </p>
                     {appt.cancellation_reason && (
-                      <p className="text-xs text-red-600 dark:text-red-400 mt-1 truncate">
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-0.5 truncate">
                         {appt.cancellation_reason}
                       </p>
                     )}
@@ -553,7 +543,7 @@ export default function Dashboard() {
               </div>
               {cancelledAppointments.length > 3 && (
                 <button
-                  className="w-full py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-semibold rounded-xl transition-all text-sm"
+                  className="w-full py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 dark:text-red-400 font-medium rounded-md transition-colors text-xs"
                   onClick={() => setShowCancelledModal(true)}
                 >
                   View {cancelledAppointments.length - 3} more cancellations →
@@ -567,48 +557,43 @@ export default function Dashboard() {
         <div className="mt-6 sm:mt-8 grid grid-cols-1 gap-6">
           <LiveAppointmentList />
         </div>
-        <div className="mt-6 sm:mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Weekly Patient Visits Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden p-6 h-80 flex flex-col transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white -m-6 mb-4 p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <TrendingUp className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold">Weekly Patient Visits</h3>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden p-4 h-80 flex flex-col">
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 -mx-4 mb-3 px-4 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Weekly Patient Visits</h3>
               </div>
-              <p className="text-blue-100 text-sm">Patient visits over the last 7 days</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Patient visits over the last 7 days</p>
             </div>
-            <div className="flex-1 -mt-2">
+            <div className="flex-1">
               <Line data={weeklyVisitsData} options={weeklyVisitsOptions} />
             </div>
           </div>
-          {/* Add other chart cards if needed */}
 
-          <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden p-6 h-80 flex flex-col transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white -m-6 mb-4 p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <BarChart2 className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold">Appointments per Department</h3>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden p-4 h-80 flex flex-col">
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 -mx-4 mb-3 px-4 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <BarChart2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Appointments per Department</h3>
               </div>
-              <p className="text-green-100 text-sm">Today's appointments by department</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Today's appointments by department</p>
             </div>
-            <div className="flex-1 -mt-2 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 max-h-64 overflow-auto">
+            <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-md p-3 max-h-64 overflow-auto">
               {Object.keys(appointmentsPerDept).length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">No appointment data available</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">No appointment data available</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {Object.entries(appointmentsPerDept).map(([dept, count]) => (
                     <div 
                       key={dept} 
-                      className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 flex items-center justify-between hover:shadow-md transition-all"
+                      className="bg-white dark:bg-gray-700 rounded-md p-3 border border-gray-200 dark:border-gray-600 flex items-center justify-between"
                     >
-                      <span className="font-semibold text-gray-900 dark:text-white">{dept}</span>
-                      <span className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-bold rounded-full text-sm">
+                      <span className="font-medium text-sm text-gray-900 dark:text-white">{dept}</span>
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-semibold rounded text-xs border border-green-200 dark:border-green-800">
                         {count}
                       </span>
                     </div>
@@ -618,19 +603,16 @@ export default function Dashboard() {
             </div>
           </div>
 
-
-          <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden p-6 h-80 flex flex-col items-center justify-start transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white -m-6 mb-4 p-6 w-full">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <Clock className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold">Appointment Status</h3>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden p-4 h-80 flex flex-col items-center justify-start">
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 -mx-4 mb-3 px-4 py-3 w-full">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Appointment Status</h3>
               </div>
-              <p className="text-purple-100 text-sm">Status breakdown for this week</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Status breakdown for this week</p>
             </div>
-            <div className="flex flex-col items-center justify-center flex-1 w-full -mt-2">
-              <div className="mb-6">
+            <div className="flex flex-col items-center justify-center flex-1 w-full">
+              <div className="mb-4">
                 <Doughnut
                   data={{
                     labels: ["Completed", "Pending", "Cancelled"],
@@ -641,7 +623,7 @@ export default function Dashboard() {
                           appointmentStatusCounts.pending || 0,
                           appointmentStatusCounts.cancelled || 0,
                         ],
-                        backgroundColor: ["#10B981", "#F59E0B", "#EF4444"],
+                        backgroundColor: ["#16a34a", "#F59E0B", "#dc2626"],
                         borderWidth: 0,
                       },
                     ],
@@ -655,21 +637,21 @@ export default function Dashboard() {
                       delay: 1000,
                     },
                   }}
-                  className="w-40 h-40"
+                  className="w-32 h-32"
                 />
               </div>
-              <div className="flex flex-wrap justify-center gap-4 text-sm">
-                <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
-                  <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                  <span className="font-semibold text-gray-900 dark:text-white">Completed</span>
+              <div className="flex flex-wrap justify-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md border border-green-200 dark:border-green-800">
+                  <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                  <span className="font-medium text-gray-900 dark:text-white">Completed</span>
                 </div>
-                <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-lg">
-                  <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                  <span className="font-semibold text-gray-900 dark:text-white">Pending</span>
+                <div className="flex items-center gap-1.5 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded-md border border-yellow-200 dark:border-yellow-800">
+                  <span className="w-2 h-2 bg-yellow-600 rounded-full"></span>
+                  <span className="font-medium text-gray-900 dark:text-white">Pending</span>
                 </div>
-                <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
-                  <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                  <span className="font-semibold text-gray-900 dark:text-white">Cancelled</span>
+                <div className="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md border border-red-200 dark:border-red-800">
+                  <span className="w-2 h-2 bg-red-600 rounded-full"></span>
+                  <span className="font-medium text-gray-900 dark:text-white">Cancelled</span>
                 </div>
               </div>
             </div>
