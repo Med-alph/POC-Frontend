@@ -234,50 +234,56 @@ export default function Patients() {
 
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
-            <main className="flex-1 p-2 sm:p-6">
+        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+            <main className="flex-1 p-6 lg:p-8">
                 <Toaster position="top-right" />
+
+                {/* Header */}
+                <div className="mb-6">
+                    <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">Patients</h1>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Manage patient records and information</p>
+                </div>
 
                 {/* Statistics Cards */}
                 <div className="mb-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Total Patients</p>
-                                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total Patients</p>
+                                    <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.total}</p>
                                 </div>
-                                <Users className="h-8 w-8 text-blue-600" />
+                                <Users className="h-6 w-6 text-gray-400 dark:text-gray-500" />
                             </div>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Active</p>
-                                    <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Active</p>
+                                    <p className="text-2xl font-semibold text-green-600 dark:text-green-400">{stats.active}</p>
                                 </div>
-                                <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                                    <div className="h-3 w-3 bg-green-600 rounded-full"></div>
+                                <div className="h-6 w-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                                    <div className="h-2 w-2 bg-green-600 dark:bg-green-400 rounded-full"></div>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">With Appointments</p>
-                                    <p className="text-2xl font-bold text-blue-600">{stats.withAppointments}</p>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">With Appointments</p>
+                                    <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{stats.withAppointments}</p>
                                 </div>
-                                <Calendar className="h-8 w-8 text-blue-600" />
+                                <Calendar className="h-6 w-6 text-gray-400 dark:text-gray-500" />
                             </div>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border">
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Inactive</p>
-                                    <p className="text-2xl font-bold text-gray-600">{stats.inactive}</p>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Inactive</p>
+                                    <p className="text-2xl font-semibold text-gray-600 dark:text-gray-400">{stats.inactive}</p>
                                 </div>
-                                <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                    <div className="h-3 w-3 bg-gray-600 rounded-full"></div>
+                                <div className="h-6 w-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                    <div className="h-2 w-2 bg-gray-600 dark:text-gray-400 rounded-full"></div>
                                 </div>
                             </div>
                         </div>
@@ -285,7 +291,7 @@ export default function Patients() {
                 </div>
 
                 {/* Filters and Actions */}
-                <div className="bg-white shadow rounded-lg p-4 mb-6">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 mb-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         <div className="flex flex-col sm:flex-row gap-3 flex-1">
                             <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
@@ -356,7 +362,7 @@ export default function Patients() {
                                     Export
                                 </Button>
                                 <Button
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md"
                                     onClick={() => setOpenDialog(true)}
                                 >
                                     <UserPlus className="h-4 w-4 mr-2" />
@@ -368,7 +374,7 @@ export default function Patients() {
                 </div>
 
                 {/* Table Section */}
-                <div className="mt-6 bg-white shadow rounded-lg p-4 sm:p-5 overflow-x-auto">
+                <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 overflow-x-auto">
                     {loading ? (
                         <div className="flex justify-center items-center py-8">
                             <div className="text-gray-500">Loading patients...</div>
@@ -412,12 +418,12 @@ export default function Patients() {
                                     }
 
                                     const getStatusColor = (status) => {
-                                        if (!status) return 'bg-gray-100 text-gray-600'
+                                        if (!status) return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
                                         switch (status) {
-                                            case 'active': return 'bg-green-100 text-green-600'
-                                            case 'inactive': return 'bg-gray-100 text-gray-600'
-                                            case 'pending': return 'bg-yellow-100 text-yellow-600'
-                                            default: return 'bg-blue-100 text-blue-600'
+                                            case 'active': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800'
+                                            case 'inactive': return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+                                            case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800'
+                                            default: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
                                         }
                                     }
 
@@ -453,7 +459,7 @@ export default function Patients() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge className="bg-blue-100 text-blue-600">
+                                                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
                                                     {patient.insurance_provider}
                                                 </Badge>
                                             </TableCell>
@@ -527,7 +533,7 @@ export default function Patients() {
                 </div>
 
                 {/* Footer */}
-                <div className="mt-6 bg-white shadow rounded-lg p-4">
+                <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="text-sm text-gray-600">
                             Showing {filteredAndSortedPatients.length} of {patients.length} patients

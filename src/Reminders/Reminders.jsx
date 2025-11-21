@@ -123,23 +123,25 @@ export default function Reminders() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
+        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
             {/* <Navbar /> */}
 
-            <main className="flex-1 px-4 sm:px-6 md:px-10 lg:px-20 py-6">
+            <main className="flex-1 p-6 lg:p-8">
                 <Toaster position="top-right" />
-                <h1 className="text-lg sm:text-2xl font-bold mb-2">Reminders</h1>
-                <p className="text-gray-600 mt-0 mb-6 text-xs sm:text-base">
-                    Manage and view all Reminders information
-                </p>
+                <div className="mb-6">
+                    <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">Reminders</h1>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Manage and view all Reminders information
+                    </p>
+                </div>
 
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 mb-6">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2 mb-6">
                     <Plus className="h-4 w-4" />
                     Add New Reminder
                 </Button>
 
                 {/* Filters */}
-                <div className="bg-white shadow rounded-lg pt-6 sm:pt-8 pb-4 px-4 sm:px-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0 mb-6">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                     <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 w-full md:w-auto flex-wrap">
                         <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
@@ -194,7 +196,7 @@ export default function Reminders() {
                 </div>
 
                 {/* Reminders Table */}
-                <div className="bg-white shadow rounded-lg p-4 sm:p-5 overflow-x-auto">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 overflow-x-auto">
                     {loading ? (
                         <div className="flex justify-center items-center py-8">
                             <div className="text-gray-500">Loading reminders...</div>
@@ -251,12 +253,12 @@ export default function Reminders() {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge className={reminder.priorityColor}>
+                                            <Badge className={`${reminder.priorityColor} border`}>
                                                 {reminder.priority}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge className={reminder.statusColor}>
+                                            <Badge className={`${reminder.statusColor} border`}>
                                                 {reminder.status}
                                             </Badge>
                                         </TableCell>

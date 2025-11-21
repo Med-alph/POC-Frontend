@@ -341,13 +341,13 @@ try {
 
 
   function renderStatusBadge(status) {
-    const base = "inline-block px-2 py-1 rounded text-xs font-semibold"
+    const base = "inline-block px-2 py-1 rounded text-xs font-medium border"
     switch ((status || "").toLowerCase()) {
-      case "booked": return <span className={`${base} bg-blue-100 text-blue-800`}>Booked</span>
-      case "cancelled": return <span className={`${base} bg-red-100 text-red-800`}>Cancelled</span>
+      case "booked": return <span className={`${base} bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800`}>Booked</span>
+      case "cancelled": return <span className={`${base} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800`}>Cancelled</span>
       case "fulfilled":
-      case "completed": return <span className={`${base} bg-green-100 text-green-800`}>Completed</span>
-      default: return <span className={`${base} bg-gray-100 text-gray-700`}>{status || "Unknown"}</span>
+      case "completed": return <span className={`${base} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800`}>Completed</span>
+      default: return <span className={`${base} bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700`}>{status || "Unknown"}</span>
     }
   }
 
@@ -637,19 +637,19 @@ try {
 
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 px-4 py-6 sm:px-6 md:px-10 lg:px-20">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 p-6 lg:p-8">
       <Toaster position="top-right" />
       <Breadcrumb items={[{ label: "Appointments" }]} />
 
 
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <Stethoscope className="h-6 w-6 text-blue-600" />
-          <h1 className="text-2xl font-bold text-blue-700">Appointments</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">Appointments</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Manage and schedule appointments</p>
         </div>
         <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add Appointment
             </Button>
@@ -692,7 +692,7 @@ try {
       </div>
 
 
-      <div className="mt-2 bg-white shadow rounded-lg p-4 sm:p-5 overflow-x-auto">
+      <div className="mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 overflow-x-auto">
         {loading ? (
           <p className="text-center text-gray-500">Loading appointments...</p>
         ) : (
@@ -759,7 +759,7 @@ try {
 
 
         )}
-        <div className="mt-6 bg-white shadow rounded-lg p-4">
+        <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="text-sm text-gray-600">
               Showing {(page - 1) * limit + 1} - {Math.min(page * limit, total)} of {total} appointments
@@ -796,14 +796,14 @@ try {
           aria-labelledby="cancel-dialog-title"
           className="fixed inset-0 flex items-center justify-center z-50"
         >
-          <div className="fixed inset-0 bg-black opacity-30" onClick={() => !cancelLoading && setCancelModalOpen(false)} />
-          <div className="bg-white rounded-lg shadow-lg max-w-sm w-full z-60 p-6 relative">
-            <h3 id="cancel-dialog-title" className="text-lg font-semibold mb-4">Confirm Cancellation</h3>
-            <p className="mb-2 text-sm">Please provide a reason for cancellation:</p>
+          <div className="fixed inset-0 bg-black opacity-50" onClick={() => !cancelLoading && setCancelModalOpen(false)} />
+          <div className="bg-white dark:bg-gray-800 rounded-md shadow-lg max-w-sm w-full z-60 p-6 relative border border-gray-200 dark:border-gray-700">
+            <h3 id="cancel-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Confirm Cancellation</h3>
+            <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">Please provide a reason for cancellation:</p>
             <Input type="text" value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="Reason for cancellation" disabled={cancelLoading} className="mb-4" />
             <div className="flex justify-end gap-3">
-              <Button variant="outline" disabled={cancelLoading} onClick={() => setCancelModalOpen(false)}>Close</Button>
-              <Button variant="destructive" disabled={cancelLoading || !cancelReason.trim()} onClick={handleCancelConfirm}>
+              <Button variant="outline" disabled={cancelLoading} onClick={() => setCancelModalOpen(false)} className="h-9 px-4 text-sm font-medium rounded-md">Close</Button>
+              <Button variant="destructive" disabled={cancelLoading || !cancelReason.trim()} onClick={handleCancelConfirm} className="h-9 px-4 text-sm font-medium rounded-md">
                 {cancelLoading ? <><Loader2 className="inline h-4 w-4 animate-spin mr-2" />Cancelling...</> : "Confirm Cancel"}
               </Button>
             </div>
