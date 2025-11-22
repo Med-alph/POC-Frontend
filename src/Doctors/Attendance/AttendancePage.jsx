@@ -22,40 +22,34 @@ export default function DoctorAttendancePage() {
     const totalLate = attendanceRecords.filter((r) => r.status === "late").length;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 sm:p-6 lg:p-8 transition-all">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 lg:p-8">
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header Section */}
                 <div className="mb-6">
-                    {/* <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg mb-4">
-                        <CalendarIcon className="h-6 w-6" />
-                        <span className="text-sm font-semibold">Doctor Attendance</span>
-                    </div> */}
-                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                    <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
                         Attendance Tracker
                     </h1>
-                    <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                         Track your attendance records and view detailed history
                     </p>
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {/* Present Card */}
-                    <Card className="shadow-xl border-0 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
-                        <CardHeader className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 text-white p-6">
-                            <CardTitle className="text-xl font-bold flex items-center gap-3">
-                                <div className="p-2.5 bg-white/20 rounded-lg backdrop-blur-sm">
-                                    <CheckCircle className="h-6 w-6" />
-                                </div>
+                    <Card className="border border-gray-200 dark:border-gray-700">
+                        <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 Present Days
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                             <div className="text-center">
-                                <p className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                                <p className="text-4xl font-semibold text-gray-900 dark:text-white mb-1">
                                     {totalPresent}
                                 </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                     Days attended
                                 </p>
                             </div>
@@ -63,21 +57,19 @@ export default function DoctorAttendancePage() {
                     </Card>
 
                     {/* Absent Card */}
-                    <Card className="shadow-xl border-0 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
-                        <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-rose-500 text-white p-6">
-                            <CardTitle className="text-xl font-bold flex items-center gap-3">
-                                <div className="p-2.5 bg-white/20 rounded-lg backdrop-blur-sm">
-                                    <XCircle className="h-6 w-6" />
-                                </div>
+                    <Card className="border border-gray-200 dark:border-gray-700">
+                        <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <XCircle className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 Absent Days
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                             <div className="text-center">
-                                <p className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                                <p className="text-4xl font-semibold text-gray-900 dark:text-white mb-1">
                                     {totalAbsent}
                                 </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                     Days missed
                                 </p>
                             </div>
@@ -85,21 +77,19 @@ export default function DoctorAttendancePage() {
                     </Card>
 
                     {/* Late Card */}
-                    <Card className="shadow-xl border-0 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
-                        <CardHeader className="bg-gradient-to-r from-yellow-600 via-yellow-500 to-orange-500 text-white p-6">
-                            <CardTitle className="text-xl font-bold flex items-center gap-3">
-                                <div className="p-2.5 bg-white/20 rounded-lg backdrop-blur-sm">
-                                    <AlertTriangle className="h-6 w-6" />
-                                </div>
+                    <Card className="border border-gray-200 dark:border-gray-700">
+                        <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 Late Arrivals
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6">
                             <div className="text-center">
-                                <p className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                                <p className="text-4xl font-semibold text-gray-900 dark:text-white mb-1">
                                     {totalLate}
                                 </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                     Late check-ins
                                 </p>
                             </div>
@@ -108,18 +98,18 @@ export default function DoctorAttendancePage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-3">
                     <Button
-                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white h-12 px-6 font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                        className="bg-red-600 hover:bg-red-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2"
                     >
-                        <FileText className="h-5 w-5" />
+                        <FileText className="h-4 w-4" />
                         Apply Leave
                     </Button>
                     <Button
                         variant="outline"
-                        className="border-yellow-600 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 h-12 px-6 font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                        className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2"
                     >
-                        <Clock className="h-5 w-5" />
+                        <Clock className="h-4 w-4" />
                         Adjust Attendance
                     </Button>
                 </div>

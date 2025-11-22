@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import hospitalsapi from "../../api/HospitalsAPI";
+import hospitalsapi from "../../api/hospitalsapi";
 import toast from "react-hot-toast";
 import appointmentsAPI from "../../api/appointmentsapi";
 

@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { Pencil, X } from "lucide-react";
+import { 
+  Bell, 
+  X, 
+  Clock, 
+  AlertCircle, 
+  CheckCircle2, 
+  XCircle, 
+  MessageSquare,
+  Calendar,
+  User,
+  FileText,
+  Loader2
+} from "lucide-react";
 import notificationAPI from "../api/notificationapi";
 import cancellationRequestAPI from "../api/cancellationrequestapi";
 import appointmentsAPI from "../api/appointmentsapi";
@@ -100,126 +112,290 @@ export default function Notifications() {
     }
   };
 
-  const Spinner = () => (
-    <svg
-      className="animate-spin h-5 w-5 text-gray-700"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      ></circle>
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v8H4z"
-      ></path>
-    </svg>
-  );
+  const getStatusBadge = (status) => {
+    if (status === "approved") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+          <CheckCircle2 className="h-3 w-3" />
+          Approved
+        </span>
+      );
+    }
+    if (status === "rejected") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
+          <XCircle className="h-3 w-3" />
+          Rejected
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+        <Clock className="h-3 w-3" />
+        Pending
+      </span>
+    );
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (diffDays === 1) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    }
+    return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-4">Notifications</h2>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="p-6 lg:p-8">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
+            Notifications
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Review and manage cancellation requests
+          </p>
+          {notifications.length > 0 && (
+            <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 mt-3">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Total:</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400">{notifications.length}</span>
+            </div>
+          )}
+        </div>
 
-      {loading ? (
-        <p>Loading notifications...</p>
-      ) : notifications.length === 0 ? (
-        <p>No notifications found.</p>
-      ) : (
-        <table className="w-full border border-gray-300 bg-white rounded-md">
-          <thead>
-            <tr className="border-b border-gray-300 bg-gray-100">
-              <th className="py-2 px-4 text-left">Date</th>
-              <th className="py-2 px-4 text-left">Type</th>
-              <th className="py-2 px-4 text-left">Doctor's Reason</th>
-              <th className="py-2 px-4 text-left">Message</th>
-              <th className="py-2 px-4 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin mb-3" />
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Loading notifications...</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Please wait</p>
+          </div>
+        ) : notifications.length === 0 ? (
+          /* Empty State */
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-12 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+              <Bell className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No notifications</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">You're all caught up! No pending notifications at the moment.</p>
+          </div>
+        ) : (
+          /* Notifications List */
+          <div className="space-y-3">
             {notifications.map((notif) => {
               const isProcessed =
                 notif.cancellation_status === "approved" || notif.cancellation_status === "rejected";
               const isProcessing = processingId === notif.notification_id;
+              const notificationType = (notif.notification_type || "").replace(/_/g, " ");
+
               return (
-                <tr key={notif.notification_id} className="border-b border-gray-300 hover:bg-gray-50">
-                  <td className="py-2 px-4 text-sm">
-                    {new Date(notif.notification_created_at || notif.createdAt).toLocaleString()}
-                  </td>
-                  <td className="py-2 px-4 text-sm">
-                    {(notif.notification_type || "").replace(/_/g, " ")}
-                  </td>
-                  <td className="py-2 px-4 max-w-xs text-sm break-words">
-                    {notif.notification_doctor_cancellation_reason || "-"}
-                  </td>
-                  <td className="py-2 px-4 max-w-xs text-sm">{notif.notification_message}</td>
-                  <td className="py-2 px-4">
-                    <button
-                      onClick={() => openModal(notif)}
-                      title="Review Request"
-                      className={`p-1 rounded ${
-                        isProcessed || isProcessing
-                          ? "cursor-not-allowed text-gray-400"
-                          : "hover:bg-gray-200"
-                      }`}
-                      disabled={isProcessed || isProcessing}
-                    >
-                      {isProcessing ? <Spinner /> : <Pencil className="h-5 w-5 text-gray-700" />}
-                    </button>
-                  </td>
-                </tr>
+                <div
+                  key={notif.notification_id}
+                  className={`bg-white dark:bg-gray-800 border rounded-md transition-colors ${
+                    isProcessed
+                      ? "border-gray-200 dark:border-gray-700 opacity-75"
+                      : "border-blue-200 dark:border-blue-800"
+                  }`}
+                >
+                  <div className="p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                      {/* Left Section */}
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 rounded-md ${
+                            isProcessed
+                              ? "bg-gray-100 dark:bg-gray-700"
+                              : "bg-blue-100 dark:bg-blue-900/30"
+                          }`}>
+                            <AlertCircle className={`h-5 w-5 ${
+                              isProcessed
+                                ? "text-gray-500 dark:text-gray-400"
+                                : "text-blue-600 dark:text-blue-400"
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                                {notificationType}
+                              </h3>
+                              {getStatusBadge(notif.cancellation_status)}
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                              {notif.notification_message}
+                            </p>
+                            {notif.notification_doctor_cancellation_reason && (
+                              <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-3 mb-2 border border-gray-200 dark:border-gray-700">
+                                <div className="flex items-start gap-1.5">
+                                  <FileText className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-0.5">
+                                      Doctor's Reason:
+                                    </p>
+                                    <p className="text-xs text-gray-800 dark:text-gray-200">
+                                      {notif.notification_doctor_cancellation_reason}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3.5 w-3.5" />
+                                <span>{formatDate(notif.notification_created_at || notif.createdAt)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Section - Action Button */}
+                      {!isProcessed && (
+                        <div className="flex items-center sm:items-start">
+                          <button
+                            onClick={() => openModal(notif)}
+                            disabled={isProcessing}
+                            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 ${
+                              isProcessing
+                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : "bg-blue-600 text-white hover:bg-blue-700"
+                            }`}
+                          >
+                            {isProcessing ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <MessageSquare className="h-4 w-4" />
+                                Review Request
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      )}
+          </div>
+        )}
 
-      {modal.open && (
-        <div className="fixed top-[20%] left-1/2 transform -translate-x-1/2 bg-white rounded shadow-lg max-w-md w-full z-50 p-5 border border-gray-300">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Review Cancellation Request</h3>
-            <button
+        {/* Modal */}
+        {modal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-black/50"
               onClick={closeModal}
-              aria-label="Close"
-              className="p-1 rounded hover:bg-gray-200"
-              disabled={processingId === modal.notif.notification_id}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+            />
+            <div className="relative z-50 bg-white dark:bg-gray-800 rounded-md shadow-lg w-full max-w-md border border-gray-200 dark:border-gray-700">
+              {/* Modal Header */}
+              <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Review Cancellation Request</h3>
+                  </div>
+                  <button
+                    onClick={closeModal}
+                    aria-label="Close"
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                    disabled={processingId === modal.notif?.notification_id}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
 
-          <textarea
-            rows={4}
-            className="w-full border border-gray-300 rounded p-2 mb-4 resize-none"
-            placeholder="Add comments (optional)"
-            value={modal.comments}
-            onChange={(e) => setModal({ ...modal, comments: e.target.value })}
-            disabled={processingId === modal.notif.notification_id}
-          />
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={handleApprove}
-              disabled={processingId === modal.notif.notification_id}
-              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white disabled:opacity-50"
-            >
-              {processingId === modal.notif.notification_id ? "Processing..." : "Approve"}
-            </button>
-            <button
-              onClick={handleReject}
-              disabled={processingId === modal.notif.notification_id}
-              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white disabled:opacity-50"
-            >
-              {processingId === modal.notif.notification_id ? "Processing..." : "Reject"}
-            </button>
+              {/* Modal Content */}
+              <div className="p-4 space-y-3">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-3 border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Request Details:
+                  </p>
+                  <p className="text-sm text-gray-900 dark:text-white">
+                    {modal.notif?.notification_message}
+                  </p>
+                  {modal.notif?.notification_doctor_cancellation_reason && (
+                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-0.5">
+                        Doctor's Reason:
+                      </p>
+                      <p className="text-xs text-gray-800 dark:text-gray-200">
+                        {modal.notif.notification_doctor_cancellation_reason}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    Add Comments (Optional)
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full border border-gray-200 dark:border-gray-600 rounded-md p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                    placeholder="Enter your comments here..."
+                    value={modal.comments}
+                    onChange={(e) => setModal({ ...modal, comments: e.target.value })}
+                    disabled={processingId === modal.notif?.notification_id}
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 pt-0 flex justify-end gap-2">
+                <button
+                  onClick={closeModal}
+                  disabled={processingId === modal.notif?.notification_id}
+                  className="px-4 py-2 rounded-md font-medium text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReject}
+                  disabled={processingId === modal.notif?.notification_id}
+                  className="px-4 py-2 rounded-md font-medium text-sm bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {processingId === modal.notif?.notification_id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Reject"
+                  )}
+                </button>
+                <button
+                  onClick={handleApprove}
+                  disabled={processingId === modal.notif?.notification_id}
+                  className="px-4 py-2 rounded-md font-medium text-sm bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {processingId === modal.notif?.notification_id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Approve"
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

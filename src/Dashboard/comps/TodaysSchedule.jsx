@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { Clock, Calendar, ChevronRight } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { todaysAppointments } from "../doctorAppointmentsData"
 
 const getTimeSlots = (startHour = 8, endHour = 17) => {
@@ -43,48 +44,39 @@ const TodaysSchedule = () => {
 
     return (
         <>
-            <div
-                className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-0 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${isLoaded
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-8"
-                    }`}
-            >
-                <div className="bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 text-white p-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-xl font-bold flex items-center gap-3">
-                            <div className="p-2 bg-white/20 rounded-lg">
-                                <Clock className="h-6 w-6" />
-                            </div>
+            <Card className="border border-gray-200 dark:border-gray-700">
+                <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                             Next Few Hours
-                        </h2>
+                        </CardTitle>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="text-white text-sm font-semibold flex items-center gap-2 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all"
+                            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
                         >
-                            View More <ChevronRight className="h-4 w-4" />
+                            View More <ChevronRight className="h-3.5 w-3.5" />
                         </button>
                     </div>
-                    <p className="text-yellow-100 text-sm">Upcoming appointments schedule</p>
-                </div>
-                <div className="p-6">
-
-                    <div className="space-y-3">
+                </CardHeader>
+                <CardContent className="p-4">
+                    <div className="space-y-2">
                         {upcomingView.map((time) => {
                             const appt = appointmentsByTime[time]
                             return (
                                 <div
                                     key={time}
-                                    className={`flex justify-between items-center p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                                    className={`flex justify-between items-center p-3 rounded-md border transition-colors ${
                                         appt
-                                            ? "border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
-                                            : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"
+                                            ? "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20"
+                                            : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
                                     }`}
                                 >
-                                    <span className="font-bold text-base text-gray-900 dark:text-white">{time}</span>
+                                    <span className="font-medium text-sm text-gray-900 dark:text-white">{time}</span>
                                     {appt ? (
-                                        <div className="text-sm text-right">
-                                            <p className="font-bold text-gray-900 dark:text-white">{appt.patientName}</p>
-                                            <p className="text-xs text-gray-600 dark:text-gray-400">{appt.reason}</p>
+                                        <div className="text-right">
+                                            <p className="font-medium text-sm text-gray-900 dark:text-white">{appt.patientName}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{appt.reason}</p>
                                         </div>
                                     ) : (
                                         <span className="text-xs text-gray-400 dark:text-gray-500 italic">No appointment</span>
@@ -93,28 +85,26 @@ const TodaysSchedule = () => {
                             )
                         })}
                     </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
-            {/* 🔹 Full-Day Modal */}
+            {/* Full-Day Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div 
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+                        className="fixed inset-0 bg-black/50"
                         onClick={() => setShowModal(false)}
                     />
-                    <div className="relative z-50 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700 animate-in fade-in-0 zoom-in-95">
-                        <div className="bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 text-white p-6">
+                    <div className="relative z-50 bg-white dark:bg-gray-800 rounded-md shadow-lg w-full max-w-3xl max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700">
+                        <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-2xl font-bold flex items-center gap-3">
-                                    <div className="p-2 bg-white/20 rounded-lg">
-                                        <Calendar className="h-6 w-6" />
-                                    </div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Calendar className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                                     Full Day Schedule
                                 </h3>
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
                                     aria-label="Close"
                                 >
                                     ✖
@@ -122,23 +112,23 @@ const TodaysSchedule = () => {
                             </div>
                         </div>
                         <div className="max-h-[calc(90vh-120px)] overflow-y-auto p-6">
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 {allSlots.map((time) => {
                                     const appt = appointmentsByTime[time]
                                     return (
                                         <div
                                             key={time}
-                                            className={`flex justify-between items-center p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                                            className={`flex justify-between items-center p-3 rounded-md border transition-colors ${
                                                 appt
-                                                    ? "border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
-                                                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"
+                                                    ? "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20"
+                                                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
                                             }`}
                                         >
-                                            <span className="font-bold text-base text-gray-900 dark:text-white">{time}</span>
+                                            <span className="font-medium text-sm text-gray-900 dark:text-white">{time}</span>
                                             {appt ? (
-                                                <div className="text-sm text-right">
-                                                    <p className="font-bold text-gray-900 dark:text-white">{appt.patientName}</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">{appt.reason}</p>
+                                                <div className="text-right">
+                                                    <p className="font-medium text-sm text-gray-900 dark:text-white">{appt.patientName}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{appt.reason}</p>
                                                 </div>
                                             ) : (
                                                 <span className="text-xs text-gray-400 dark:text-gray-500 italic">No appointment</span>

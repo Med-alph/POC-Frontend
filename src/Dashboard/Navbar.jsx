@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input"
-import { Bell, ChevronDown, Search, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, CoinsIcon } from "lucide-react"
+import { Bell, ChevronDown, Search, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,38 +93,38 @@ export default function Navbar() {
 
 
   return (
-    <div className="w-full bg-white dark:bg-gray-900 shadow-xl border-b border-gray-200 dark:border-gray-800">
-      <nav className="w-full flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 shadow-lg">
-        <div onClick={() => navigate("/dashboard")} className="flex items-center space-x-3 cursor-pointer group">
-          <div className="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-lg group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 shadow-lg">
-            <Stethoscope className="h-7 w-7" />
+    <div className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <nav className="w-full flex items-center justify-between px-6 lg:px-8 h-16 bg-white dark:bg-gray-900">
+        <div onClick={() => navigate("/dashboard")} className="flex items-center gap-3 cursor-pointer">
+          <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+            <Stethoscope className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-white tracking-tight">MedAssist</span>
-            <span className="text-xs text-blue-100 font-medium">Healthcare Management</span>
+            <span className="text-base font-semibold text-gray-900 dark:text-white">MedAssist</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Healthcare Management</span>
           </div>
         </div>
-        <div className="flex items-center space-x-3 sm:space-x-4">
+        <div className="flex items-center gap-4">
           <div className="relative hidden md:block">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 text-gray-400 dark:text-gray-500 -translate-y-1/2 z-10" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2 z-10" />
             <Input
               type="text"
               placeholder="Search patients, doctors..."
-              className="pl-12 pr-4 py-2.5 w-80 bg-white/15 backdrop-blur-sm border-white/30 text-white placeholder:text-blue-100 focus:bg-white focus:text-gray-900 focus:placeholder:text-gray-500 focus:border-white/50 transition-all duration-300 rounded-xl shadow-lg hover:bg-white/20"
+              className="pl-10 pr-4 py-2 h-9 w-64 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:border-blue-600 dark:focus:border-blue-500 rounded-md text-sm"
             />
           </div>
-          <button className="md:hidden p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200 shadow-md">
-            <Search className="h-5 w-5 text-white" />
+          <button className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <Search className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </button>
           <div className="relative">
             <button
-              className="relative p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200 group shadow-md"
+              className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={toggleNotifications}
               aria-label="Notifications"
             >
-              <Bell className="h-5 w-5 text-white group-hover:scale-110 transition-transform duration-200" />
+              <Bell className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 text-xs font-bold bg-red-500 rounded-full h-5 w-5 flex items-center justify-center border-2 border-white text-white shadow-lg animate-pulse">
+                <span className="absolute -top-0.5 -right-0.5 text-xs font-semibold bg-red-600 rounded-full h-4 w-4 flex items-center justify-center text-white text-[10px]">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -135,32 +135,32 @@ export default function Navbar() {
                   className="fixed inset-0 z-40"
                   onClick={() => setShowNotifDropdown(false)}
                 />
-                <div className="absolute right-0 mt-3 w-96 max-h-[500px] overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-2xl z-50 border border-gray-200 dark:border-gray-700 animate-in fade-in-0 zoom-in-95">
-                  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="absolute right-0 mt-2 w-96 max-h-[500px] overflow-hidden bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700">
+                  <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Bell className="h-5 w-5" />
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Bell className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         Notifications
                         {unreadCount > 0 && (
-                          <span className="bg-white/20 px-2 py-1 rounded-full text-xs font-bold">
+                          <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-medium">
                             {unreadCount} new
                           </span>
                         )}
                       </h3>
                       <button
                         onClick={() => setShowNotifDropdown(false)}
-                        className="p-1 rounded-lg hover:bg-white/20 transition-colors"
+                        className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
                         aria-label="Close"
                       >
-                        ✖
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
                   <div className="max-h-[400px] overflow-y-auto">
                     {notifications.length === 0 ? (
                       <div className="text-center py-12 px-4">
-                        <Bell className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">No new notifications</p>
+                        <Bell className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">No new notifications</p>
                       </div>
                     ) : (
                       <ul className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -169,17 +169,17 @@ export default function Navbar() {
                           return (
                             <li
                               key={notif.notificationId || idx}
-                              className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all ${
+                              className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
                                 isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                               }`}
                               onClick={() => handleNotificationClick(notif)}
                             >
                               <div className="flex items-start gap-3">
-                                <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
+                                <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 ${
                                   isUnread ? 'bg-blue-600' : 'bg-transparent'
                                 }`} />
                                 <div className="flex-1 min-w-0">
-                                  <div className={`text-sm font-semibold mb-1 ${
+                                  <div className={`text-sm font-medium mb-1 ${
                                     isUnread 
                                       ? 'text-gray-900 dark:text-white' 
                                       : 'text-gray-700 dark:text-gray-300'
@@ -203,51 +203,54 @@ export default function Navbar() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="flex items-center space-x-3 cursor-pointer p-2 rounded-xl hover:bg-white/10 transition-all duration-200 group">
-                <div className="h-11 w-11 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-base border-2 border-white/30 group-hover:border-white/50 group-hover:scale-110 transition-all duration-200 shadow-lg">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+              <div className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <div className="h-8 w-8 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                  </span>
                 </div>
                 <div className="hidden lg:block">
-                  <div className="text-sm font-bold text-white">{user?.name || "User"}</div>
-                  <div className="text-xs text-blue-100">{user?.email || "user@example.com"}</div>
-                  <div className="text-xs text-blue-200 font-medium capitalize">{user?.role || "Staff"}</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name || "User"}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{user?.role || "Staff"}</div>
                 </div>
-                <ChevronDown className="h-4 w-4 text-white group-hover:rotate-180 transition-transform duration-200" />
+                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72 mt-2 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
-              <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-t-xl -mx-2 -mt-2 mb-2">
-                <div className="flex items-center space-x-3">
-                  <div className="h-14 w-14 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+            <DropdownMenuContent align="end" className="w-64 mt-2 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
+              <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                    </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-base font-bold text-gray-900 dark:text-white truncate">{user?.name || "User"}</div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400 truncate">{user?.email || "user@example.com"}</div>
-                    <div className="text-xs text-blue-600 dark:text-blue-400 font-semibold capitalize mt-1">{user?.role || "Staff"}</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user?.name || "User"}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email || "user@example.com"}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 font-medium capitalize mt-0.5">{user?.role || "Staff"}</div>
                   </div>
                 </div>
               </div>
-              <DropdownMenuItem className="px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all cursor-pointer">
-                <Settings className="h-5 w-5 mr-3 text-blue-600 dark:text-blue-400" />
-                <span className="font-medium">Settings</span>
+              <DropdownMenuItem className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors">
+                <Settings className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-medium">Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="my-2" />
+              <DropdownMenuSeparator className="my-1" />
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all cursor-pointer"
+                className="px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md cursor-pointer transition-colors"
               >
-                <LogOut className="h-5 w-5 mr-3" />
-                <span className="font-medium">Logout</span>
+                <LogOut className="h-4 w-4 mr-2" />
+                <span className="text-sm font-medium">Logout</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </nav>
 
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-1 overflow-x-auto scrollbar-hide">
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <div className="px-6 lg:px-8">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
             {filteredNavItems.map((item) => {
               const IconComponent = item.icon;
               const isActive = activeTab === item.id;
@@ -255,21 +258,18 @@ export default function Navbar() {
                 <button
                   key={item.id}
                   onClick={() => handleTabClick(item.path)}
-                  className={`flex items-center space-x-2 px-5 py-3.5 rounded-xl font-semibold text-sm transition-all duration-300 whitespace-nowrap relative group ${
+                  className={`flex items-center gap-2 px-4 py-3 rounded-md font-medium text-sm transition-colors whitespace-nowrap ${
                     isActive
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg scale-105"
+                      ? "bg-blue-600 text-white"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 >
-                  <IconComponent className={`h-5 w-5 transition-all duration-300 ${
+                  <IconComponent className={`h-4 w-4 ${
                     isActive 
                       ? "text-white" 
-                      : "text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                      : "text-gray-500 dark:text-gray-400"
                   }`} />
                   <span>{item.label}</span>
-                  {isActive && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 rounded-b-xl" />
-                  )}
                 </button>
               );
             })}

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import consultationsAPI from "../../api/ConsultationsAPI";
+import consultationsAPI from "../../api/consultationsapi";
 
 const tabs = ["Appointments", "SOAP Notes", "Medications", "Lab Results", "Allergies & Notes"];
 
