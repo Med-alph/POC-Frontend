@@ -75,9 +75,9 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                 next_appointment: null
             };
 
-            // console.log('Calling onAdd with patientData:', patientData);
+            console.log('Calling onAdd with patientData:', patientData);
             await onAdd(patientData); // Await API call completion here
-            // console.log('onAdd call successful');
+            console.log('onAdd call successful');
             setOpen(false);
 
             // Reset form only after success

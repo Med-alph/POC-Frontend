@@ -44,6 +44,8 @@ import DoctorCancellationRequests from "./Doctors/DoctorCancellationRequests"
 
 // Billing Page
 import BillingPage from "./Billing/BillingMainPage"
+import PatientDashboard from "./AppoinmentFlow/PatientDashboard"
+import AuthCallback from "./AppoinmentFlow/AuthCallback"
 
 // Component to conditionally render Navbar
 function AppContent() {
@@ -120,6 +122,9 @@ function AppContent() {
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/confirmation" element={<ConfirmationPage />} />
         <Route path="/patient-details-form" element={<PatientDetailsForm />} />
+        <Route path="/patient-dashboard" element={<PatientDashboard />} />
+        <Route path="/auth-callback" element={<AuthCallback />} />
+        
 
 
 
