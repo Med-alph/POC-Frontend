@@ -56,7 +56,9 @@ export const appointmentsAPI = {
       staff_id,
       status,
       fromDate,      // <<< Use fromDate not start_date
-      toDate         // <<< Use toDate not end_date
+      toDate,        // <<< Use toDate not end_date
+      orderBy,       // <<< Sorting field
+      sort           // <<< Sorting direction (ASC/DESC)
     } = params;
     const queryParams = new URLSearchParams();
 
@@ -71,10 +73,10 @@ export const appointmentsAPI = {
     // >>> Correct parameter keys:
     if (fromDate) queryParams.append('fromDate', fromDate);
     if (toDate) queryParams.append('toDate', toDate);
-
-    // Remove these lines (do NOT use start_date or end_date at all!)
-    // if (start_date) queryParams.append('start_date', start_date);
-    // if (end_date) queryParams.append('end_date', end_date);
+    
+    // >>> Sorting parameters:
+    if (orderBy) queryParams.append('orderBy', orderBy);
+    if (sort) queryParams.append('sort', sort);
 
     const endpoint = queryParams.toString() ? `/appointments?${queryParams.toString()}` : '/appointments';
     // Add log for verification!

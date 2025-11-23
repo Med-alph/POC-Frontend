@@ -7,13 +7,19 @@ import {
   CalendarDays, UserCircle2, Plus, Loader2, ChevronLeft, ChevronRight,
   ArrowLeft, Phone, Image, RefreshCw, Mail, MapPin, Shield, Heart,
   Clock, PhoneCall, PhoneIncoming, PhoneOutgoing, PhoneMissed, Download,
-  AlertCircle, Droplet, FileText, Users
+  AlertCircle, Droplet, FileText, Users, X
 } from "lucide-react";
 import PatientNavbar from "./PatientNavbar";
 import appointmentsAPI from "@/api/appointmentsapi";
 import { patientsAPI } from "@/api/patientsapi";
 import staffApi from "@/api/staffapi";
-import { toast } from "sonner";
+import authAPI from "@/api/authapi";
+import toast, { Toaster } from "react-hot-toast";
+import CallNotification from "@/components/CallNotification";
+import JitsiMeeting from "@/components/JitsiMeeting";
+import socketService from "@/services/socketService";
+import { videoCallAPI } from "@/api/videocallapi";
+import { generateRoomName } from "@/utils/callUtils";
 
 const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
 const PAGE_SIZE = 10;
@@ -88,22 +94,127 @@ export default function PatientDashboard() {
   const [patientDetails, setPatientDetails] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
 
+  // Video call state
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [showCallNotification, setShowCallNotification] = useState(false);
+  const [showJitsi, setShowJitsi] = useState(false);
+  const [activeCallId, setActiveCallId] = useState(null);
+  const [activeRoomName, setActiveRoomName] = useState(null);
+  const [showRejoinBanner, setShowRejoinBanner] = useState(false);
+  const [isJoiningCall, setIsJoiningCall] = useState(false);
+
+  // Call history
+  const [callHistory, setCallHistory] = useState([]);
+  const [loadingCallHistory, setLoadingCallHistory] = useState(false);
+  const [callsCurrentPage, setCallsCurrentPage] = useState(1);
+  const [callsTotalCount, setCallsTotalCount] = useState(0);
+  const CALLS_PAGE_SIZE = 10;
+
   useEffect(() => {
     const jwt = localStorage.getItem("auth_token");
     if (!jwt) navigate("/landing", { replace: true });
   }, [navigate]);
 
+  // Initialize Socket.IO connection for incoming calls
+  useEffect(() => {
+    if (patient?.id) {
+      console.log('Initializing Socket.IO for patient:', patient.id);
+      socketService.connect(patient.id);
+
+      // Check connection status after a moment
+      setTimeout(() => {
+        const isConnected = socketService.isConnected();
+        console.log('Patient Socket.IO connection status:', isConnected);
+        if (isConnected) {
+          toast.success('Connected to call service');
+        } else {
+          toast.error('Failed to connect to call service');
+        }
+      }, 2000);
+
+      // Listen for incoming call events
+      socketService.onIncomingCall((callData) => {
+        console.log('🔔 RAW CALL DATA FROM BACKEND:', callData);
+        console.log('🔔 Call received - Full data:', JSON.stringify(callData, null, 2));
+        console.log('🔔 Doctor Name:', callData.doctorName);
+        console.log('🔔 Doctor Object:', callData.doctor);
+        
+        // Try to get doctor name from multiple possible locations
+        let doctorName = callData.doctorName || 
+                         callData.doctor?.staff_name || 
+                         callData.doctor?.name;
+        
+        // WORKAROUND: If backend sent "Doctor", try to extract from meetingUrl
+        if (!doctorName || doctorName === 'Doctor') {
+          try {
+            const urlMatch = callData.meetingUrl?.match(/displayName="([^"]+)"/);
+            if (urlMatch && urlMatch[1]) {
+              doctorName = decodeURIComponent(urlMatch[1]);
+              console.log('🔔 Extracted doctor name from URL:', doctorName);
+            }
+          } catch (e) {
+            console.warn('Failed to extract doctor name from URL:', e);
+          }
+        }
+        
+        // Final fallback
+        if (!doctorName) {
+          doctorName = 'Doctor';
+        }
+        
+        console.log('🔔 Using doctor name:', doctorName);
+        
+        // Log warning if doctorName is missing from all sources
+        if (!callData.doctorName && !callData.doctor) {
+          console.warn('⚠️ doctorName is missing from call data. Backend should include it.');
+        }
+        
+        setIncomingCall({
+          ...callData,
+          doctorName: doctorName // Ensure doctorName is set
+        });
+        setShowCallNotification(true);
+        
+        try {
+          toast.info(`${doctorName} started the call`);
+        } catch (error) {
+          console.error('Toast error:', error);
+        }
+      });
+
+      // Listen for call ended events
+      socketService.onCallEnded((data) => {
+        console.log('Call ended:', data);
+        setShowJitsi(false);
+        setShowCallNotification(false);
+        setIncomingCall(null);
+        setActiveCallId(null);
+        setActiveRoomName(null);
+        setShowRejoinBanner(false);
+        toast.info('Call ended');
+        
+        // Refresh call history if on calls tab
+        if (activeTab === 'calls') {
+          fetchCallHistory();
+        }
+      });
+
+      return () => {
+        // Cleanup listeners on unmount
+        socketService.offPatientEvents();
+        socketService.offCallEnded();
+      };
+    }
+  }, [patient]);
+
   useEffect(() => {
     async function fetchProfile() {
       setLoading(true);
       try {
-        const token = localStorage.getItem("auth_token");
-        const res = await fetch("http://localhost:9009/auth/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.status !== 200) throw new Error("Unauthorized");
-        setPatient(await res.json());
-      } catch {
+        const profile = await authAPI.getProfile();
+        setPatient(profile);
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
         localStorage.removeItem("auth_token");
         navigate("/landing", { replace: true });
       } finally {
@@ -124,6 +235,12 @@ export default function PatientDashboard() {
     fetchPatientDetails();
   }, [activeTab, patient?.id]);
 
+  // Fetch call history when calls tab is active or page changes
+  useEffect(() => {
+    if (activeTab !== "calls" || !patient?.id) return;
+    fetchCallHistory(callsCurrentPage);
+  }, [activeTab, patient?.id, callsCurrentPage]);
+
   const fetchPatientDetails = async () => {
     setLoadingProfile(true);
     try {
@@ -136,21 +253,60 @@ export default function PatientDashboard() {
     }
   };
 
+  const fetchCallHistory = async (page = 1) => {
+    if (!patient?.id) return;
+    setLoadingCallHistory(true);
+    try {
+      console.log('Fetching call history for patient:', patient.id, 'page:', page);
+      const calls = await videoCallAPI.getPatientCallHistory(patient.id);
+      console.log('Call history received:', calls);
+      
+      if (!calls || !Array.isArray(calls)) {
+        console.warn('Invalid call history data:', calls);
+        setCallHistory([]);
+        setCallsTotalCount(0);
+        return;
+      }
+      
+      // Sort by most recent first
+      const sortedCalls = calls.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setCallsTotalCount(sortedCalls.length);
+      console.log('Total calls:', sortedCalls.length);
+      
+      // Paginate the results
+      const startIndex = (page - 1) * CALLS_PAGE_SIZE;
+      const endIndex = startIndex + CALLS_PAGE_SIZE;
+      const paginatedCalls = sortedCalls.slice(startIndex, endIndex);
+      console.log('Paginated calls for page', page, ':', paginatedCalls.length, 'calls');
+      
+      setCallHistory(paginatedCalls);
+      setCallsCurrentPage(page);
+    } catch (error) {
+      console.error('Failed to load call history:', error);
+      toast.error("Failed to load call history");
+      setCallHistory([]);
+      setCallsTotalCount(0);
+    } finally {
+      setLoadingCallHistory(false);
+    }
+  };
+
   const fetchAppointments = async () => {
     if (!patient?.id) return;
     setLoadingAppointments(true);
     try {
-      const token = localStorage.getItem("auth_token");
       const offset = (currentPage - 1) * PAGE_SIZE;
-      // Use orderBy=created_at and sort=DESC to get newest bookings first
-      const res = await fetch(
-        `http://localhost:9009/appointments?limit=${PAGE_SIZE}&offset=${offset}&patient_id=${patient.id}&orderBy=created_at&sort=DESC`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const result = await res.json();
+      const result = await appointmentsAPI.getAll({
+        patient_id: patient.id,
+        limit: PAGE_SIZE,
+        offset: offset,
+        orderBy: 'created_at',
+        sort: 'DESC'
+      });
       setAppointments(result.data || []);
       setTotalCount(result.total || 0);
-    } catch {
+    } catch (error) {
+      console.error('Failed to load appointments:', error);
       toast.error("Failed to load appointments");
     } finally {
       setLoadingAppointments(false);
@@ -173,7 +329,7 @@ export default function PatientDashboard() {
     fetchDoctors();
   }, [view]);
 
-  const formatDate = (str) => str ? new Date(str).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "N/A";
+  const formatDate = (str) => str ? new Date(str).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Kolkata" }) : "N/A";
   const formatTime = (str) => {
     if (!str) return "N/A";
     const [h, m] = str.split(":");
@@ -242,6 +398,112 @@ export default function PatientDashboard() {
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
 
+  // Handle accepting incoming call
+  const handleAcceptCall = async (callData) => {
+    try {
+      console.log('Accepting call:', callData);
+      setIsJoiningCall(true);
+      
+      // Emit Socket.IO event to accept call
+      await socketService.acceptCall(callData.callId);
+      
+      // Update call status in backend
+      await videoCallAPI.updateCallStatus(callData.callId, 'active');
+      
+      // Open Jitsi meeting
+      setActiveCallId(callData.callId);
+      setActiveRoomName(callData.roomName);
+      setShowCallNotification(false);
+      
+      // Small delay to ensure everything is set before showing Jitsi
+      setTimeout(() => {
+        setShowJitsi(true);
+        setIsJoiningCall(false);
+        toast.success('Joined the call');
+      }, 500);
+      
+    } catch (error) {
+      console.error('Failed to accept call:', error);
+      setIsJoiningCall(false);
+      toast.error('Failed to join call. Please try again.');
+    }
+  };
+
+  // Handle call timeout (patient didn't answer)
+  const handleCallTimeout = async (callId) => {
+    try {
+      console.log('Call timed out:', callId);
+      
+      // Update call status to missed
+      await videoCallAPI.updateCallStatus(callId, 'missed');
+      
+      setShowCallNotification(false);
+      setIncomingCall(null);
+      
+      toast.error('Call missed');
+    } catch (error) {
+      console.error('Failed to handle call timeout:', error);
+    }
+  };
+
+  // Handle ending call
+  const handleEndCall = async (callId) => {
+    if (!callId) {
+      console.warn('No call ID provided for ending call');
+      return;
+    }
+
+    try {
+      console.log('Ending call:', callId);
+      
+      // Emit Socket.IO event to end call
+      await socketService.endCall(callId);
+      
+      // Update call status in backend
+      await videoCallAPI.updateCallStatus(callId, 'ended');
+      
+      setShowJitsi(false);
+      setActiveCallId(null);
+      setActiveRoomName(null);
+      setShowRejoinBanner(false);
+      
+      toast.success('Call ended');
+      
+      // Refresh call history if on calls tab
+      if (activeTab === 'calls') {
+        fetchCallHistory();
+      }
+    } catch (error) {
+      console.error('Failed to end call:', error);
+      toast.error('Failed to end call properly');
+    }
+  };
+
+  // Handle closing Jitsi without ending call
+  const handleCloseJitsi = () => {
+    setShowJitsi(false);
+    // Show rejoin banner if call is still active
+    if (activeCallId && activeRoomName) {
+      setShowRejoinBanner(true);
+      toast.info('You can rejoin the call anytime');
+    }
+  };
+
+  // Handle rejoin call
+  const handleRejoinCall = () => {
+    if (activeCallId && activeRoomName) {
+      setIsJoiningCall(true);
+      setShowRejoinBanner(false);
+      
+      // Small delay for smooth transition
+      setTimeout(() => {
+        setShowJitsi(true);
+        setIsJoiningCall(false);
+        toast.success('Rejoined call');
+      }, 500);
+    }
+  };
+
   // ========== TAB RENDERERS ==========
 
   const renderAppointmentsTab = () => {
@@ -299,30 +561,39 @@ export default function PatientDashboard() {
 
   const renderBookingFlow = () => (
     <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => { 
-              if (bookingStep === 1) { 
-                setView("list"); 
-                resetBookingForm(); 
-              } else { 
-                if (bookingStep === 3) setSelectedSlot(""); 
-                setBookingStep(bookingStep - 1); 
+      <CardHeader className="space-y-4">
+        {/* Back Button - Prominent at the top */}
+        <Button
+          variant="outline"
+          onClick={() => { 
+            if (bookingStep === 1) { 
+              setView("list"); 
+              resetBookingForm(); 
+            } else { 
+              if (bookingStep === 3) setSelectedSlot(""); 
+              if (bookingStep === 2) {
+                setSelectedDate("");
+                setSlots([]);
+                setSelectedSlot("");
               }
-            }}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {bookingStep === 1 ? "Back to Appointments" : "Back"}
-          </Button>
-        </div>
-        <div className="mt-4">
-          <CardTitle className="text-lg mb-3">Book New Appointment</CardTitle>
-          <div className="flex gap-1">{[1, 2, 3].map((s) => <div key={s} className={`h-1.5 flex-1 rounded ${bookingStep >= s ? "bg-blue-600" : "bg-gray-200"}`} />)}</div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1"><span>Doctor</span><span>Date & Time</span><span>Details</span></div>
+              setBookingStep(bookingStep - 1); 
+            }
+          }}
+          className="w-fit flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>{bookingStep === 1 ? "Back to Appointments" : "Previous Step"}</span>
+        </Button>
+        
+        {/* Title and Progress Bar */}
+        <div>
+          <CardTitle className="text-xl font-bold mb-4">Book New Appointment</CardTitle>
+          <div className="flex gap-1 mb-2">{[1, 2, 3].map((s) => <div key={s} className={`h-2 flex-1 rounded-full transition-all ${bookingStep >= s ? "bg-blue-600" : "bg-gray-200"}`} />)}</div>
+          <div className="flex justify-between text-xs font-medium text-gray-500">
+            <span className={bookingStep === 1 ? "text-blue-600" : ""}>Doctor</span>
+            <span className={bookingStep === 2 ? "text-blue-600" : ""}>Date & Time</span>
+            <span className={bookingStep === 3 ? "text-blue-600" : ""}>Details</span>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
@@ -358,32 +629,153 @@ export default function PatientDashboard() {
     </Card>
   );
 
-  const renderCallsTab = () => (
-    <Card>
-      <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Phone className="w-5 h-5" />Call History</CardTitle></CardHeader>
-      <CardContent className="p-0">
-        <div className="divide-y">
-          {DUMMY_CALLS.map((call) => (
-            <div key={call.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${call.type === "incoming" ? "bg-green-100" : call.type === "outgoing" ? "bg-blue-100" : "bg-red-100"}`}>
-                  {call.type === "incoming" ? <PhoneIncoming className="w-5 h-5 text-green-600" /> : call.type === "outgoing" ? <PhoneOutgoing className="w-5 h-5 text-blue-600" /> : <PhoneMissed className="w-5 h-5 text-red-600" />}
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{call.doctor}</p>
-                  <p className="text-sm text-gray-500">{call.department}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{call.date}</p>
-                <p className="text-xs text-gray-500">{call.time} • {call.duration}</p>
+  const renderCallsTab = () => {
+    const getCallIcon = (status) => {
+      switch (status) {
+        case 'active':
+        case 'ended':
+          return { icon: PhoneIncoming, color: 'bg-green-100', iconColor: 'text-green-600' };
+        case 'missed':
+          return { icon: PhoneMissed, color: 'bg-red-100', iconColor: 'text-red-600' };
+        case 'rejected':
+          return { icon: PhoneMissed, color: 'bg-orange-100', iconColor: 'text-orange-600' };
+        default:
+          return { icon: Phone, color: 'bg-blue-100', iconColor: 'text-blue-600' };
+      }
+    };
+
+    const getCallDuration = (call) => {
+      if (!call.acceptedAt || !call.endedAt) return '-';
+      const start = new Date(call.acceptedAt);
+      const end = new Date(call.endedAt);
+      const durationMs = end - start;
+      const minutes = Math.floor(durationMs / 60000);
+      const seconds = Math.floor((durationMs % 60000) / 1000);
+      return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+    };
+
+    const formatCallTime = (dateString) => {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      
+      // Format in IST timezone explicitly
+      const options = {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata' // IST timezone
+      };
+      
+      return date.toLocaleTimeString('en-US', options);
+    };
+
+    const callsTotalPages = Math.ceil(callsTotalCount / CALLS_PAGE_SIZE) || 1;
+
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Phone className="w-5 h-5" />Call History
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={fetchCallHistory}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loadingCallHistory ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+            </div>
+          ) : callHistory.length === 0 ? (
+            <div className="text-center py-12">
+              <Phone className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500">No call history found</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {callHistory.map((call) => {
+                const { icon: Icon, color, iconColor } = getCallIcon(call.status);
+                const isActiveCall = call.status === 'active' && call.id === activeCallId;
+                const canRejoin = call.status === 'active' && call.roomName;
+                
+                return (
+                  <div key={call.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${color} ${isActiveCall ? 'animate-pulse' : ''}`}>
+                        <Icon className={`w-5 h-5 ${iconColor}`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {call.doctorName || 'Doctor'}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                          {call.status}
+                          {isActiveCall && <span className="ml-2 text-green-600 font-semibold">• In Progress</span>}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {formatDate(call.createdAt)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatCallTime(call.createdAt)} • {getCallDuration(call)}
+                        </p>
+                      </div>
+                      {canRejoin && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setActiveCallId(call.id);
+                            setActiveRoomName(call.roomName);
+                            setShowJitsi(true);
+                            setShowRejoinBanner(false);
+                            toast.success('Rejoining call...');
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <PhoneCall className="w-4 h-4 mr-1" />
+                          Rejoin
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {!loadingCallHistory && callHistory.length > 0 && callsTotalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Page {callsCurrentPage} of {callsTotalPages} ({callsTotalCount} total calls)
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCallsCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={callsCurrentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCallsCurrentPage(p => Math.min(callsTotalPages, p + 1))}
+                  disabled={callsCurrentPage === callsTotalPages}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderImagesTab = () => (
     <Card>
@@ -671,6 +1063,69 @@ export default function PatientDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Toast Notifications */}
+      <Toaster position="top-right" />
+      
+      {/* Loading Overlay while joining call */}
+      {isJoiningCall && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">Joining Call...</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Please wait</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejoin Call Banner */}
+      {showRejoinBanner && !showJitsi && activeCallId && activeRoomName && (
+        <div className="fixed top-0 left-0 right-0 z-40 bg-green-600 text-white px-4 py-3 shadow-lg">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <PhoneCall className="h-5 w-5 animate-pulse" />
+              <span className="font-medium">You have an active call</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleRejoinCall}
+                className="bg-white text-green-600 hover:bg-gray-100 h-8 px-4 text-sm font-medium"
+              >
+                Rejoin Call
+              </Button>
+              <button
+                onClick={() => setShowRejoinBanner(false)}
+                className="p-1 hover:bg-green-700 rounded"
+                aria-label="Dismiss"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Call Notification */}
+      {showCallNotification && incomingCall && (
+        <CallNotification
+          callData={incomingCall}
+          onAccept={handleAcceptCall}
+          onTimeout={handleCallTimeout}
+        />
+      )}
+
+      {/* Jitsi Meeting */}
+      {showJitsi && activeCallId && activeRoomName && (
+        <JitsiMeeting
+          roomName={activeRoomName}
+          displayName={patient?.name || patient?.patient_name || "Patient"}
+          callId={activeCallId}
+          onClose={handleCloseJitsi}
+          onCallEnd={handleEndCall}
+        />
+      )}
+
       <PatientNavbar patientName={patient?.name || patient?.patient_name} patientRole="Patient" />
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Tabs */}

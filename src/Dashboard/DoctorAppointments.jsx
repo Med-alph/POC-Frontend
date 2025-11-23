@@ -1,46 +1,85 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { CalendarDays, User, X, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-const JitsiMeeting = ({ roomName, displayName, onClose }) => {
-  const handleCustomClick = () => {
-    console.log("Custom button clicked!");
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black">
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-60 p-2 bg-white rounded"
-      >
-        Close
-      </button>
-      <button
-        onClick={handleCustomClick}
-        className="absolute top-4 left-4 z-60 p-2 bg-yellow-400 rounded shadow text-black font-semibold"
-      >
-        Custom Action
-      </button>
-      <iframe
-        src={`https://meet.jit.si/${roomName}#userInfo.displayName="${encodeURIComponent(
-          displayName
-        )}"&interfaceConfigOverwrite={"TOOLBAR_BUTTONS":["microphone","camera","chat","hangup","fullscreen","fodeviceselection","profile","raisehand","tileview"]}&config.disableDeepLinking=true`}
-        allow="camera; microphone; fullscreen; display-capture"
-        style={{ width: "100%", height: "100%" }}
-        frameBorder="0"
-        allowFullScreen
-        title="Jitsi Meeting"
-      />
-    </div>
-  );
-};
+import toast from "react-hot-toast";
+import JitsiMeeting from "@/components/JitsiMeeting";
+import socketService from "@/services/socketService";
+import { videoCallAPI } from "@/api/videocallapi";
+import { generateRoomName, generateMeetingUrl } from "@/utils/callUtils";
 
 const DoctorAppointments = ({ appointments, loading, doctorName }) => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showCall, setShowCall] = useState(false);
+  const [activeCallId, setActiveCallId] = useState(null);
+  const [activeRoomName, setActiveRoomName] = useState(null); // Store room name from API
+  const [callStatus, setCallStatus] = useState(null);
+  const [isInitiatingCall, setIsInitiatingCall] = useState(false);
+  const [existingActiveCall, setExistingActiveCall] = useState(null); // Store existing active call for rejoin
+  
   const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
+
+  // Initialize Socket.IO connection
+  useEffect(() => {
+    if (user?.id) {
+      console.log('Initializing Socket.IO for doctor:', user.id);
+      socketService.connect(user.id);
+
+      // Check connection status after a moment
+      setTimeout(() => {
+        const isConnected = socketService.isConnected();
+        console.log('Doctor Socket.IO connection status:', isConnected);
+        if (isConnected) {
+          toast.success('Connected to call service');
+        } else {
+          toast.error('Failed to connect to call service');
+        }
+      }, 2000);
+
+      // Listen for call status events
+      socketService.onCallStarted((data) => {
+        console.log('Call started:', data);
+        setActiveCallId(data.callId);
+        setCallStatus('pending');
+        toast.success('Call initiated successfully');
+      });
+
+      socketService.onCallAccepted((data) => {
+        console.log('Patient accepted call:', data);
+        setCallStatus('active');
+        toast.success('Patient joined the call');
+      });
+
+      socketService.onCallRejected((data) => {
+        console.log('Patient rejected call:', data);
+        setCallStatus('rejected');
+        setShowCall(false);
+        setActiveCallId(null);
+        toast.error('Patient rejected the call');
+      });
+
+      socketService.onCallEnded((data) => {
+        console.log('Call ended:', data);
+        setCallStatus('ended');
+        setShowCall(false);
+        setActiveCallId(null);
+        setActiveRoomName(null);
+        toast.info('Call ended');
+      });
+
+      return () => {
+        // Cleanup listeners on unmount
+        socketService.offDoctorEvents();
+        socketService.offCallEnded();
+      };
+    }
+  }, [user]);
+
+  // Note: Removed active call check as the endpoint doesn't exist
+  // The rejoin functionality will work based on local state (activeCallId and activeRoomName)
 
   function ViewRecord(id) {
     navigate("/doctor-patient-record/" + id);
@@ -89,23 +128,161 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
     return phone.slice(0, 3) + "****" + phone.slice(-3);
   };
 
-  // Generate unique room name for the call
-  const generateRoomName = (appointment) => {
-    return `medportal-${appointment.id}-${Date.now()}`;
-  };
+  // Start call handler with Socket.IO integration
+  const startCallHandler = async () => {
+    if (!selectedAppointment) {
+      toast.error("Please select an appointment first");
+      return;
+    }
 
-  // Start call handler - now properly connected
-  const startCallHandler = () => {
-    if (selectedAppointment) {
+    if (!user?.id) {
+      toast.error("User not authenticated");
+      return;
+    }
+
+    if (!socketService.isConnected()) {
+      console.warn('Socket not connected, attempting to connect...');
+      socketService.connect(user.id);
+      
+      // Wait a moment for connection
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (!socketService.isConnected()) {
+        toast.error("Socket connection not established. Please refresh the page.");
+        return;
+      }
+    }
+
+    try {
+      setIsInitiatingCall(true);
+
+      // Generate room name and meeting URL for the API call
+      // IMPORTANT: We generate it here, but will use the room name from API response
+      const roomName = generateRoomName(selectedAppointment.id);
+      const meetingUrl = generateMeetingUrl(roomName, doctorName || user.name || 'Doctor');
+
+      console.log('Starting call with:', {
+        appointmentId: selectedAppointment.id,
+        patientId: selectedAppointment.patient_id,
+        roomName,
+        socketConnected: socketService.isConnected()
+      });
+
+      // Call REST API to create call record
+      // Backend stores the room name and emits Socket.IO event to patient
+      const callResponse = await videoCallAPI.startCall({
+        appointmentId: selectedAppointment.id,
+        patientId: selectedAppointment.patient_id,
+        roomName,
+        meetingUrl
+      });
+
+      console.log('Call created via REST API:', callResponse);
+      
+      // CRITICAL: Use room name from API response (backend returns what it stored)
+      // This ensures we use the exact same room name that patient will receive
+      setActiveCallId(callResponse.id);
+      setActiveRoomName(callResponse.roomName || roomName);
+
+      // Emit Socket.IO event to notify patient with the exact data from backend
+      // Using the room name from the API response ensures synchronization
+      console.log('Emitting Socket.IO event to patient with backend data...');
+      console.log('Call data being sent:', {
+        callId: callResponse.id,
+        appointmentId: callResponse.appointmentId,
+        patientId: callResponse.patientId,
+        doctorId: callResponse.doctorId,
+        roomName: callResponse.roomName,
+        meetingUrl: callResponse.meetingUrl,
+        doctorName: doctorName || user?.name || 'Doctor',
+        reason: selectedAppointment.reason || 'Consultation'
+      });
+      
+      try {
+        await socketService.startCall(
+          callResponse.appointmentId,
+          callResponse.patientId,
+          callResponse.roomName,
+          callResponse.meetingUrl,
+          doctorName || user?.name || 'Doctor',
+          selectedAppointment.reason || 'Consultation'
+        );
+        console.log('Socket.IO event emitted successfully to patient');
+      } catch (socketError) {
+        console.error('Socket.IO emit failed:', socketError);
+        // Continue anyway - patient might still receive backend emission
+      }
+
+      // Open Jitsi meeting for doctor immediately with room name from backend
       setShowCall(true);
-    } else {
-      alert("Please select an appointment first");
+      setCallStatus('pending');
+      
+      toast.success('Call initiated - waiting for patient to join');
+
+    } catch (error) {
+      console.error('Failed to start call:', error);
+      toast.error(error.message || 'Failed to start call. Please try again.');
+    } finally {
+      setIsInitiatingCall(false);
     }
   };
 
-  // Close call handler
+  // Close call handler (without ending the call)
   const closeCallHandler = () => {
     setShowCall(false);
+    // Keep activeCallId and activeRoomName so we can rejoin
+    // Don't clear existingActiveCall
+    toast.info('Call is still active. You can rejoin anytime.');
+  };
+
+  // End call handler
+  const endCallHandler = async (callId) => {
+    if (!callId) {
+      console.warn('No call ID provided for ending call');
+      return;
+    }
+
+    try {
+      console.log('Ending call:', callId);
+      
+      // Emit Socket.IO event to end call
+      await socketService.endCall(callId);
+      
+      // Update call status in backend
+      await videoCallAPI.updateCallStatus(callId, 'ended');
+      
+      setShowCall(false);
+      setActiveCallId(null);
+      setActiveRoomName(null);
+      setCallStatus('ended');
+      setExistingActiveCall(null);
+      
+      toast.success('Call ended successfully');
+    } catch (error) {
+      console.error('Failed to end call:', error);
+      toast.error('Failed to end call properly');
+    }
+  };
+
+  // Rejoin call handler
+  const rejoinCallHandler = () => {
+    // Check if we have an existing active call or current call state
+    const callToRejoin = existingActiveCall || (activeCallId && activeRoomName ? { id: activeCallId, roomName: activeRoomName, status: callStatus } : null);
+    
+    if (!callToRejoin) {
+      toast.error('No active call found');
+      return;
+    }
+
+    console.log('Rejoining call:', callToRejoin);
+    
+    // Use the room name from the call record
+    setActiveCallId(callToRejoin.id);
+    setActiveRoomName(callToRejoin.roomName);
+    setCallStatus(callToRejoin.status || 'active');
+    setShowCall(true);
+    
+    toast.success('Rejoining call...');
   };
 
   if (loading) {
@@ -149,11 +326,13 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
   return (
     <>
       {/* Jitsi Meeting - Render when showCall is true */}
-      {showCall && selectedAppointment && (
+      {showCall && selectedAppointment && activeCallId && activeRoomName && (
         <JitsiMeeting
-          roomName={generateRoomName(selectedAppointment)}
-          displayName={doctorName || "Doctor"}
+          roomName={activeRoomName}
+          displayName={doctorName || user?.name || "Doctor"}
+          callId={activeCallId}
           onClose={closeCallHandler}
+          onCallEnd={endCallHandler}
         />
       )}
 
@@ -267,13 +446,22 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  {/* FIX: Added onClick handler to Start Call button */}
-                  <Button
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-9 text-sm font-medium rounded-md"
-                    onClick={startCallHandler}
-                  >
-                    Start Call
-                  </Button>
+                  {(existingActiveCall || (activeCallId && activeRoomName && !showCall)) ? (
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 text-sm font-medium rounded-md"
+                      onClick={rejoinCallHandler}
+                    >
+                      Rejoin Active Call
+                    </Button>
+                  ) : (
+                    <Button
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-9 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={startCallHandler}
+                      disabled={isInitiatingCall || !socketService.isConnected()}
+                    >
+                      {isInitiatingCall ? 'Starting Call...' : 'Start Call'}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 h-9 text-sm font-medium rounded-md"
