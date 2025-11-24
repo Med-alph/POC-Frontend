@@ -1,0 +1,270 @@
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import {
+  Bell,
+  ChevronDown,
+  Search,
+  LogOut,
+  Home,
+  UserCircle2,
+  Settings,
+  X,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { clearCredentials } from "../features/auth/authSlice";
+import toast from "react-hot-toast";
+import notificationAPI from "../api/notificationapi";
+
+const patientNavItems = [
+  { id: "patientDashboard", label: "Dashboard", path: "/patient-dashboard", icon: Home },
+//   { id: "profile", label: "Profile", path: "/patient-details-form", icon: UserCircle2 },
+];
+
+export default function PatientNavbar({ patientName, patientRole }) {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
+  const notifications = useSelector((state) => (state.notifications ? state.notifications.list || [] : []));
+  const [activeTab, setActiveTab] = useState("");
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [unreadIds, setUnreadIds] = useState([]);
+
+  // Effect to update active tab on path change
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const activeItem = patientNavItems.find((item) => item.path === currentPath);
+    setActiveTab(activeItem?.id || "");
+  }, []);
+
+  // Effect to update unreadIds only when notifications change meaningfully
+//   useEffect(() => {
+//     const unread = notifications
+//       .filter((n) => n.status !== "read")
+//       .map((n) => n.notificationId);
+
+//     // Only update if values actually changed to avoid infinite loops
+//     setUnreadIds((prevUnread) => {
+//       if (
+//         prevUnread.length === unread.length &&
+//         prevUnread.every((id) => unread.includes(id))
+//       ) {
+//         return prevUnread; // no change
+//       }
+//       return unread;
+//     });
+//   }, [notifications]);
+
+  const handleLogout = () => {
+    dispatch(clearCredentials());
+    navigate("/");
+  };
+
+  const handleTabClick = (path) => {
+    navigate(path);
+    setShowNotifDropdown(false);
+  };
+
+  const toggleNotifications = () => {
+    setShowNotifDropdown((prev) => !prev);
+  };
+
+  const handleNotificationClick = async (notif) => {
+    navigate("/notifications");
+    setShowNotifDropdown(false);
+    if (notif.status !== "read" && notif.notificationId) {
+      try {
+        await notificationAPI.markAsRead(notif.notificationId);
+        setUnreadIds((prev) => prev.filter((id) => id !== notif.notificationId));
+      } catch (e) {
+        toast.error("Failed to mark notification as read");
+      }
+    }
+  };
+
+  const unreadCount = unreadIds.length;
+
+  return (
+    <>
+      <div className="w-full fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <nav className="w-full flex items-center justify-between px-6 lg:px-8 h-16 bg-white dark:bg-gray-900">
+          <div onClick={() => navigate("/patient-dashboard")} className="flex items-center gap-3 cursor-pointer">
+            <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+              <UserCircle2 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-base font-semibold text-gray-900 dark:text-white">Patient Portal</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Manage Your Health</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="relative hidden md:block">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2 z-10" />
+              <Input
+                type="text"
+                placeholder="Search appointments, doctors..."
+                className="pl-10 pr-4 py-2 h-9 w-64 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:border-blue-600 dark:focus:border-blue-500 rounded-md text-sm"
+              />
+            </div>
+            <button className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <Search className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            </button>
+
+            <div className="relative">
+              <button
+                className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={toggleNotifications}
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 text-xs font-semibold bg-red-600 rounded-full h-4 w-4 flex items-center justify-center text-white text-[10px]">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowNotifDropdown(false)} />
+                  <div className="absolute right-0 mt-2 w-80 max-h-[400px] overflow-hidden bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700">
+                    <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <Bell className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                          Notifications
+                          {unreadCount > 0 && (
+                            <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-medium">
+                              {unreadCount} new
+                            </span>
+                          )}
+                        </h3>
+                        <button
+                          onClick={() => setShowNotifDropdown(false)}
+                          className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
+                          aria-label="Close"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="max-h-[350px] overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="text-center py-12 px-4">
+                          <Bell className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No new notifications</p>
+                        </div>
+                      ) : (
+                        <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                          {notifications.map((notif, idx) => {
+                            const isUnread = unreadIds.includes(notif.notificationId);
+                            return (
+                              <li
+                                key={notif.notificationId || idx}
+                                className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
+                                  isUnread ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
+                                }`}
+                                onClick={() => handleNotificationClick(notif)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div
+                                    className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 ${
+                                      isUnread ? "bg-blue-600" : "bg-transparent"
+                                    }`}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div
+                                      className={`text-sm font-medium mb-1 ${
+                                        isUnread
+                                          ? "text-gray-900 dark:text-white"
+                                          : "text-gray-700 dark:text-gray-300"
+                                      }`}
+                                    >
+                                      {notif.message || "Notification"}
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ""}
+                                    </div>
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-2 cursor-pointer p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                  <div className="h-8 w-8 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      {patientName ? patientName.charAt(0).toUpperCase() : "U"}
+                    </span>
+                  </div>
+                  <div className="hidden lg:block">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white">{patientName || "User"}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{patientRole || "Patient"}</div>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 mt-2 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
+                <DropdownMenuItem className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors">
+                  <Settings className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm font-medium">Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md cursor-pointer transition-colors"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span className="text-sm font-medium">Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </nav>
+
+        <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+          <div className="px-6 lg:px-8">
+            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+              {patientNavItems.map((item) => {
+                const IconComponent = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabClick(item.path)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-md font-bold text-sm transition-colors whitespace-nowrap ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    <IconComponent className={`h-4 w-4 ${isActive ? "text-white" : "text-gray-500 dark:text-gray-400"}`} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="pt-[96px]" /> {/* Spacer for fixed navbar height */}
+    </>
+  );
+}

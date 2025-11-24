@@ -7,17 +7,19 @@ import { ShieldCheck, Smartphone, Stethoscope, Moon, Sun, ArrowLeft } from "luci
 import { toast } from "sonner";
 import authAPI from "@/api/authapi";
 import InputOtp from "@/components/InputOtp";
-
+import AddPatientDialog from "@/Patients/AddPatient";
+import patientsAPI from "../api/patientsapi";
 
 const OTPVerification = () => {
   const navigate = useNavigate();
   const { phone, countryCode } = useLocation().state || {};
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [timer, setTimer] = useState(30); // 30 secs countdown
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("darkMode") === "true";
-  });
+  const [timer, setTimer] = useState(30); // 30 seconds countdown
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("darkMode") === "true");
+  const [showAddPatientDialog, setShowAddPatientDialog] = useState(false);
+  const [userId, setUserId] = useState(null); // To store patient id if needed for adding patient
+  const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001"
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -25,73 +27,103 @@ const OTPVerification = () => {
     setDarkMode(newMode);
     localStorage.setItem("darkMode", String(newMode));
     document.documentElement.classList.toggle("dark", newMode);
+    console.log("Dark mode toggled:", newMode);
   };
 
-  // Apply dark mode on mount
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
     }
+    console.log("useEffect darkMode:", darkMode);
   }, [darkMode]);
 
-  // Redirect if accessed directly
   useEffect(() => {
-    if (!phone) navigate("/landing");
+    if (!phone) {
+      console.warn("No phone in location state, redirecting to /landing");
+      navigate("/landing");
+    }
   }, [phone, navigate]);
 
-  // Timer effect: count down from 30
   useEffect(() => {
     if (timer <= 0) return;
     const interval = setInterval(() => {
-      setTimer((prev) => prev - 1);
+      setTimer(prev => prev - 1);
     }, 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Handle OTP Verification followed by checking if phone is existing
+  // Handle OTP Verification and conditionally show AddPatientDialog or navigate to dashboard
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length !== 6) return toast.error("Please enter a valid 6-digit OTP");
+    if (!otp || otp.length !== 6) {
+      toast.error("Please enter a valid 6-digit OTP");
+      console.warn("Attempted OTP verify with invalid OTP:", otp);
+      return;
+    }
     setLoading(true);
     try {
       const res = await authAPI.verifyOtp({ phone, otp });
-      if (res.success) {
+      console.log("OTP verification API response:", res);
+      if (res.success && res.token) {
         toast.success("OTP verified successfully");
-        
-        // Store authentication token
-        if (res.token) {
+        if (res.isNewPatient) {
+          setUserId(res.patient?.id || null);
+          setShowAddPatientDialog(true);
+        } else {
           localStorage.setItem("auth_token", res.token);
           localStorage.setItem("isAuthenticated", "true");
+          navigate("/patient-dashboard", { replace: true });
         }
-        
-        // Check if phone exists in patient DB via separate API call
-        const checkRes = await authAPI.checkPhone({ phone });
-        if (checkRes.isExistingPatient) {
-          // Navigate to appointment with isFirstTime false
-          navigate("/appointment", { state: { phone, isFirstTime: false } });
-        } else {
-          // New patient flow
-          navigate("/appointment", { state: { phone, isFirstTime: true } });
-        }
+      } else if (res.isNewPatient) {
+        setShowAddPatientDialog(true);
       } else {
-        toast.error("Invalid OTP, please try again");
+        toast.error("Invalid OTP or token, please try again");
       }
     } catch (err) {
       toast.error("Error verifying OTP");
+      console.error("Error in OTP verification:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Resend OTP: calls API, resets timer & message
+  // Function to resend OTP and reset timer
   const handleResend = async () => {
     try {
+      console.log("Resending OTP for phone:", phone);
       await authAPI.sendOtp({ phone });
       setTimer(30);
       toast.success("OTP resent successfully");
-    } catch {
+    } catch (err) {
       toast.error("Failed to resend OTP");
+      console.error("Failed to resend OTP:", err);
     }
   };
+
+const handleAddPatient = async (patientData) => {
+  console.log("handleAddPatient called with data:", patientData);
+  try {
+    setLoading(true);
+    const newPatient = await patientsAPI.create({
+      ...patientData,
+      user_id: userId,
+      hospital_id: HOSPITAL_ID,
+      contact_info: phone,
+    });
+    console.log("New patient creation API response:", newPatient);
+    setShowAddPatientDialog(false);
+    toast.success("Patient registered successfully!");
+
+    // After creation, handle login/navigation as you planned
+    localStorage.setItem("auth_token", newPatient.token); // or fetch token from SDK
+    localStorage.setItem("isAuthenticated", "true");
+    navigate("/patient-dashboard", { replace: true });
+  } catch (error) {
+    console.error("Error creating new patient:", error);
+    toast.error("Failed to register patient");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center px-4 transition-colors duration-300">
@@ -113,7 +145,7 @@ const OTPVerification = () => {
           <Stethoscope className="h-6 w-6" />
           <span className="text-sm font-semibold">MedPortal — Patient Access</span>
         </div>
-        
+
         <Card className="shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden animate-in fade-in-0 zoom-in-95">
           <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 dark:from-blue-700 dark:via-blue-600 dark:to-indigo-600 text-white">
             <CardTitle className="flex items-center gap-3 text-2xl">
@@ -124,7 +156,6 @@ const OTPVerification = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8 space-y-6">
-            {/* Step indicator */}
             <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
               <div className="flex items-center gap-2">
                 <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold shadow-lg">1</span>
@@ -141,13 +172,13 @@ const OTPVerification = () => {
                 <span className="font-bold text-gray-900 dark:text-white">{countryCode} {phone}</span>
               </p>
             </div>
-            
+
             <div className="space-y-4">
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 text-center">
                 Enter the 6-digit code
               </label>
               <div className="flex justify-center">
-                <InputOtp 
+                <InputOtp
                   length={6}
                   value={otp}
                   onChange={setOtp}
@@ -166,15 +197,13 @@ const OTPVerification = () => {
                 Resend code
               </button>
               {timer > 0 && (
-                <span className="font-bold text-gray-700 dark:text-gray-300">
-                  {timer}s remaining
-                </span>
+                <span className="font-bold text-gray-700 dark:text-gray-300">{timer}s remaining</span>
               )}
             </div>
-            
-            <Button 
-              onClick={handleVerifyOtp} 
-              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white h-14 text-base font-bold rounded-xl transition-all duration-200 hover:shadow-xl shadow-lg" 
+
+            <Button
+              onClick={handleVerifyOtp}
+              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white h-14 text-base font-bold rounded-xl transition-all duration-200 hover:shadow-xl shadow-lg"
               disabled={loading || otp.length !== 6}
             >
               {loading ? (
@@ -198,6 +227,13 @@ const OTPVerification = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* AddPatientDialog for new patient registration */}
+      <AddPatientDialog
+        open={showAddPatientDialog}
+        setOpen={setShowAddPatientDialog}
+        onAdd={handleAddPatient}
+      />
     </div>
   );
 };

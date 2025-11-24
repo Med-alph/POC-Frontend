@@ -5,7 +5,8 @@
  * @returns {string|null} The access token or null if not found
  */
 export const getAuthToken = () => {
-  return localStorage.getItem('access_token')
+  // Check both 'auth_token' and 'access_token' for backward compatibility
+  return localStorage.getItem('auth_token') || localStorage.getItem('access_token')
 }
 
 /**
@@ -35,6 +36,7 @@ export const getUserData = () => {
  * Clear authentication data from localStorage
  */
 export const clearAuthData = () => {
+  localStorage.removeItem('auth_token')
   localStorage.removeItem('access_token')
   localStorage.removeItem('user')
 }
@@ -45,6 +47,8 @@ export const clearAuthData = () => {
  * @param {object} user - User data
  */
 export const setAuthData = (token, user) => {
+  // Store in both keys for backward compatibility
+  localStorage.setItem('auth_token', token)
   localStorage.setItem('access_token', token)
   localStorage.setItem('user', JSON.stringify(user))
 }
