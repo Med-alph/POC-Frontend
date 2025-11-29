@@ -3,8 +3,8 @@
 // ============================================
 // Toggle these flags to switch between environments
 // Set ONLY ONE to true at a time
-const isProd = true;   // Production environment
-const isLocal = false;   // Local development environment
+const isProd = false;   // Production environment
+const isLocal = true;   // Local development environment
 
 // ============================================
 // API CONFIGURATION

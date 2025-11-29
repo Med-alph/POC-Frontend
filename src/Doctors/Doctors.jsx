@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import ViewModal from "@/components/ui/view-modal"
 import staffApi from "../api/staffapi"
+import FilterDialog from "./FilterDialog"
 
 export default function Doctors() {
     const [doctors, setDoctors] = useState([])
@@ -62,6 +63,9 @@ export default function Doctors() {
     const [openDialog, setOpenDialog] = useState(false)
     const [viewModalOpen, setViewModalOpen] = useState(false)
     const [selectedDoctor, setSelectedDoctor] = useState(null)
+    const [filterDialogOpen, setFilterDialogOpen] = useState(false)
+    const [editDoctor, setEditDoctor] = useState(null)
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
 
     // Computed values
     const filteredAndSortedDoctors = useMemo(() => {
@@ -212,6 +216,59 @@ export default function Doctors() {
         setViewModalOpen(true)
     }
 
+    const handleEditDoctor = (doctor) => {
+        setEditDoctor(doctor)
+        setEditDialogOpen(true)
+    }
+
+    const handleUpdateDoctor = async (updatedStaff) => {
+        try {
+            // The CreateStaffDialog already calls the API, so we just need to update local state
+            const updated = updatedStaff?.data ?? updatedStaff
+            
+            if (updated && updated.id) {
+                setDoctors(prev => prev.map(d => d.id === updated.id ? updated : d))
+                toast.success(`Doctor "${updated.staff_name || updatedStaff.staff_name}" updated successfully!`)
+            } else {
+                // If response format is different, refetch
+                fetchDoctors()
+                toast.success("Doctor updated successfully!")
+            }
+            setEditDialogOpen(false)
+            setEditDoctor(null)
+        } catch (error) {
+            console.error("Update doctor error:", error)
+            toast.error("Failed to update doctor. Please try again.")
+        }
+    }
+
+    const handleApplyFilters = (filters) => {
+        setSearchTerm(filters.searchTerm)
+        setDepartmentFilter(filters.departmentFilter)
+        setStatusFilter(filters.statusFilter)
+        setExperienceFilter(filters.experienceFilter)
+        setSortBy(filters.sortBy)
+        setSortOrder(filters.sortOrder)
+    }
+
+    const handleResetFilters = (resetFilters) => {
+        setSearchTerm(resetFilters.searchTerm)
+        setDepartmentFilter(resetFilters.departmentFilter)
+        setStatusFilter(resetFilters.statusFilter)
+        setExperienceFilter(resetFilters.experienceFilter)
+        setSortBy(resetFilters.sortBy)
+        setSortOrder(resetFilters.sortOrder)
+    }
+
+    const getCurrentFilters = () => ({
+        searchTerm,
+        departmentFilter,
+        statusFilter,
+        experienceFilter,
+        sortBy,
+        sortOrder
+    })
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
             {/* Main Content */}
@@ -273,9 +330,8 @@ export default function Doctors() {
                 {/* Filters and Actions container */}
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 mb-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        {/* Left side: Search and Filters */}
+                        {/* Left side: Search */}
                         <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                            {/* Search */}
                             <div className="relative flex-1 max-w-md">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
                                 <Input
@@ -286,69 +342,6 @@ export default function Doctors() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
-
-                            {/* Department Filter */}
-                            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                                <SelectTrigger className="w-full sm:w-40">
-                                    <SelectValue placeholder="Department" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Departments</SelectItem>
-                                    <SelectItem value="Cardiology">Cardiology</SelectItem>
-                                    <SelectItem value="Neurology">Neurology</SelectItem>
-                                    <SelectItem value="Orthopedics">Orthopedics</SelectItem>
-                                    <SelectItem value="Pediatrics">Pediatrics</SelectItem>
-                                    <SelectItem value="Dermatology">Dermatology</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            {/* Status Filter */}
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger className="w-full sm:w-40">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Status</SelectItem>
-                                    <SelectItem value="active">Active</SelectItem>
-                                    <SelectItem value="inactive">Inactive</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            {/* Experience Filter */}
-                            <Select value={experienceFilter} onValueChange={setExperienceFilter}>
-                                <SelectTrigger className="w-full sm:w-40">
-                                    <SelectValue placeholder="Experience" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Experience</SelectItem>
-                                    <SelectItem value="0-5">0-5 years</SelectItem>
-                                    <SelectItem value="6-10">6-10 years</SelectItem>
-                                    <SelectItem value="11-15">11-15 years</SelectItem>
-                                    <SelectItem value="15+">15+ years</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            {/* Sort Options */}
-                            <Select value={sortBy} onValueChange={setSortBy}>
-                                <SelectTrigger className="w-full sm:w-40">
-                                    <SelectValue placeholder="Sort by" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="name">Name</SelectItem>
-                                    <SelectItem value="experience">Experience</SelectItem>
-                                    <SelectItem value="department">Department</SelectItem>
-                                    <SelectItem value="status">Status</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            {/* Sort Order */}
-                            <Button
-                                variant="outline"
-                                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                                className="flex items-center gap-2"
-                            >
-                                {sortOrder === "asc" ? "↑" : "↓"}
-                            </Button>
                         </div>
 
                         {/* Right side: Actions and Count */}
@@ -359,6 +352,14 @@ export default function Doctors() {
                             </div>
 
                             <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setFilterDialogOpen(true)}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Filter className="h-4 w-4" />
+                                    Filters
+                                </Button>
                                 <Button
                                     variant="outline"
                                     onClick={handleRefresh}
@@ -515,7 +516,7 @@ export default function Doctors() {
                                                         variant="ghost"
                                                         size="sm"
                                                         className="h-8 w-8 p-0"
-                                                        onClick={() => toast.success(`Editing ${doctor.staff_name}`)}
+                                                        onClick={() => handleEditDoctor(doctor)}
                                                     >
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
@@ -577,6 +578,15 @@ export default function Doctors() {
                     </div>
                 </div>
 
+                {/* Filter Dialog */}
+                <FilterDialog
+                    open={filterDialogOpen}
+                    onOpenChange={setFilterDialogOpen}
+                    filters={getCurrentFilters()}
+                    onApplyFilters={handleApplyFilters}
+                    onReset={handleResetFilters}
+                />
+
                 {/* Add Staff Dialog */}
                 <CreateStaffDialog
                     hospitalId="550e8400-e29b-41d4-a716-446655440001"
@@ -586,6 +596,15 @@ export default function Doctors() {
                     }}
                     open={openDialog}
                     setOpen={setOpenDialog}
+                />
+
+                {/* Edit Staff Dialog */}
+                <CreateStaffDialog
+                    hospitalId="550e8400-e29b-41d4-a716-446655440001"
+                    editStaff={editDoctor}
+                    onAdd={handleUpdateDoctor}
+                    open={editDialogOpen}
+                    setOpen={setEditDialogOpen}
                 />
 
                 {/* View Modal */}

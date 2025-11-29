@@ -97,93 +97,110 @@ export default function ViewModal({
         </div>
     )
 
-    const renderDoctorDetails = () => (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4 pb-4 border-b">
-                <Avatar className="h-16 w-16">
-                    <AvatarFallback className="text-lg">
-                        {data.staff_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'D'}
-                    </AvatarFallback>
-                </Avatar>
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{data.staff_name}</h2>
-                    <p className="text-gray-600">Staff ID: {data.id?.slice(0, 8)}...</p>
-                </div>
-            </div>
+    const renderDoctorDetails = () => {
+        // Parse availability
+        let availabilityObj = {};
+        try {
+            if (data.availability) {
+                availabilityObj = typeof data.availability === 'string' 
+                    ? JSON.parse(data.availability) 
+                    : data.availability;
+            }
+        } catch (e) {
+            availabilityObj = {};
+        }
 
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+        const initials = data.staff_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'D';
+
+        return (
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center gap-4 pb-4 border-b">
+                    <Avatar className="h-16 w-16">
+                        <AvatarFallback className="text-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            {initials}
+                        </AvatarFallback>
+                    </Avatar>
                     <div>
-                        <label className="text-sm font-medium text-gray-500">Department</label>
-                        <Badge className="bg-blue-100 text-blue-600 mt-1">
-                            {data.department}
-                        </Badge>
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Experience</label>
-                        <p className="text-lg">{data.experience} years</p>
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Contact Information</label>
-                        <div className="space-y-2 mt-1">
-                            <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4 text-gray-500" />
-                                <span>{data.contact_info}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-gray-500" />
-                                <span>{data.email}</span>
-                            </div>
-                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{data.staff_name}</h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Staff ID: {data.id?.slice(0, 8)}...</p>
                     </div>
                 </div>
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Availability</label>
-                        <div className="mt-1">
-                            {data.availability ? (
-                                <div className="space-y-1">
-                                    {Object.entries(
-                                        typeof data.availability === 'string' 
-                                            ? JSON.parse(data.availability) 
-                                            : data.availability
-                                    ).map(([day, time]) => (
-                                        <div key={day} className="text-sm">
-                                            <span className="font-medium capitalize">{day}:</span> {time}
-                                        </div>
-                                    ))}
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Department</label>
+                            <p className="text-lg text-gray-900 dark:text-white">{data.department || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Experience</label>
+                            <p className="text-lg text-gray-900 dark:text-white">{data.experience || 0} years</p>
+                        </div>
+                        {data.designation && (
+                            <div>
+                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Designation</label>
+                                <p className="text-lg text-gray-900 dark:text-white">
+                                    {typeof data.designation === 'object' ? data.designation.name : data.designation}
+                                </p>
+                            </div>
+                        )}
+                        <div>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Contact Information</label>
+                            <div className="space-y-2 mt-1">
+                                <div className="flex items-center gap-2">
+                                    <Phone className="h-4 w-4 text-gray-500" />
+                                    <span className="text-gray-900 dark:text-white">{data.contact_info || 'N/A'}</span>
                                 </div>
-                            ) : (
-                                <p className="text-gray-500">Not set</p>
-                            )}
+                                {data.email && (
+                                    <div className="flex items-center gap-2">
+                                        <Mail className="h-4 w-4 text-gray-500" />
+                                        <span className="text-gray-900 dark:text-white">{data.email}</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Created</label>
-                        <p className="text-lg">
-                            {new Date(data.created_at).toLocaleDateString()}
-                        </p>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Availability</label>
+                            <div className="mt-1">
+                                {Object.keys(availabilityObj).length > 0 ? (
+                                    <div className="space-y-1">
+                                        {Object.entries(availabilityObj).map(([day, time]) => (
+                                            <div key={day} className="text-sm">
+                                                <span className="font-medium text-gray-700 dark:text-gray-300 capitalize">{day}:</span>
+                                                <span className="ml-2 text-gray-600 dark:text-gray-400">{time}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 dark:text-gray-400">Not set</p>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
+                            <Badge className={
+                                data.status === 'active' 
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 mt-1' 
+                                    : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700 mt-1'
+                            }>
+                                {data.status || 'N/A'}
+                            </Badge>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Created</label>
+                            <p className="text-lg text-gray-900 dark:text-white">
+                                {data.created_at ? new Date(data.created_at).toLocaleDateString() : 'N/A'}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            {/* Status */}
-            <div className="pt-4 border-t">
-                <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-500">Status</span>
-                    <Badge className={
-                        data.status === 'active' ? 'bg-green-100 text-green-600' : 
-                        data.status === 'inactive' ? 'bg-gray-100 text-gray-600' : 
-                        'bg-blue-100 text-blue-600'
-                    }>
-                        {data.status}
-                    </Badge>
-                </div>
-            </div>
-        </div>
-    )
+        )
+    }
 
     const renderAppointmentDetails = () => (
         <div className="space-y-6">
@@ -256,78 +273,121 @@ export default function ViewModal({
         </div>
     )
 
-    const renderReminderDetails = () => (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4 pb-4 border-b">
-                <div className="h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Clock className="h-8 w-8 text-yellow-600" />
+    const renderReminderDetails = () => {
+        const patient = data.patient || {}
+        const assignedTo = data.assigned_to || {}
+        const patientName = patient.patient_name || "Unknown Patient"
+        const assignedToName = assignedTo.name || assignedTo.staff_name || "Unassigned"
+        const dueDate = data.due_date ? new Date(data.due_date) : null
+        const isOverdue = dueDate && dueDate < new Date() && data.status !== 'completed'
+        
+        return (
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center gap-4 pb-4 border-b">
+                    <div className="h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <Clock className="h-8 w-8 text-yellow-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Reminder Details</h2>
+                        <p className="text-gray-600">Reminder ID: {data.id?.slice(0, 8)}...</p>
+                    </div>
                 </div>
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Reminder Details</h2>
-                    <p className="text-gray-600">Reminder ID: {data.id?.slice(0, 8)}...</p>
-                </div>
-            </div>
 
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Title</label>
-                        <p className="text-lg">{data.title}</p>
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Description</label>
-                        <p className="text-lg">{data.description}</p>
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Patient</label>
-                        <p className="text-lg">{data.patient_name}</p>
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Due Date</label>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Calendar className="h-4 w-4 text-gray-500" />
-                            <span>{new Date(data.due_date).toLocaleDateString()}</span>
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Reminder Type</label>
+                            <p className="text-lg">{data.reminder_type || "N/A"}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Message/Description</label>
+                            <p className="text-lg">{data.message || "No description provided"}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Patient</label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>
+                                        {patientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <p className="text-lg">{patientName}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Assigned To</label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>
+                                        {assignedToName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <p className="text-lg">{assignedToName}</p>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Priority</label>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Due Date & Time</label>
+                            {dueDate ? (
+                                <>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Calendar className="h-4 w-4 text-gray-500" />
+                                        <span>{dueDate.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Clock className="h-4 w-4 text-gray-500" />
+                                        <span>{dueDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="text-lg">N/A</p>
+                            )}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Priority</label>
+                            <Badge className={
+                                data.priority === 'high' ? 'bg-red-100 text-red-600' : 
+                                data.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' : 
+                                'bg-green-100 text-green-600'
+                            }>
+                                {data.priority || "Medium"}
+                            </Badge>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Created</label>
+                            <p className="text-lg">
+                                {data.created_at ? new Date(data.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "N/A"}
+                            </p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Last Updated</label>
+                            <p className="text-lg">
+                                {data.updated_at ? new Date(data.updated_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "N/A"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Status */}
+                <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-500">Status</span>
                         <Badge className={
-                            data.priority === 'high' ? 'bg-red-100 text-red-600' : 
-                            data.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' : 
-                            'bg-green-100 text-green-600'
+                            data.status === 'completed' ? 'bg-green-100 text-green-600' : 
+                            isOverdue ? 'bg-red-100 text-red-600' : 
+                            data.status === 'pending' ? 'bg-yellow-100 text-yellow-600' : 
+                            'bg-gray-100 text-gray-600'
                         }>
-                            {data.priority}
+                            {isOverdue ? 'Overdue' : (data.status || 'Pending')}
                         </Badge>
                     </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Created</label>
-                        <p className="text-lg">
-                            {new Date(data.created_at).toLocaleDateString()}
-                        </p>
-                    </div>
                 </div>
             </div>
-
-            {/* Status */}
-            <div className="pt-4 border-t">
-                <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-500">Status</span>
-                    <Badge className={
-                        data.status === 'pending' ? 'bg-yellow-100 text-yellow-600' : 
-                        data.status === 'completed' ? 'bg-green-100 text-green-600' : 
-                        data.status === 'overdue' ? 'bg-red-100 text-red-600' : 
-                        'bg-gray-100 text-gray-600'
-                    }>
-                        {data.status}
-                    </Badge>
-                </div>
-            </div>
-        </div>
-    )
+        )
+    }
 
     const getTitle = () => {
         switch (type) {
@@ -363,10 +423,6 @@ export default function ViewModal({
                 <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
                     <Button variant="outline" onClick={onClose}>
                         Close
-                    </Button>
-                    <Button>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
                     </Button>
                 </div>
             </DialogContent>

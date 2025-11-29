@@ -185,7 +185,25 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    const hospitalId = "550e8400-e29b-41d4-a716-446655440001";
+    // Get hospital_id from localStorage user object
+    const userJson = localStorage.getItem('user');
+    if (!userJson) {
+      console.error("User not found in localStorage");
+      return;
+    }
+
+    let hospitalId;
+    try {
+      const user = JSON.parse(userJson);
+      hospitalId = user.hospital_id;
+      if (!hospitalId) {
+        console.error("Hospital ID not found in user data");
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to parse user JSON:", e);
+      return;
+    }
 
     const fetchDepartmentData = async () => {
       try {
@@ -208,7 +226,25 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const hospitalId = "550e8400-e29b-41d4-a716-446655440001";
+    // Get hospital_id from localStorage user object
+    const userJson = localStorage.getItem('user');
+    if (!userJson) {
+      console.error("User not found in localStorage");
+      return;
+    }
+
+    let hospitalId;
+    try {
+      const user = JSON.parse(userJson);
+      hospitalId = user.hospital_id;
+      if (!hospitalId) {
+        console.error("Hospital ID not found in user data");
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to parse user JSON:", e);
+      return;
+    }
 
     const fetchStatusCounts = async () => {
       try {
@@ -259,7 +295,29 @@ export default function Dashboard() {
 
   useEffect(() => {
     setIsLoaded(true);
-    const hospitalId = "550e8400-e29b-41d4-a716-446655440001";
+    // Get hospital_id from localStorage user object
+    const userJson = localStorage.getItem('user');
+    if (!userJson) {
+      console.error("User not found in localStorage");
+      setLoading(false);
+      return;
+    }
+
+    let hospitalId;
+    try {
+      const user = JSON.parse(userJson);
+      hospitalId = user.hospital_id;
+      if (!hospitalId) {
+        console.error("Hospital ID not found in user data");
+        setLoading(false);
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to parse user JSON:", e);
+      setLoading(false);
+      return;
+    }
+
     const today = todayStr();
 
     const fetchAll = async () => {
