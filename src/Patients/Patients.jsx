@@ -39,13 +39,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import ViewModal from "@/components/ui/view-modal"
 import AddPatientDialog from "./AddPatient"
+import EditPatientDialog from "./EditPatient"
 
 export default function Patients() {
     const [patients, setPatients] = useState([])
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState("all")
-    const [ageGroupFilter, setAgeGroupFilter] = useState("all")
+    const [appointmentTypeFilter, setAppointmentTypeFilter] = useState("all")
     const [sortBy, setSortBy] = useState("name")
     const [sortOrder, setSortOrder] = useState("asc")
     const [selectedPatients, setSelectedPatients] = useState([])
@@ -53,6 +54,8 @@ export default function Patients() {
     const [viewModalOpen, setViewModalOpen] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState(null)
     const [openDialog, setOpenDialog] = useState(false)
+    const [openEditDialog, setOpenEditDialog] = useState(false)
+    const [editPatient, setEditPatient] = useState(null)
 
     // Defensive patient validity check
     const isValidPatient = (patient) => {
@@ -88,11 +91,8 @@ export default function Patients() {
                     statusFilter === "all" || patient.status === statusFilter
                 ) &&
                 (
-                    ageGroupFilter === "all" ||
-                    (ageGroupFilter === "0-18" && patient.age !== undefined && patient.age <= 18) ||
-                    (ageGroupFilter === "19-35" && patient.age !== undefined && patient.age >= 19 && patient.age <= 35) ||
-                    (ageGroupFilter === "36-50" && patient.age !== undefined && patient.age >= 36 && patient.age <= 50) ||
-                    (ageGroupFilter === "50+" && patient.age !== undefined && patient.age > 50)
+                    appointmentTypeFilter === "all" ||
+                    (patient.appointment_type && patient.appointment_type.toLowerCase() === appointmentTypeFilter.toLowerCase())
                 )
         })
 
@@ -126,7 +126,7 @@ export default function Patients() {
             }
         })
         return filtered
-    }, [patients, searchTerm, statusFilter, ageGroupFilter, sortBy, sortOrder])
+    }, [patients, searchTerm, statusFilter, appointmentTypeFilter, sortBy, sortOrder])
 
     const stats = useMemo(() => {
         const total = patients.length
@@ -143,7 +143,7 @@ export default function Patients() {
             const params = { hospital_id: hospitalId }
             if (searchTerm) params.search = searchTerm
             if (statusFilter !== "all") params.status = statusFilter
-            if (ageGroupFilter !== "all") params.age_group = ageGroupFilter
+            if (appointmentTypeFilter !== "all") params.appointment_type = appointmentTypeFilter
             const result = await patientsAPI.getAll(params)
             const rawPatients = Array.isArray(result?.data) ? result.data : []
             const cleanPatients = rawPatients.filter(isValidPatient)
@@ -160,7 +160,7 @@ export default function Patients() {
     useEffect(() => {
         fetchPatients()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm, statusFilter, ageGroupFilter])
+    }, [searchTerm, statusFilter, appointmentTypeFilter])
 
     const handleRefresh = () => {
         fetchPatients()
@@ -228,6 +228,33 @@ export default function Patients() {
         } catch (error) {
             console.error("Add patient error:", error)
             toast.error("Failed to add patient, please try again.")
+        }
+    }
+
+    const handleEditPatient = (patient) => {
+        setEditPatient(patient)
+        setOpenEditDialog(true)
+    }
+
+    const handleUpdatePatient = async (patientId, updatedData) => {
+        try {
+            const response = await patientsAPI.update(patientId, updatedData)
+            const updatedPatient = response?.data ?? response
+
+            console.log("Updated patient object:", updatedPatient)
+
+            if (!isValidPatient(updatedPatient)) {
+                throw new Error("Updated patient data invalid")
+            }
+
+            setPatients(prev => prev.map(p => p.id === patientId ? updatedPatient : p))
+            toast.success(`Patient "${updatedPatient.patient_name}" updated successfully!`)
+            setOpenEditDialog(false)
+            setEditPatient(null)
+        } catch (error) {
+            console.error("Update patient error:", error)
+            toast.error("Failed to update patient. Please try again.")
+            throw error
         }
     }
 
@@ -322,18 +349,20 @@ export default function Patients() {
                             </Select>
                             <Select
                                 className="w-full sm:w-40 md:w-40 lg:w-48"
-                                value={ageGroupFilter}
-                                onValueChange={setAgeGroupFilter}
+                                value={appointmentTypeFilter}
+                                onValueChange={setAppointmentTypeFilter}
                             >
                                 <SelectTrigger className="flex items-center">
                                     <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                                    <SelectValue placeholder="All ages" />
+                                    <SelectValue placeholder="All types" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All ages</SelectItem>
-                                    <SelectItem value="pediatric">Pediatric (0-17)</SelectItem>
-                                    <SelectItem value="adult">Adult (18-64)</SelectItem>
-                                    <SelectItem value="senior">Senior (65+)</SelectItem>
+                                    <SelectItem value="all">All types</SelectItem>
+                                    <SelectItem value="consultation">Consultation</SelectItem>
+                                    <SelectItem value="follow-up">Follow-up</SelectItem>
+                                    <SelectItem value="emergency">Emergency</SelectItem>
+                                    <SelectItem value="vaccination">Vaccination</SelectItem>
+                                    <SelectItem value="checkup">Checkup</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -374,33 +403,50 @@ export default function Patients() {
                 </div>
 
                 {/* Table Section */}
-                <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 overflow-x-auto">
+                <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
                     {loading ? (
-                        <div className="flex justify-center items-center py-8">
-                            <div className="text-gray-500">Loading patients...</div>
+                        <div className="flex flex-col justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-600 mb-3"></div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">Loading patients...</div>
                         </div>
                     ) : (
-                        <Table className="min-w-[700px] md:min-w-full">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Patient Name</TableHead>
-                                    <TableHead>DOB / Age</TableHead>
-                                    <TableHead>Contact Info</TableHead>
-                                    <TableHead>Insurance Provider</TableHead>
-                                    <TableHead>Last Visit</TableHead>
-                                    <TableHead>Next Appointment</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredAndSortedPatients.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                            {patients.length === 0 ? 'No patients found' : 'No patients match your filters'}
-                                        </TableCell>
+                        <div className="overflow-x-auto">
+                            <Table className="min-w-[1000px]">
+                                <TableHeader>
+                                    <TableRow className="bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white">Patient Name</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white">DOB / Age</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white">Contact Info</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white">Insurance Provider</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white">Last Visit</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white">Next Appointment</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white">Status</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white text-right">Actions</TableHead>
                                     </TableRow>
-                                ) : filteredAndSortedPatients.map(patient => {
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredAndSortedPatients.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} className="text-center py-12">
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <Users className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                        {patients.length === 0 ? 'No patients found' : 'No patients match your filters'}
+                                                    </p>
+                                                    {patients.length === 0 && (
+                                                        <Button
+                                                            variant="outline"
+                                                            className="mt-4"
+                                                            onClick={() => setOpenDialog(true)}
+                                                        >
+                                                            <UserPlus className="h-4 w-4 mr-2" />
+                                                            Add First Patient
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : filteredAndSortedPatients.map(patient => {
                                     const initials = patient.patient_name
                                         ?.split(' ')
                                         .map(name => name.charAt(0))
@@ -428,95 +474,117 @@ export default function Patients() {
                                     }
 
                                     return (
-                                        <TableRow key={patient.id}>
-                                            <TableCell>
+                                        <TableRow 
+                                            key={patient.id}
+                                            className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
+                                        >
+                                            <TableCell className="py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar className="h-8 w-8">
-                                                        <AvatarFallback>{initials}</AvatarFallback>
+                                                    <Avatar className="h-10 w-10 border-2 border-gray-200 dark:border-gray-700">
+                                                        <AvatarFallback className="text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                                                            {initials}
+                                                        </AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <p className="font-medium">{patient.patient_name}</p>
-                                                        <p className="text-xs text-gray-500">ID: {patient.id.slice(0, 8)}...</p>
+                                                        <p className="font-medium text-gray-900 dark:text-white">{patient.patient_name}</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">ID: {patient.id.slice(0, 8)}...</p>
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="py-4">
                                                 <div className="flex flex-col">
-                                                    <span>{formatDate(patient.dob)}</span>
-                                                    <span className="text-xs text-gray-500">{patient.age} years old</span>
+                                                    <span className="text-sm text-gray-900 dark:text-white font-medium">{formatDate(patient.dob)}</span>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">{patient.age || 'N/A'} years old</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col space-y-1">
+                                            <TableCell className="py-4">
+                                                <div className="flex flex-col space-y-1.5">
                                                     <div className="flex items-center gap-2">
-                                                        <Phone className="h-3 w-3 text-gray-500" />
-                                                        <span className="text-sm">{patient.contact_info}</span>
+                                                        <Phone className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                                                        <span className="text-sm text-gray-900 dark:text-white">{patient.contact_info || 'N/A'}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Mail className="h-3 w-3 text-gray-500" />
-                                                        <span className="text-xs text-gray-500">{patient.email || 'No email provided'}</span>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                                                    {patient.insurance_provider}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-sm">{patient.last_visit ? formatDate(patient.last_visit) : 'No visits yet'}</span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm">{patient.next_appointment ? formatDate(patient.next_appointment) : 'No upcoming'}</span>
-                                                    {patient.next_appointment && (
-                                                        <span className="text-xs text-gray-500">Scheduled</span>
+                                                    {patient.email && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Mail className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{patient.email}</span>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
-                                                <Badge className={getStatusColor(patient.status)}>
-                                                    {patient.status}
+                                            <TableCell className="py-4">
+                                                {patient.insurance_provider ? (
+                                                    <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-medium">
+                                                        {patient.insurance_provider}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-sm text-gray-400 dark:text-gray-500">N/A</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="py-4">
+                                                <span className="text-sm text-gray-900 dark:text-white">
+                                                    {patient.last_visit ? formatDate(patient.last_visit) : <span className="text-gray-400 dark:text-gray-500">No visits yet</span>}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm text-gray-900 dark:text-white">
+                                                        {patient.next_appointment ? formatDate(patient.next_appointment) : <span className="text-gray-400 dark:text-gray-500">No upcoming</span>}
+                                                    </span>
+                                                    {patient.next_appointment && (
+                                                        <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Scheduled</span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="py-4">
+                                                <Badge className={`${getStatusColor(patient.status)} font-medium capitalize`}>
+                                                    {patient.status || 'N/A'}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
+                                            <TableCell className="py-4">
+                                                <div className="flex items-center justify-end gap-1">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-8 w-8 p-0"
+                                                        className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                                         onClick={() => handleViewPatient(patient)}
+                                                        title="View patient details"
                                                     >
-                                                        <Eye className="h-4 w-4" />
+                                                        <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-8 w-8 p-0"
-                                                        onClick={() => toast.success(`Editing ${patient.patient_name}`)}
+                                                        className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                        onClick={() => handleEditPatient(patient)}
+                                                        title="Edit patient"
                                                     >
-                                                        <Edit className="h-4 w-4" />
+                                                        <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                                     </Button>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                                title="More options"
+                                                            >
+                                                                <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem>
+                                                        <DropdownMenuContent align="end" className="w-48">
+                                                            <DropdownMenuItem className="cursor-pointer">
                                                                 <Phone className="h-4 w-4 mr-2" />
                                                                 Call Patient
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem>
+                                                            <DropdownMenuItem className="cursor-pointer">
                                                                 <Mail className="h-4 w-4 mr-2" />
                                                                 Send Message
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem>
+                                                            <DropdownMenuItem className="cursor-pointer">
                                                                 <Calendar className="h-4 w-4 mr-2" />
                                                                 Schedule Appointment
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-red-600">
+                                                            <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
                                                                 <Trash2 className="h-4 w-4 mr-2" />
                                                                 Archive Patient
                                                             </DropdownMenuItem>
@@ -527,24 +595,25 @@ export default function Patients() {
                                         </TableRow>
                                     )
                                 })}
-                            </TableBody>
-                        </Table>
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
                 </div>
 
                 {/* Footer */}
                 <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="text-sm text-gray-600">
-                            Showing {filteredAndSortedPatients.length} of {patients.length} patients
-                            {searchTerm && (
-                                <span className="ml-2 text-blue-600">• Filtered by "{searchTerm}"</span>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            Showing <span className="font-semibold text-gray-900 dark:text-white">{filteredAndSortedPatients.length}</span> of <span className="font-semibold text-gray-900 dark:text-white">{patients.length}</span> patients
+                            {(searchTerm || statusFilter !== "all" || appointmentTypeFilter !== "all") && (
+                                <span className="ml-2 text-blue-600 dark:text-blue-400">• Filters active</span>
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" disabled>Previous</Button>
-                            <span className="text-sm text-gray-600">Page 1 of 1</span>
-                            <Button variant="outline" size="sm" disabled>Next</Button>
+                            <Button variant="outline" size="sm" disabled className="text-gray-400 dark:text-gray-600">Previous</Button>
+                            <span className="text-sm text-gray-600 dark:text-gray-400 px-2">Page 1 of 1</span>
+                            <Button variant="outline" size="sm" disabled className="text-gray-400 dark:text-gray-600">Next</Button>
                         </div>
                     </div>
                 </div>
@@ -554,6 +623,14 @@ export default function Patients() {
                     open={openDialog}
                     setOpen={setOpenDialog}
                     onAdd={handleAddPatient}
+                />
+
+                {/* Edit Patient Dialog */}
+                <EditPatientDialog
+                    open={openEditDialog}
+                    setOpen={setOpenEditDialog}
+                    onUpdate={handleUpdatePatient}
+                    editPatient={editPatient}
                 />
 
                 {/* View Modal */}
