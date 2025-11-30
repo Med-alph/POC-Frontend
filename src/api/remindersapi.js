@@ -105,10 +105,9 @@ export const remindersAPI = {
   },
 
   // Mark reminder as completed
-  markCompleted: async (id, notes) => {
+  markCompleted: async (id) => {
     return apiRequest(`/reminders/${id}/complete`, {
-      method: 'POST',
-      body: JSON.stringify({ notes }),
+      method: 'PATCH',
     })
   },
 

@@ -27,12 +27,38 @@ interface UseNotificationsOptions {
   limit?: number;
   filter?: 'all' | 'unread' | 'read';
   type?: Notification['type'];
+  userId?: string; // Allow passing userId directly
 }
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
-  const { autoFetch = true, limit = 20, filter = 'all', type } = options;
+  const { autoFetch = true, limit = 20, filter = 'all', type, userId: userIdProp } = options;
   const user = useSelector((state: any) => state.auth.user);
-  const userId = user?.id;
+  
+  // Try to get userId from multiple sources
+  // 1. From prop (if passed directly)
+  // 2. From Redux user object
+  // 3. From JWT token (decode it)
+  const getUserId = (): string | undefined => {
+    if (userIdProp) return userIdProp;
+    if (user?.id) return user.id;
+    
+    // Try to decode JWT token to get user ID
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.sub) return payload.sub;
+        if (payload.userId) return payload.userId;
+        if (payload.id) return payload.id;
+      }
+    } catch (e) {
+      // Ignore JWT decode errors
+    }
+    
+    return undefined;
+  };
+  
+  const userId = getUserId();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [counts, setCounts] = useState<NotificationCounts | null>(null);
@@ -47,14 +73,29 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   /**
    * Fetch notifications from API
    */
+  // Track ongoing fetch to prevent duplicate calls
+  const isFetchingRef = useRef(false);
+
   const fetchNotifications = useCallback(async (reset = false) => {
-    if (!userId) return;
+    if (!userId) {
+      console.warn('useNotifications: No userId available');
+      return;
+    }
+
+    // Prevent duplicate calls
+    if (isFetchingRef.current) {
+      console.log('useNotifications: Fetch already in progress, skipping...');
+      return;
+    }
 
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
       const currentOffset = reset ? 0 : offset;
+      console.log('useNotifications: Fetching notifications', { userId, limit, offset: currentOffset, filter, type });
+      
       const response = await notificationsAPI.list({
         limit,
         offset: currentOffset,
@@ -62,21 +103,35 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         type,
       });
 
+      console.log('useNotifications: Received response', { 
+        notificationCount: response.notifications?.length || 0, 
+        total: response.total,
+        notifications: response.notifications 
+      });
+
       if (reset) {
-        setNotifications(response.notifications);
+        setNotifications(response.notifications || []);
       } else {
-        setNotifications((prev) => [...prev, ...response.notifications]);
+        setNotifications((prev) => [...prev, ...(response.notifications || [])]);
       }
 
-      setHasMore(response.notifications.length === limit);
-      setOffset(currentOffset + response.notifications.length);
+      setHasMore((response.notifications?.length || 0) === limit);
+      setOffset(currentOffset + (response.notifications?.length || 0));
     } catch (err) {
       setError(err as Error);
       console.error('Failed to fetch notifications:', err);
+      // Set empty array on error to prevent showing stale data
+      if (reset) {
+        setNotifications([]);
+      }
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [userId, limit, offset, filter, type]);
+
+  // Track ongoing counts fetch to prevent duplicate calls
+  const isFetchingCountsRef = useRef(false);
 
   /**
    * Fetch notification counts
@@ -84,11 +139,20 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const fetchCounts = useCallback(async () => {
     if (!userId) return;
 
+    // Prevent duplicate calls
+    if (isFetchingCountsRef.current) {
+      console.log('useNotifications: Counts fetch already in progress, skipping...');
+      return;
+    }
+
     try {
+      isFetchingCountsRef.current = true;
       const countsData = await notificationsAPI.getCounts();
       setCounts(countsData);
     } catch (err) {
       console.error('Failed to fetch notification counts:', err);
+    } finally {
+      isFetchingCountsRef.current = false;
     }
   }, [userId]);
 
@@ -207,20 +271,35 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     }
   }, [loading, hasMore, fetchNotifications]);
 
-  // Initial fetch
+  // Track if initial fetch has been done
+  const hasInitialFetch = useRef(false);
+
+  // Initial fetch - only once when userId is available
   useEffect(() => {
-    if (autoFetch && userId) {
+    if (autoFetch && userId && !hasInitialFetch.current) {
+      hasInitialFetch.current = true;
       fetchNotifications(true);
       fetchCounts();
+    } else if (!userId) {
+      // Reset flag if userId becomes unavailable
+      hasInitialFetch.current = false;
     }
-  }, [userId, autoFetch]); // Only run on mount or userId change
+  }, [userId, autoFetch, fetchNotifications, fetchCounts]); // Only run on mount or userId change
 
   // Set up socket listeners for real-time updates
   useEffect(() => {
     if (!userId || socketListenersSet.current) return;
 
+    // Connect to notifications namespace
+    const notificationsSocket = socketService.connectNotifications(userId);
+    if (!notificationsSocket) {
+      console.warn('Failed to connect to notifications socket');
+      return;
+    }
+
     // Listen for new notifications
     const handleNotificationReceive = (payload: any) => {
+      console.log('Received notification:', payload);
       const newNotification: Notification = {
         id: payload.id,
         user_id: userId,
@@ -280,26 +359,18 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       );
     };
 
-    // TODO: Replace with your socket service's event listener methods
-    // Example for Socket.IO:
-    // socketService.on('notification:receive', handleNotificationReceive);
-    // socketService.on('notification:group-update', handleGroupUpdate);
-    // socketService.on('notification:status-change', handleStatusChange);
-
-    // For now, using a placeholder - update based on your socket service
-    if (socketService && typeof socketService.on === 'function') {
-      socketService.on('notification:receive', handleNotificationReceive);
-      socketService.on('notification:group-update', handleGroupUpdate);
-      socketService.on('notification:status-change', handleStatusChange);
-      socketListenersSet.current = true;
-    }
+    // Set up listeners on notifications socket
+    notificationsSocket.on('notification:receive', handleNotificationReceive);
+    notificationsSocket.on('notification:group-update', handleGroupUpdate);
+    notificationsSocket.on('notification:status-change', handleStatusChange);
+    socketListenersSet.current = true;
 
     return () => {
       // Cleanup listeners
-      if (socketService && typeof socketService.off === 'function') {
-        socketService.off('notification:receive', handleNotificationReceive);
-        socketService.off('notification:group-update', handleGroupUpdate);
-        socketService.off('notification:status-change', handleStatusChange);
+      if (notificationsSocket) {
+        notificationsSocket.off('notification:receive', handleNotificationReceive);
+        notificationsSocket.off('notification:group-update', handleGroupUpdate);
+        notificationsSocket.off('notification:status-change', handleStatusChange);
       }
       socketListenersSet.current = false;
     };
@@ -327,11 +398,11 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     dismiss,
     dismissAll,
     loadMore,
-    refresh: () => {
+    refresh: useCallback(() => {
       setOffset(0);
       fetchNotifications(true);
       fetchCounts();
-    },
+    }, [fetchNotifications, fetchCounts]),
   };
 }
 
