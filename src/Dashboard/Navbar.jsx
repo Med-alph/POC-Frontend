@@ -1,5 +1,4 @@
-import { Input } from "@/components/ui/input"
-import { Bell, ChevronDown, Search, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +10,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCredentials } from "../features/auth/authSlice";
-import useAdminNotifications from "../hooks/useAdminNotifications";
+import { useNotifications } from "../hooks/useNotifications";
 import toast from "react-hot-toast";
-import notificationAPI from "../api/notificationapi";
+import notificationsAPI from "../api/notifications";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home },
@@ -38,8 +37,13 @@ export default function Navbar() {
   const user = useSelector((state) => state.auth.user);
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  const notifications = useAdminNotifications(user?.id);
-  const [unreadIds, setUnreadIds] = useState([]);
+  
+  // Use the new notifications hook
+  const { notifications, counts, markAsRead, dismissAll } = useNotifications({
+    autoFetch: true,
+    limit: 10,
+    filter: 'all',
+  });
 
   useEffect(() => {
     const currentPath = location.pathname;
@@ -47,13 +51,6 @@ export default function Navbar() {
     const activeItem = allNavItems.find((item) => item.path === currentPath);
     setActiveTab(activeItem?.id || "");
   }, [location.pathname]);
-
-  useEffect(() => {
-    console.log("Notifications updated:", notifications);
-    const unread = notifications.filter(n => n.status !== "read").map(n => n.notificationId);
-    setUnreadIds(unread);
-    console.log("Unread notifications count computed:", unread.length);
-  }, [notifications]);
 
 
   const handleLogout = () => {
@@ -67,23 +64,22 @@ export default function Navbar() {
   };
 
   const filteredNavItems = user?.designation_group?.toLowerCase() === "doctor" ? doctorNavItems : navigationItems;
-  const unreadCount = unreadIds.length;
+  const unreadCount = counts?.unread || 0;
 
   const toggleNotifications = () => {
     setShowNotifDropdown((prev) => !prev);
   };
+  
   const handleNotificationClick = async (notif) => {
     console.log("Notification clicked:", notif);
-    navigate("/notifications");
+    
+    // Just mark as read, don't navigate
     setShowNotifDropdown(false);
-    if (notif.status !== "read" && notif.notificationId) {
+    
+    // Mark as read if unread
+    if (notif.status !== "read" && notif.id) {
       try {
-        await notificationAPI.markAsRead(notif.notificationId);
-        setUnreadIds((prev) => {
-          const updated = prev.filter(id => id !== notif.notificationId);
-          console.log("Updated unreadIds after markAsRead:", updated);
-          return updated;
-        });
+        await markAsRead(notif.id);
       } catch (e) {
         toast.error("Failed to mark notification as read");
         console.error("markAsRead error:", e);
@@ -105,17 +101,6 @@ export default function Navbar() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2 z-10" />
-            <Input
-              type="text"
-              placeholder="Search patients, doctors..."
-              className="pl-10 pr-4 py-2 h-9 w-64 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:border-blue-600 dark:focus:border-blue-500 rounded-md text-sm"
-            />
-          </div>
-          <button className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <Search className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-          </button>
           <div className="relative">
             <button
               className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -164,11 +149,11 @@ export default function Navbar() {
                       </div>
                     ) : (
                       <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {notifications.map((notif, idx) => {
-                          const isUnread = unreadIds.includes(notif.notificationId);
+                        {notifications.slice(0, 10).map((notif, idx) => {
+                          const isUnread = notif.status === 'unread';
                           return (
                             <li
-                              key={notif.notificationId || idx}
+                              key={notif.id || idx}
                               className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
                                 isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                               }`}
@@ -184,10 +169,13 @@ export default function Navbar() {
                                       ? 'text-gray-900 dark:text-white' 
                                       : 'text-gray-700 dark:text-gray-300'
                                   }`}>
-                                    {notif.message || "Notification"}
+                                    {notif.title || "Notification"}
+                                  </div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    {notif.body || ""}
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ""}
+                                    {notif.created_at ? new Date(notif.created_at).toLocaleString() : ""}
                                   </div>
                                 </div>
                               </div>
@@ -195,6 +183,34 @@ export default function Navbar() {
                           );
                         })}
                       </ul>
+                    )}
+                    {notifications.length > 0 && (
+                      <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-2">
+                        {notifications.length > 10 && (
+                          <button
+                            onClick={() => {
+                              navigate("/notifications");
+                              setShowNotifDropdown(false);
+                            }}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            View all notifications
+                          </button>
+                        )}
+                        <button
+                          onClick={async () => {
+                            try {
+                              await dismissAll();
+                              setShowNotifDropdown(false);
+                            } catch (e) {
+                              console.error("Failed to clear all notifications:", e);
+                            }
+                          }}
+                          className="text-sm text-red-600 dark:text-red-400 hover:underline ml-auto"
+                        >
+                          Clear all
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

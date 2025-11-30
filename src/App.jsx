@@ -65,7 +65,6 @@ function AppContent() {
 
   const shouldHideMainNavbar = [
   "/patient-dashboard",
-  "/notifications",
 ];
 
 
