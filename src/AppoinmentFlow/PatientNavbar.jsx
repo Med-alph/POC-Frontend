@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Bell,
   ChevronDown,
@@ -7,6 +7,9 @@ import {
   UserCircle2,
   Settings,
   X,
+  CalendarDays,
+  Phone,
+  Image,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,25 +30,56 @@ const patientNavItems = [
 //   { id: "profile", label: "Profile", path: "/patient-details-form", icon: UserCircle2 },
 ];
 
-export default function PatientNavbar({ patientName, patientRole }) {
+// Tabs for patient flow
+const PATIENT_TABS = [
+  { key: "appointments", label: "Appointments", icon: CalendarDays },
+  { key: "reminders", label: "Reminders", icon: Bell },
+  { key: "calls", label: "Calls", icon: Phone },
+  { key: "images", label: "Images", icon: Image },
+  { key: "profile", label: "Profile", icon: UserCircle2 },
+];
+
+export default function PatientNavbar({ patientName, patientRole, activeTab: activeTabProp, onTabChange, patientId }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  const [activeTab, setActiveTab] = useState("");
+  const [activeNavTab, setActiveNavTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   
-  // Use the new notifications hook
-  const { notifications, counts, markAsRead, dismissAll } = useNotifications({
+  // Use the new notifications hook - pass patientId if available
+  const { notifications, counts, markAsRead, dismissAll, loading: notificationsLoading, refresh: refreshNotifications } = useNotifications({
     autoFetch: true,
     limit: 10,
     filter: 'all',
+    userId: patientId, // Pass patient ID directly
   });
+
+  // Track if we've already refreshed for this dropdown open
+  const hasRefreshedRef = useRef(false);
+  const dropdownOpenTimeRef = useRef(0);
+
+  // Refresh notifications when dropdown opens (only once per open, with debounce)
+  useEffect(() => {
+    if (showNotifDropdown) {
+      const now = Date.now();
+      // Only refresh if dropdown just opened (not already open) and not currently loading
+      if (!hasRefreshedRef.current && !notificationsLoading && (now - dropdownOpenTimeRef.current > 100)) {
+        hasRefreshedRef.current = true;
+        dropdownOpenTimeRef.current = now;
+        refreshNotifications();
+      }
+    } else {
+      // Reset flag when dropdown closes
+      hasRefreshedRef.current = false;
+      dropdownOpenTimeRef.current = 0;
+    }
+  }, [showNotifDropdown, notificationsLoading, refreshNotifications]);
 
   // Effect to update active tab on path change
   useEffect(() => {
     const currentPath = window.location.pathname;
     const activeItem = patientNavItems.find((item) => item.path === currentPath);
-    setActiveTab(activeItem?.id || "");
+    setActiveNavTab(activeItem?.id || "");
   }, []);
 
   // Effect to update unreadIds only when notifications change meaningfully
@@ -77,7 +111,9 @@ export default function PatientNavbar({ patientName, patientRole }) {
   };
 
   const toggleNotifications = () => {
-    setShowNotifDropdown((prev) => !prev);
+    const newState = !showNotifDropdown;
+    setShowNotifDropdown(newState);
+    // Don't refresh here - let the useEffect handle it to avoid multiple calls
   };
 
   const handleNotificationClick = async (notif) => {
@@ -150,10 +186,20 @@ export default function PatientNavbar({ patientName, patientRole }) {
                       </div>
                     </div>
                     <div className="max-h-[350px] overflow-y-auto">
-                      {notifications.length === 0 ? (
+                      {notificationsLoading ? (
+                        <div className="text-center py-12 px-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Loading notifications...</p>
+                        </div>
+                      ) : notifications.length === 0 ? (
                         <div className="text-center py-12 px-4">
                           <Bell className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                          <p className="text-sm text-gray-500 dark:text-gray-400">No new notifications</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No notifications</p>
+                          {counts && counts.total > 0 && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              {counts.total} total ({counts.unread} unread) - Try refreshing
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <ul className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -196,19 +242,29 @@ export default function PatientNavbar({ patientName, patientRole }) {
                           })}
                         </ul>
                       )}
-                      {notifications.length > 0 && (
-                        <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-2">
-                          {notifications.length > 10 && (
-                            <button
-                              onClick={() => {
-                                navigate("/notifications");
-                                setShowNotifDropdown(false);
-                              }}
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              View all notifications
-                            </button>
-                          )}
+                      <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => {
+                            console.log('Manual refresh triggered');
+                            refreshNotifications();
+                          }}
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          disabled={notificationsLoading}
+                        >
+                          {notificationsLoading ? 'Refreshing...' : 'Refresh'}
+                        </button>
+                        {notifications.length > 10 && (
+                          <button
+                            onClick={() => {
+                              navigate("/notifications");
+                              setShowNotifDropdown(false);
+                            }}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            View all notifications
+                          </button>
+                        )}
+                        {notifications.length > 0 && (
                           <button
                             onClick={async () => {
                               try {
@@ -216,14 +272,15 @@ export default function PatientNavbar({ patientName, patientRole }) {
                                 setShowNotifDropdown(false);
                               } catch (e) {
                                 console.error("Failed to clear all notifications:", e);
+                                toast.error("Failed to clear notifications");
                               }
                             }}
                             className="text-sm text-red-600 dark:text-red-400 hover:underline ml-auto"
                           >
                             Clear all
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </>
@@ -266,13 +323,14 @@ export default function PatientNavbar({ patientName, patientRole }) {
         <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           <div className="px-6 lg:px-8">
             <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-              {patientNavItems.map((item) => {
-                const IconComponent = item.icon;
-                const isActive = activeTab === item.id;
+              {/* Patient Flow Tabs - Only show if activeTab and onTabChange are provided */}
+              {activeTabProp !== undefined && onTabChange && PATIENT_TABS.map((tab) => {
+                const IconComponent = tab.icon;
+                const isActive = activeTabProp === tab.key;
                 return (
                   <button
-                    key={item.id}
-                    onClick={() => handleTabClick(item.path)}
+                    key={tab.key}
+                    onClick={() => onTabChange(tab.key)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-md font-bold text-sm transition-colors whitespace-nowrap ${
                       isActive
                         ? "bg-blue-600 text-white"
@@ -280,7 +338,7 @@ export default function PatientNavbar({ patientName, patientRole }) {
                     }`}
                   >
                     <IconComponent className={`h-4 w-4 ${isActive ? "text-white" : "text-gray-500 dark:text-gray-400"}`} />
-                    <span>{item.label}</span>
+                    <span>{tab.label}</span>
                   </button>
                 );
               })}
