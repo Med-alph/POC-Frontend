@@ -70,6 +70,7 @@ export default function PatientDashboard() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [slots, setSlots] = useState([]);
+  const [slotInfo, setSlotInfo] = useState(null); // Store full slot response including leave info
   const [selectedSlot, setSelectedSlot] = useState("");
   const [appointmentType, setAppointmentType] = useState("consultation");
   const [reason, setReason] = useState("");
@@ -344,8 +345,8 @@ export default function PatientDashboard() {
   };
   const canModifyAppointment = (apt) => apt.status !== "fulfilled" && apt.status !== "cancelled" && isDateFutureOrToday(apt.appointment_date);
   const getStatusBadge = (status) => {
-    const styles = { booked: "bg-blue-100 text-blue-700", confirmed: "bg-green-100 text-green-700", fulfilled: "bg-gray-100 text-gray-600", cancelled: "bg-red-100 text-red-700" };
-    return <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${styles[status?.toLowerCase()] || styles.booked}`}>{status || "Booked"}</span>;
+    const styles = { pending: "bg-yellow-100 text-yellow-700", confirmed: "bg-green-100 text-green-700", fulfilled: "bg-gray-100 text-gray-600", cancelled: "bg-red-100 text-red-700" };
+    return <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${styles[status?.toLowerCase()] || styles.pending}`}>{status || "Pending"}</span>;
   };
 
   const handleLoadSlots = async () => {
@@ -353,9 +354,14 @@ export default function PatientDashboard() {
     setLoadingSlots(true);
     try {
       const response = await appointmentsAPI.getAvailableSlots(selectedDoctor.id, selectedDate);
+      console.log("📦 Slot API Response:", response);
+      setSlotInfo(response); // Store full response including leave info
       setSlots(response.slots?.length ? response.slots : []);
       if (!response.slots?.length) toast.error("No slots available");
-    } catch { toast.error("Failed to fetch slots"); setSlots([]); } finally { setLoadingSlots(false); }
+      if (response.on_leave) {
+        toast.error(`Dr. ${selectedDoctor.staff_name} is on ${response.leave_type || ''} leave on this date`);
+      }
+    } catch { toast.error("Failed to fetch slots"); setSlots([]); setSlotInfo(null); } finally { setLoadingSlots(false); }
   };
 
   const handleConfirmBooking = async () => {
@@ -365,9 +371,9 @@ export default function PatientDashboard() {
       await appointmentsAPI.create({
         hospital_id: HOSPITAL_ID, patient_id: patient.id, patientPhone: patient.phone || patient.contact_info,
         staff_id: selectedDoctor.id, appointment_date: selectedDate, appointment_time: selectedSlot,
-        reason: reason.trim(), appointment_type: appointmentType, status: "booked",
+        reason: reason.trim(), appointment_type: appointmentType, status: "pending",
       });
-      toast.success("Appointment booked successfully!");
+      toast.success("Appointment created successfully!");
       resetBookingForm(); setView("list"); setCurrentPage(1); fetchAppointments();
     } catch { toast.error("Failed to create appointment"); } finally { setBookingLoading(false); }
   };
@@ -614,7 +620,56 @@ export default function PatientDashboard() {
             <div className="p-3 bg-blue-50 rounded-lg"><p className="text-sm">Doctor: <span className="font-semibold">{selectedDoctor?.staff_name}</span></p></div>
             <div><label className="block text-sm font-medium mb-2">Select Date</label><Input type="date" value={selectedDate} min={new Date().toISOString().split("T")[0]} onChange={(e) => setSelectedDate(e.target.value)} className="h-11" /></div>
             <Button onClick={handleLoadSlots} disabled={!selectedDate || loadingSlots} className="w-full bg-blue-600 hover:bg-blue-700 h-11">{loadingSlots ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Loading...</> : "Load Available Slots"}</Button>
-            {slots.length > 0 && <div><label className="block text-sm font-medium mb-2">Available Slots</label><div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">{slots.map((slot, i) => <Button key={i} variant={selectedSlot === slot.time ? "default" : "outline"} size="sm" disabled={slot.status === "unavailable"} className={`${slot.status === "unavailable" ? "opacity-50" : ""} ${selectedSlot === slot.time ? "bg-blue-600" : ""}`} onClick={() => { if (slot.status !== "unavailable") { setSelectedSlot(slot.time); setBookingStep(3); }}}>{slot.display_time}</Button>)}</div></div>}
+            {slots.length > 0 && (
+              <div>
+                {slotInfo?.on_leave && (
+                  <div className="bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-xl p-4 flex items-start gap-3 shadow-md mb-4">
+                    <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-base font-bold text-amber-900 dark:text-amber-100 mb-1">
+                        ⚠️ Doctor on Leave
+                      </p>
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        Dr. {selectedDoctor?.staff_name} is on {slotInfo.leave_type ? `${slotInfo.leave_type} ` : ''}leave on this date. All time slots are unavailable. Please select a different date.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <label className="block text-sm font-medium mb-2">
+                  {slotInfo?.on_leave ? 'Time Slots (Unavailable - Doctor on Leave)' : 'Available Slots'}
+                </label>
+                <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                  {slots.map((slot, i) => {
+                    const isOnLeave = slot.reason === "on_leave";
+                    return (
+                      <Button 
+                        key={i} 
+                        variant={selectedSlot === slot.time ? "default" : "outline"} 
+                        size="sm" 
+                        disabled={slot.status === "unavailable"} 
+                        className={`h-auto py-2 flex flex-col gap-1 ${
+                          slot.status === "unavailable" 
+                            ? isOnLeave 
+                              ? "opacity-60 bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800" 
+                              : "opacity-50" 
+                            : ""
+                        } ${selectedSlot === slot.time ? "bg-blue-600" : ""}`} 
+                        onClick={() => { 
+                          if (slot.status !== "unavailable") { 
+                            setSelectedSlot(slot.time); 
+                            setBookingStep(3); 
+                          }
+                        }}
+                        title={isOnLeave ? `Doctor on ${slotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : ""}
+                      >
+                        <span className={isOnLeave ? "text-amber-700 dark:text-amber-400" : ""}>{slot.display_time}</span>
+                        {isOnLeave && <span className="text-[10px] text-amber-600 dark:text-amber-400">On Leave</span>}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
         {bookingStep === 3 && (

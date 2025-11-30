@@ -111,7 +111,6 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
       case "fulfilled":
       case "completed":
         return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700";
-      case "booked":
       case "pending":
         return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700";
       case "arrived":

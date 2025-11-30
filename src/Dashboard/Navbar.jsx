@@ -20,6 +20,8 @@ const navigationItems = [
   { id: "patients", label: "Patients", path: "/patients", icon: Users },
   { id: "doctors", label: "Doctors", path: "/doctors", icon: Stethoscope },
   { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar },
+  { id: "leave-management", label: "Leave Management", path: "/leave-management", icon: Calendar },
+  { id: "attendance-management", label: "Attendance Management", path: "/admin/attendance", icon: Clock },
   { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock },
   { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell },
 ];
@@ -38,7 +40,15 @@ export default function Navbar() {
   const user = useSelector((state) => state.auth.user);
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  const notifications = useAdminNotifications(user?.id);
+  
+  // Only admins should receive leave request notifications
+  const isAdmin = user?.designation_group?.toLowerCase() !== "doctor";
+  
+  // Pass null for both userId and hospitalId if not admin to prevent socket connection
+  const notifications = useAdminNotifications(
+    isAdmin ? user?.id : null, 
+    isAdmin ? user?.hospital_id : null
+  );
   const [unreadIds, setUnreadIds] = useState([]);
 
   useEffect(() => {
@@ -50,7 +60,11 @@ export default function Navbar() {
 
   useEffect(() => {
     console.log("Notifications updated:", notifications);
-    const unread = notifications.filter(n => n.status !== "read").map(n => n.notificationId);
+    // For socket notifications, use a unique identifier (index or timestamp)
+    // since they don't have notificationId yet
+    const unread = notifications
+      .filter(n => n.status !== "read")
+      .map((n, idx) => n.notificationId || `socket-${idx}-${n.createdAt}`);
     setUnreadIds(unread);
     console.log("Unread notifications count computed:", unread.length);
   }, [notifications]);
@@ -72,21 +86,42 @@ export default function Navbar() {
   const toggleNotifications = () => {
     setShowNotifDropdown((prev) => !prev);
   };
-  const handleNotificationClick = async (notif) => {
+  const handleNotificationClick = async (notif, idx) => {
     console.log("Notification clicked:", notif);
-    navigate("/notifications");
+    
+    // Determine navigation based on notification type
+    const isLeaveRequest = notif.notification_type === 'LEAVE_REQUEST' || 
+                          notif.notificationType === 'leave_request' || 
+                          notif.leave_request_id ||
+                          notif.type === 'leave_request';
+    
+    // Navigate to appropriate page
+    if (isLeaveRequest) {
+      navigate("/leave-management");
+    } else {
+      navigate("/notifications");
+    }
+    
     setShowNotifDropdown(false);
+    
+    // For socket notifications (real-time), just remove from unread list locally
+    // The notification will be properly marked as read when user interacts with it on the notifications page
+    const notifId = notif.notificationId || `socket-${idx}-${notif.createdAt}`;
+    setUnreadIds((prev) => {
+      const updated = prev.filter(id => id !== notifId);
+      console.log("Notification marked as read locally:", notifId);
+      return updated;
+    });
+    
+    // Optionally try to mark as read in backend, but don't show error if it fails
+    // (socket notifications might not be in DB yet)
     if (notif.status !== "read" && notif.notificationId) {
       try {
         await notificationAPI.markAsRead(notif.notificationId);
-        setUnreadIds((prev) => {
-          const updated = prev.filter(id => id !== notif.notificationId);
-          console.log("Updated unreadIds after markAsRead:", updated);
-          return updated;
-        });
+        console.log("✅ Successfully marked as read in backend");
       } catch (e) {
-        toast.error("Failed to mark notification as read");
-        console.error("markAsRead error:", e);
+        // Silently fail - notification will be marked as read when page loads
+        console.log("⚠️ Could not mark as read in backend (notification may not be in DB yet):", e.message);
       }
     }
   };
@@ -165,14 +200,15 @@ export default function Navbar() {
                     ) : (
                       <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                         {notifications.map((notif, idx) => {
-                          const isUnread = unreadIds.includes(notif.notificationId);
+                          const notifId = notif.notificationId || `socket-${idx}-${notif.createdAt}`;
+                          const isUnread = unreadIds.includes(notifId);
                           return (
                             <li
-                              key={notif.notificationId || idx}
+                              key={notifId}
                               className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
                                 isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                               }`}
-                              onClick={() => handleNotificationClick(notif)}
+                              onClick={() => handleNotificationClick(notif, idx)}
                             >
                               <div className="flex items-start gap-3">
                                 <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 ${
@@ -187,7 +223,15 @@ export default function Navbar() {
                                     {notif.message || "Notification"}
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ""}
+                                    {notif.createdAt ? new Date(notif.createdAt).toLocaleString('en-IN', { 
+                                      timeZone: 'Asia/Kolkata',
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: true
+                                    }) : ""}
                                   </div>
                                 </div>
                               </div>
