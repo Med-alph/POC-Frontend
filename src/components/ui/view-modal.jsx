@@ -14,14 +14,18 @@ import {
     Award,
     Activity,
     Edit,
-    Trash2
+    Trash2,
+    Bell,
+    MessageCircle
 } from "lucide-react"
 
 export default function ViewModal({ 
     isOpen, 
     onClose, 
     data, 
-    type = "patient" // patient, doctor, appointment, reminder
+    type = "patient", // patient, doctor, appointment, reminder
+    onEdit,
+    onDelete
 }) {
     if (!data) return null
 
@@ -161,9 +165,23 @@ export default function ViewModal({
                         </div>
                     </div>
                     <div>
+                        <label className="text-sm font-medium text-gray-500">Assigned To</label>
+                        <p className="text-lg">{data.assigned_to?.name || data.assigned_to?.staff_name || data.assignedTo || "Not assigned"}</p>
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium text-gray-500">Reminder Channels</label>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                            {(data.reminder_channels || []).map((channel) => (
+                                <Badge key={channel} className="bg-gray-100 text-gray-600 capitalize">
+                                    {channel}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
                         <label className="text-sm font-medium text-gray-500">Created</label>
                         <p className="text-lg">
-                            {new Date(data.created_at).toLocaleDateString()}
+                            {data.created_at ? new Date(data.created_at).toLocaleDateString() : 'N/A'}
                         </p>
                     </div>
                 </div>
@@ -256,78 +274,162 @@ export default function ViewModal({
         </div>
     )
 
-    const renderReminderDetails = () => (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4 pb-4 border-b">
-                <div className="h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Clock className="h-8 w-8 text-yellow-600" />
-                </div>
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Reminder Details</h2>
-                    <p className="text-gray-600">Reminder ID: {data.id?.slice(0, 8)}...</p>
-                </div>
-            </div>
+    const renderReminderDetails = () => {
+        const patient = data.patient || {}
+        const assignedTo = data.assigned_to || {}
+        const channels = data.reminder_channels || []
+        const sentChannels = data.sent_channels || {}
+        const sentAt = data.sent_at || {}
 
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Title</label>
-                        <p className="text-lg">{data.title}</p>
+        const getChannelIcon = (channel) => {
+            switch (channel) {
+                case 'inapp': return <Bell className="h-4 w-4" />
+                case 'email': return <Mail className="h-4 w-4" />
+                case 'whatsapp': return <MessageCircle className="h-4 w-4" />
+                case 'call': return <Phone className="h-4 w-4" />
+                default: return null
+            }
+        }
+
+        const getChannelName = (channel) => {
+            switch (channel) {
+                case 'inapp': return 'In-App Notification'
+                case 'email': return 'Email'
+                case 'whatsapp': return 'WhatsApp'
+                case 'call': return 'Phone Call'
+                default: return channel
+            }
+        }
+
+        return (
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center gap-4 pb-4 border-b">
+                    <div className="h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <Clock className="h-8 w-8 text-yellow-600" />
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-gray-500">Description</label>
-                        <p className="text-lg">{data.description}</p>
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Patient</label>
-                        <p className="text-lg">{data.patient_name}</p>
+                        <h2 className="text-2xl font-bold text-gray-900">{data.title || data.reminder_type || 'Reminder Details'}</h2>
+                        <p className="text-gray-600">Reminder ID: {data.id?.slice(0, 8)}...</p>
                     </div>
                 </div>
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Due Date</label>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Calendar className="h-4 w-4 text-gray-500" />
-                            <span>{new Date(data.due_date).toLocaleDateString()}</span>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Reminder Type</label>
+                            <p className="text-lg font-semibold">{data.reminder_type || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Patient</label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <User className="h-4 w-4 text-gray-500" />
+                                <p className="text-lg">{patient.patient_name || 'N/A'}</p>
+                            </div>
+                            {patient.email && (
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Mail className="h-4 w-4 text-gray-500" />
+                                    <span className="text-sm text-gray-600">{patient.email}</span>
+                                </div>
+                            )}
+                            {patient.contact_info && (
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Phone className="h-4 w-4 text-gray-500" />
+                                    <span className="text-sm text-gray-600">{patient.contact_info}</span>
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Message</label>
+                            <p className="text-lg mt-1 bg-gray-50 p-3 rounded-md">{data.message || 'No message provided'}</p>
                         </div>
                     </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Priority</label>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Due Date</label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Calendar className="h-4 w-4 text-gray-500" />
+                                <span className="text-lg">{data.due_date ? new Date(data.due_date).toLocaleDateString() : 'N/A'}</span>
+                            </div>
+                        </div>
+                        {data.reminder_time && (
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Reminder Time</label>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Clock className="h-4 w-4 text-gray-500" />
+                                    <span className="text-lg">{new Date(data.reminder_time).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        )}
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Priority</label>
+                            <div className="mt-1">
+                                <Badge className={
+                                    data.priority === 'high' ? 'bg-red-100 text-red-600' : 
+                                    data.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' : 
+                                    'bg-green-100 text-green-600'
+                                }>
+                                    {data.priority || 'medium'}
+                                </Badge>
+                            </div>
+                        </div>
+                        {assignedTo.name || assignedTo.staff_name ? (
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Assigned To</label>
+                                <p className="text-lg mt-1">{assignedTo.name || assignedTo.staff_name}</p>
+                            </div>
+                        ) : null}
+                        <div>
+                            <label className="text-sm font-medium text-gray-500">Created</label>
+                            <p className="text-lg mt-1">
+                                {data.created_at ? new Date(data.created_at).toLocaleString() : 'N/A'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Reminder Channels */}
+                {channels.length > 0 && (
+                    <div className="pt-4 border-t">
+                        <label className="text-sm font-medium text-gray-500 mb-3 block">Notification Channels</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {channels.map((channel) => (
+                                <div key={channel} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                                    <div className="flex items-center gap-2">
+                                        {getChannelIcon(channel)}
+                                        <span className="text-sm font-medium">{getChannelName(channel)}</span>
+                                    </div>
+                                    {sentChannels[channel] ? (
+                                        <Badge className="bg-green-100 text-green-600 text-xs">
+                                            Sent {sentAt[channel] ? new Date(sentAt[channel]).toLocaleString() : ''}
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="bg-yellow-100 text-yellow-600 text-xs">Pending</Badge>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Status */}
+                <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-500">Status</span>
                         <Badge className={
-                            data.priority === 'high' ? 'bg-red-100 text-red-600' : 
-                            data.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' : 
-                            'bg-green-100 text-green-600'
+                            data.status === 'pending' ? 'bg-yellow-100 text-yellow-600' : 
+                            data.status === 'done' ? 'bg-green-100 text-green-600' : 
+                            data.status === 'cancelled' ? 'bg-red-100 text-red-600' : 
+                            'bg-gray-100 text-gray-600'
                         }>
-                            {data.priority}
+                            {data.status || 'pending'}
                         </Badge>
                     </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-500">Created</label>
-                        <p className="text-lg">
-                            {new Date(data.created_at).toLocaleDateString()}
-                        </p>
-                    </div>
                 </div>
             </div>
-
-            {/* Status */}
-            <div className="pt-4 border-t">
-                <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-500">Status</span>
-                    <Badge className={
-                        data.status === 'pending' ? 'bg-yellow-100 text-yellow-600' : 
-                        data.status === 'completed' ? 'bg-green-100 text-green-600' : 
-                        data.status === 'overdue' ? 'bg-red-100 text-red-600' : 
-                        'bg-gray-100 text-gray-600'
-                    }>
-                        {data.status}
-                    </Badge>
-                </div>
-            </div>
-        </div>
-    )
+        )
+    }
 
     const getTitle = () => {
         switch (type) {
@@ -364,10 +466,18 @@ export default function ViewModal({
                     <Button variant="outline" onClick={onClose}>
                         Close
                     </Button>
-                    <Button>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                    </Button>
+                    {onEdit && (
+                        <Button onClick={() => { onEdit(data); onClose(); }}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                        </Button>
+                    )}
+                    {onDelete && (
+                        <Button variant="destructive" onClick={() => { onDelete(data); onClose(); }}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                        </Button>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>

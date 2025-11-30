@@ -5,6 +5,7 @@ import { socketUrl } from '../constants/Constant.js';
 class SocketService {
   constructor() {
     this.socket = null;
+    this.notificationsSocket = null;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
@@ -283,6 +284,130 @@ class SocketService {
     this.offDoctorEvents();
     this.offPatientEvents();
     this.offCallEnded();
+  }
+
+  // ==================== NOTIFICATION EVENTS ====================
+
+  /**
+   * Generic method to listen to any socket event
+   * @param {string} event - Event name
+   * @param {Function} callback - Callback function
+   */
+  on(event, callback) {
+    if (!this.socket) {
+      console.error('Socket not connected. Call connect() first.');
+      return;
+    }
+    this.socket.on(event, callback);
+    // Track listener for cleanup
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+    this.listeners.get(event).push(callback);
+  }
+
+  /**
+   * Generic method to remove event listener
+   * @param {string} event - Event name
+   * @param {Function} callback - Optional callback to remove specific listener
+   */
+  off(event, callback = null) {
+    if (!this.socket) return;
+    
+    if (callback) {
+      // Remove specific callback
+      this.socket.off(event, callback);
+      const callbacks = this.listeners.get(event);
+      if (callbacks) {
+        const index = callbacks.indexOf(callback);
+        if (index > -1) {
+          callbacks.splice(index, 1);
+        }
+        if (callbacks.length === 0) {
+          this.listeners.delete(event);
+        }
+      }
+    } else {
+      // Remove all listeners for this event
+      const callbacks = this.listeners.get(event);
+      if (callbacks) {
+        callbacks.forEach(cb => this.socket.off(event, cb));
+      }
+      this.listeners.delete(event);
+    }
+  }
+
+  /**
+   * Connect to notifications namespace
+   * @param {number} userId - Current user's ID
+   * @param {string} token - JWT authentication token
+   */
+  connectNotifications(userId, token = null) {
+    if (this.notificationsSocket?.connected) {
+      console.log('Notifications socket already connected');
+      return this.notificationsSocket;
+    }
+
+    const authToken = token || getAuthToken();
+    // Construct notifications namespace URL
+    let notificationsUrl = socketUrl.replace(/\/$/, '');
+    if (!notificationsUrl.endsWith('/notifications')) {
+      notificationsUrl += '/notifications';
+    }
+    
+    console.log('Connecting to Notifications namespace:', notificationsUrl);
+
+    // Create a separate socket connection for notifications namespace
+    if (!this.notificationsSocket) {
+      this.notificationsSocket = io(notificationsUrl, {
+        auth: {
+          token: authToken,
+          userId: userId
+        },
+        query: {
+          userId: userId
+        },
+        reconnection: true,
+        reconnectionAttempts: this.maxReconnectAttempts,
+        reconnectionDelay: this.reconnectDelay,
+        reconnectionDelayMax: 5000,
+        timeout: 10000,
+        transports: ['websocket', 'polling']
+      });
+
+      this.notificationsSocket.on('connect', () => {
+        console.log('Notifications Socket.IO connected:', this.notificationsSocket.id);
+      });
+
+      this.notificationsSocket.on('disconnect', (reason) => {
+        console.log('Notifications Socket.IO disconnected:', reason);
+      });
+
+      this.notificationsSocket.on('connect_error', (error) => {
+        console.error('Notifications Socket.IO connection error:', error.message);
+      });
+    }
+
+    return this.notificationsSocket;
+  }
+
+  /**
+   * Get notifications socket instance
+   * @returns {Socket|null}
+   */
+  getNotificationsSocket() {
+    return this.notificationsSocket;
+  }
+
+  /**
+   * Disconnect notifications socket
+   */
+  disconnectNotifications() {
+    if (this.notificationsSocket) {
+      this.notificationsSocket.disconnect();
+      this.notificationsSocket = null;
+      console.log('Notifications Socket.IO disconnected');
+    }
   }
 }
 

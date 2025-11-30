@@ -1,5 +1,4 @@
-import { Input } from "@/components/ui/input"
-import { Bell, ChevronDown, Search, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +10,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCredentials } from "../features/auth/authSlice";
-import useAdminNotifications from "../hooks/useAdminNotifications";
+import { useNotifications } from "../hooks/useNotifications";
 import toast from "react-hot-toast";
-import notificationAPI from "../api/notificationapi";
+import notificationsAPI from "../api/notifications";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home },
@@ -50,6 +49,12 @@ export default function Navbar() {
     isAdmin ? user?.hospital_id : null
   );
   const [unreadIds, setUnreadIds] = useState([]);
+  // Use the new notifications hook
+  const { notifications, counts, markAsRead, dismissAll } = useNotifications({
+    autoFetch: true,
+    limit: 10,
+    filter: 'all',
+  });
 
   useEffect(() => {
     const currentPath = location.pathname;
@@ -81,50 +86,55 @@ export default function Navbar() {
   };
 
   const filteredNavItems = user?.designation_group?.toLowerCase() === "doctor" ? doctorNavItems : navigationItems;
-  const unreadCount = unreadIds.length;
+  const unreadCount = counts?.unread || 0;
 
   const toggleNotifications = () => {
     setShowNotifDropdown((prev) => !prev);
   };
-  const handleNotificationClick = async (notif, idx) => {
-    console.log("Notification clicked:", notif);
-    
-    // Determine navigation based on notification type
-    const isLeaveRequest = notif.notification_type === 'LEAVE_REQUEST' || 
-                          notif.notificationType === 'leave_request' || 
-                          notif.leave_request_id ||
-                          notif.type === 'leave_request';
-    
-    // Navigate to appropriate page
-    if (isLeaveRequest) {
-      navigate("/leave-management");
-    } else {
-      navigate("/notifications");
+const handleNotificationClick = async (notif, idx) => {
+  console.log("Notification clicked:", notif);
+
+  // 1️⃣ Navigation Logic (kept from vishnu-branch)
+  const isLeaveRequest =
+    notif.notification_type === "LEAVE_REQUEST" ||
+    notif.notificationType === "leave_request" ||
+    notif.leave_request_id ||
+    notif.type === "leave_request";
+
+  if (isLeaveRequest) {
+    navigate("/leave-management");
+  } else {
+    navigate("/notifications");
+  }
+
+  setShowNotifDropdown(false);
+
+  // 2️⃣ Local unread removal (instant UI update)
+  const notifId =
+    notif.notificationId ||
+    notif.id ||
+    `socket-${idx}-${notif.createdAt}`;
+
+  setUnreadIds((prev) => {
+    const updated = prev.filter((id) => id !== notifId);
+    console.log("Notification marked as read locally:", notifId);
+    return updated;
+  });
+
+  // 3️⃣ Mark as read in backend (clean code from main branch)
+  if (notif.status !== "read" && notif.notificationId) {
+    try {
+      await markAsRead(notif.notificationId);
+      console.log("✅ Successfully marked as read in backend");
+    } catch (e) {
+      console.log(
+        "⚠️ Could not mark as read in backend (notification may not be in DB yet):",
+        e.message
+      );
     }
-    
-    setShowNotifDropdown(false);
-    
-    // For socket notifications (real-time), just remove from unread list locally
-    // The notification will be properly marked as read when user interacts with it on the notifications page
-    const notifId = notif.notificationId || `socket-${idx}-${notif.createdAt}`;
-    setUnreadIds((prev) => {
-      const updated = prev.filter(id => id !== notifId);
-      console.log("Notification marked as read locally:", notifId);
-      return updated;
-    });
-    
-    // Optionally try to mark as read in backend, but don't show error if it fails
-    // (socket notifications might not be in DB yet)
-    if (notif.status !== "read" && notif.notificationId) {
-      try {
-        await notificationAPI.markAsRead(notif.notificationId);
-        console.log("✅ Successfully marked as read in backend");
-      } catch (e) {
-        // Silently fail - notification will be marked as read when page loads
-        console.log("⚠️ Could not mark as read in backend (notification may not be in DB yet):", e.message);
-      }
-    }
-  };
+  }
+};
+
 
 
   return (
@@ -140,17 +150,6 @@ export default function Navbar() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2 z-10" />
-            <Input
-              type="text"
-              placeholder="Search patients, doctors..."
-              className="pl-10 pr-4 py-2 h-9 w-64 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:bg-white dark:focus:bg-gray-800 focus:border-blue-600 dark:focus:border-blue-500 rounded-md text-sm"
-            />
-          </div>
-          <button className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <Search className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-          </button>
           <div className="relative">
             <button
               className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -220,7 +219,10 @@ export default function Navbar() {
                                       ? 'text-gray-900 dark:text-white' 
                                       : 'text-gray-700 dark:text-gray-300'
                                   }`}>
-                                    {notif.message || "Notification"}
+                                    {notif.title || "Notification"}
+                                  </div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    {notif.body || ""}
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
                                     {notif.createdAt ? new Date(notif.createdAt).toLocaleString('en-IN', { 
@@ -239,6 +241,34 @@ export default function Navbar() {
                           );
                         })}
                       </ul>
+                    )}
+                    {notifications.length > 0 && (
+                      <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-2">
+                        {notifications.length > 10 && (
+                          <button
+                            onClick={() => {
+                              navigate("/notifications");
+                              setShowNotifDropdown(false);
+                            }}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            View all notifications
+                          </button>
+                        )}
+                        <button
+                          onClick={async () => {
+                            try {
+                              await dismissAll();
+                              setShowNotifDropdown(false);
+                            } catch (e) {
+                              console.error("Failed to clear all notifications:", e);
+                            }
+                          }}
+                          className="text-sm text-red-600 dark:text-red-400 hover:underline ml-auto"
+                        >
+                          Clear all
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

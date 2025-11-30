@@ -7,13 +7,15 @@ import {
   CalendarDays, UserCircle2, Plus, Loader2, ChevronLeft, ChevronRight,
   ArrowLeft, Phone, Image, RefreshCw, Mail, MapPin, Shield, Heart,
   Clock, PhoneCall, PhoneIncoming, PhoneOutgoing, PhoneMissed, Download,
-  AlertCircle, Droplet, FileText, Users, X
+  AlertCircle, Droplet, FileText, Users, X, Bell, CheckCircle
 } from "lucide-react";
 import PatientNavbar from "./PatientNavbar";
 import appointmentsAPI from "@/api/appointmentsapi";
 import { patientsAPI } from "@/api/patientsapi";
 import staffApi from "@/api/staffapi";
 import authAPI from "@/api/authapi";
+import { remindersAPI } from "@/api/remindersapi";
+import notificationsAPI from "@/api/notifications";
 import toast, { Toaster } from "react-hot-toast";
 import CallNotification from "@/components/CallNotification";
 import JitsiMeeting from "@/components/JitsiMeeting";
@@ -26,6 +28,7 @@ const PAGE_SIZE = 10;
 
 const TABS = [
   { key: "appointments", label: "Appointments", icon: CalendarDays },
+  { key: "reminders", label: "Reminders", icon: Bell },
   { key: "calls", label: "Calls", icon: Phone },
   { key: "images", label: "Images", icon: Image },
   { key: "profile", label: "Profile", icon: UserCircle2 },
@@ -94,6 +97,11 @@ export default function PatientDashboard() {
   // Profile data
   const [patientDetails, setPatientDetails] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // Reminders
+  const [reminders, setReminders] = useState([]);
+  const [loadingReminders, setLoadingReminders] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   // Video call state
   const [incomingCall, setIncomingCall] = useState(null);
@@ -242,6 +250,32 @@ export default function PatientDashboard() {
     fetchCallHistory(callsCurrentPage);
   }, [activeTab, patient?.id, callsCurrentPage]);
 
+  // Fetch reminders when reminders tab is active
+  useEffect(() => {
+    if (activeTab !== "reminders" || !patient?.id) return;
+    fetchReminders();
+  }, [activeTab, patient?.id]);
+
+  // Fetch notification count on mount and periodically
+  useEffect(() => {
+    if (!patient?.id) return;
+    
+    const fetchNotificationCount = async () => {
+      try {
+        const counts = await notificationsAPI.getCounts();
+        setNotificationCount(counts?.unread || 0);
+      } catch (error) {
+        console.error("Error fetching notification count:", error);
+      }
+    };
+
+    fetchNotificationCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotificationCount, 30000);
+    
+    return () => clearInterval(interval);
+  }, [patient?.id]);
+
   const fetchPatientDetails = async () => {
     setLoadingProfile(true);
     try {
@@ -289,6 +323,37 @@ export default function PatientDashboard() {
       setCallsTotalCount(0);
     } finally {
       setLoadingCallHistory(false);
+    }
+  };
+
+  const fetchReminders = async () => {
+    if (!patient?.id) return;
+    setLoadingReminders(true);
+    try {
+      const result = await remindersAPI.getAll({
+        patient_id: patient.id,
+        limit: 100,
+        status: 'pending',
+      });
+      const remindersList = Array.isArray(result?.data) ? result.data : [];
+      setReminders(remindersList);
+    } catch (error) {
+      console.error('Failed to load reminders:', error);
+      toast.error("Failed to load reminders");
+      setReminders([]);
+    } finally {
+      setLoadingReminders(false);
+    }
+  };
+
+  const handleMarkReminderComplete = async (reminderId) => {
+    try {
+      await remindersAPI.markCompleted(reminderId);
+      toast.success("Reminder marked as complete");
+      fetchReminders();
+    } catch (error) {
+      console.error('Failed to mark reminder as complete:', error);
+      toast.error("Failed to mark reminder as complete");
     }
   };
 
@@ -832,6 +897,109 @@ export default function PatientDashboard() {
     );
   };
 
+  const renderRemindersTab = () => {
+    const getPriorityColor = (priority) => {
+      switch (priority?.toLowerCase()) {
+        case 'high': return 'bg-red-100 text-red-700 border-red-200';
+        case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        case 'low': return 'bg-green-100 text-green-700 border-green-200';
+        default: return 'bg-gray-100 text-gray-700 border-gray-200';
+      }
+    };
+
+    const formatDate = (dateString) => {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              My Reminders
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchReminders}
+              disabled={loadingReminders}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loadingReminders ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingReminders ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+            </div>
+          ) : reminders.length === 0 ? (
+            <div className="text-center py-12">
+              <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No reminders found</p>
+              <p className="text-sm text-gray-400 mt-1">You're all caught up!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reminders.map((reminder) => (
+                <div
+                  key={reminder.id}
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                          {reminder.title || `${reminder.reminder_type || 'Reminder'} Reminder`}
+                        </h3>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getPriorityColor(reminder.priority)}`}>
+                          {reminder.priority || 'medium'}
+                        </span>
+                      </div>
+                      {reminder.message && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                          {reminder.message}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          <span>Due: {formatDate(reminder.due_date)}</span>
+                        </div>
+                        {reminder.reminder_type && (
+                          <span className="capitalize">Type: {reminder.reminder_type}</span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMarkReminderComplete(reminder.id)}
+                      className="flex-shrink-0"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Mark Complete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   const renderImagesTab = () => (
     <Card>
       <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Image className="w-5 h-5" />Medical Images & Reports</CardTitle></CardHeader>
@@ -1107,6 +1275,7 @@ export default function PatientDashboard() {
   const renderActiveTab = () => {
     switch (activeTab) {
       case "appointments": return renderAppointmentsTab();
+      case "reminders": return renderRemindersTab();
       case "calls": return renderCallsTab();
       case "images": return renderImagesTab();
       case "profile": return renderProfileTab();
@@ -1181,18 +1350,17 @@ export default function PatientDashboard() {
         />
       )}
 
-      <PatientNavbar patientName={patient?.name || patient?.patient_name} patientRole="Patient" />
+      <PatientNavbar 
+        patientName={patient?.name || patient?.patient_name} 
+        patientRole="Patient"
+        activeTab={activeTab}
+        onTabChange={(tab) => { 
+          setActiveTab(tab); 
+          if (tab !== "appointments") setView("list"); 
+        }}
+        patientId={patient?.id}
+      />
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {TABS.map((tab) => (
-            <Button key={tab.key} variant={activeTab === tab.key ? "default" : "outline"}
-              className={`flex-shrink-0 ${activeTab === tab.key ? "bg-blue-600 text-white" : "bg-white"}`}
-              onClick={() => { setActiveTab(tab.key); if (tab.key !== "appointments") setView("list"); }}>
-              <tab.icon className="w-4 h-4 mr-2" />{tab.label}
-            </Button>
-          ))}
-        </div>
         {renderActiveTab()}
       </div>
       {renderCancelModal()}

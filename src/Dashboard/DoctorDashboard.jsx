@@ -8,6 +8,7 @@ import attendanceAPI from "../api/attendanceapi";
 import toast from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import NextHoursChart from "@/components/charts/NextHoursChart";
 
 const DoctorDashboard = () => {
   const [isLoaded, setIsLoaded] = useState(true);
@@ -478,6 +479,11 @@ const DoctorDashboard = () => {
           </Card>
         </div>
 
+        {/* Chart Section - Full Width */}
+        <div className="grid grid-cols-1 gap-6">
+          <NextHoursChart userId={user?.id} />
+        </div>
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Today's Appointments */}
@@ -498,7 +504,7 @@ const DoctorDashboard = () => {
 
           {/* Upcoming Appointments */}
           <div className="lg:col-span-1">
-            <Card className="border border-gray-200 dark:border-gray-700">
+            <Card className="border border-gray-200 dark:border-gray-700 h-full">
               <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -512,7 +518,7 @@ const DoctorDashboard = () => {
                     <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
                   </div>
                 ) : upcomingData && upcomingData.appointments?.length > 0 ? (
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
                     {upcomingData.appointments.map((apt) => {
                       const statusColors = {
                         pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800",

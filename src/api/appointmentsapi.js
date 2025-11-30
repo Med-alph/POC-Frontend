@@ -198,7 +198,7 @@ export const appointmentsAPI = {
   // New: Get weekly patient visits count for last 7 days (optionally by hospital)
   getWeeklyVisits: async (hospital_id) => {
     // Append hospital_id as query param if provided
-    const url = hospital_id ? `/appointments/stats/weekly-visits?hospital_id=${hospital_id}` : '/appointments/stats/weekly-visits';
+    const url = hospital_id ? `/appointments/admin/weekly-visits?hospital_id=${hospital_id}` : '/appointments/admin/weekly-visits';
     return apiRequest(url);
   },
 
@@ -216,9 +216,8 @@ export const appointmentsAPI = {
   },
 
   getAppointmentStatusCounts: async (hospital_id) => {
-    const url = hospital_id
-      ? `/appointments/stats/appointments-status-counts?hospital_id=${hospital_id}`
-      : '/appointments/stats/appointments-status-counts';
+    const url = 
+       `/appointments/stats/appointments-status-counts?hospital_id=${hospital_id}`
     return apiRequest(url);
   },
 
