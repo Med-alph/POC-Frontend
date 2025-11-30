@@ -54,6 +54,11 @@ export default function Patients() {
     const [viewModalOpen, setViewModalOpen] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState(null)
     const [openDialog, setOpenDialog] = useState(false)
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalCount, setTotalCount] = useState(0)
+    const PAGE_SIZE = 10
     const [openEditDialog, setOpenEditDialog] = useState(false)
     const [editPatient, setEditPatient] = useState(null)
 
@@ -140,7 +145,12 @@ export default function Patients() {
         try {
             setLoading(true)
             const hospitalId = "550e8400-e29b-41d4-a716-446655440001"
-            const params = { hospital_id: hospitalId }
+            const offset = (currentPage - 1) * PAGE_SIZE
+            const params = { 
+                hospital_id: hospitalId,
+                limit: PAGE_SIZE,
+                offset: offset
+            }
             if (searchTerm) params.search = searchTerm
             if (statusFilter !== "all") params.status = statusFilter
             if (appointmentTypeFilter !== "all") params.appointment_type = appointmentTypeFilter
@@ -148,10 +158,12 @@ export default function Patients() {
             const rawPatients = Array.isArray(result?.data) ? result.data : []
             const cleanPatients = rawPatients.filter(isValidPatient)
             setPatients(cleanPatients)
+            setTotalCount(result?.total || 0)
         } catch (err) {
             console.error("Error fetching patients:", err)
             toast.error("Failed to load patients. Please try again.")
             setPatients([])
+            setTotalCount(0)
         } finally {
             setLoading(false)
         }
@@ -160,7 +172,7 @@ export default function Patients() {
     useEffect(() => {
         fetchPatients()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm, statusFilter, appointmentTypeFilter])
+    }, [searchTerm, statusFilter, ageGroupFilter, currentPage, appointmentTypeFilter])
 
     const handleRefresh = () => {
         fetchPatients()
@@ -604,16 +616,32 @@ export default function Patients() {
                 {/* Footer */}
                 <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Showing <span className="font-semibold text-gray-900 dark:text-white">{filteredAndSortedPatients.length}</span> of <span className="font-semibold text-gray-900 dark:text-white">{patients.length}</span> patients
-                            {(searchTerm || statusFilter !== "all" || appointmentTypeFilter !== "all") && (
-                                <span className="ml-2 text-blue-600 dark:text-blue-400">• Filters active</span>
+                        <div className="text-sm text-gray-600">
+                            Showing {filteredAndSortedPatients.length} of {totalCount} patients
+                            {searchTerm && (
+                                <span className="ml-2 text-blue-600">• Filtered by "{searchTerm}"</span>
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" disabled className="text-gray-400 dark:text-gray-600">Previous</Button>
-                            <span className="text-sm text-gray-600 dark:text-gray-400 px-2">Page 1 of 1</span>
-                            <Button variant="outline" size="sm" disabled className="text-gray-400 dark:text-gray-600">Next</Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                disabled={currentPage === 1}
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            >
+                                Previous
+                            </Button>
+                            <span className="text-sm text-gray-600">
+                                Page {currentPage} of {Math.ceil(totalCount / PAGE_SIZE) || 1}
+                            </span>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+                                onClick={() => setCurrentPage(p => p + 1)}
+                            >
+                                Next
+                            </Button>
                         </div>
                     </div>
                 </div>

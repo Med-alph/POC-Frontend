@@ -16,10 +16,7 @@ import StaffListPage from "./Staff/StaffList";
 import DoctorDashboard from "./Dashboard/DoctorDashboard";
 import DoctorPatientRecord from "./Patients/PatientRecords/DoctorPatientRecord";
 import DoctorConsultation from "./Doctors/DoctorConsultation";
-
-import DoctorAttendancePage from "./Doctors/Attendance/AttendancePage";
-
-import AdminLogin from "./Admin/AdminLogin";
+import DoctorAttendance from "./Dashboard/DoctorAttendance";
 import AdminDashboard from "./Admin/AdminDashboard";
 import RolesManagement from "./Admin/RolesManagement";
 import PermissionsManagement from "./Admin/PermissionsManagement";
@@ -37,6 +34,8 @@ import TenantAdminLogin from "./TenantAdmin/TenantAdminLogin";
 import TenantAdminDashboard from "./TenantAdmin/TenantAdminDashboard";
 import Notifications from "./Dashboard/Notifications";
 import DoctorCancellationRequests from "./Doctors/DoctorCancellationRequests";
+import LeaveManagement from "./Admin/LeaveManagement";
+import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
 
 import BillingPage from "./Billing/BillingMainPage";
 import PatientDashboard from "./AppoinmentFlow/PatientDashboard";
@@ -87,15 +86,16 @@ const shouldShowNavbar =
         <Route path="/patients" element={<Patients />} />
         <Route path="/doctors" element={<Doctors />} />
         <Route path="/appointments" element={<Appointments />} />
+        <Route path="/leave-management" element={<LeaveManagement />} />
         <Route path="/reminders" element={<Reminders />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
         <Route path="/TenantListPage" element={<TenantListPage />} />
         <Route path="/Staffs" element={<StaffListPage />} />
-        <Route path="/doctor-attendance" element={<DoctorAttendancePage />} />
 
         {/* Doctor view routes */}
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+        <Route path="/doctor-attendance" element={<DoctorAttendance />} />
         <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
         <Route path="/fulfilled-records" element={<FulfilledRecords />} />
 
@@ -137,6 +137,7 @@ const shouldShowNavbar =
             </ProtectedRoute>
           }
         />
+        <Route path="/admin/attendance" element={<AdminAttendanceManagement />} />
 
         {/* Appointment Flow Routes */}
         <Route path="/landing" element={<LandingPage />} />

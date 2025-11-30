@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { 
   Bell, 
@@ -17,8 +18,10 @@ import {
 import notificationAPI from "../api/notificationapi";
 import cancellationRequestAPI from "../api/cancellationrequestapi";
 import appointmentsAPI from "../api/appointmentsapi";
+import attendanceAPI from "../api/attendanceapi";
 
 export default function Notifications() {
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -53,62 +56,132 @@ export default function Notifications() {
   const closeModal = () => {
     setModal({ open: false, notif: null, comments: "" });
   };
+  
+  // Determine notification type
+  const getNotificationType = (notif) => {
+    // Check multiple fields to determine if it's a leave request
+    if (
+      notif.notification_type === 'leave_request' ||  // API uses lowercase with underscore
+      notif.notification_type === 'LEAVE_REQUEST' || 
+      notif.type === 'leave_request' ||
+      notif.notification_leave_request_id ||  // API field name
+      notif.leave_request_id ||
+      (notif.notification_metadata && (notif.notification_metadata.leaveType || notif.notification_metadata.startDate)) ||
+      (notif.metadata && (notif.metadata.leaveType || notif.metadata.startDate))
+    ) {
+      return 'leave';
+    }
+    return 'cancellation';
+  };
 
   const handleApprove = async () => {
-    if (!modal.notif?.notification_cancellation_request_id) {
-      toast.error("Cancellation request id missing.");
-      return;
-    }
-    if (!modal.notif?.notification_appointment_id) {
-      toast.error("Appointment id missing.");
-      return;
-    }
-    try {
-      setProcessingId(modal.notif.notification_id);
-      await cancellationRequestAPI.reviewRequest({
-        requestId: modal.notif.notification_cancellation_request_id,
-        adminId: user.id,
-        approve: true,
-        comments: modal.comments,
-      });
-      toast.success("Request approved");
+    const notifType = getNotificationType(modal.notif);
+    
+    if (notifType === 'leave') {
+      // Handle leave request approval
+      if (!modal.notif?.leave_request_id) {
+        toast.error("Leave request ID missing.");
+        return;
+      }
+      try {
+        setProcessingId(modal.notif.notification_id);
+        await attendanceAPI.approveLeave(
+          modal.notif.leave_request_id,
+          user.id
+        );
+        toast.success("Leave request approved");
+        setModal({ open: false, notif: null, comments: "" });
+        await fetchNotifications();
+      } catch (error) {
+        console.error("Leave approval failed:", error);
+        toast.error("Failed to approve leave request");
+      } finally {
+        setProcessingId(null);
+      }
+    } else {
+      // Handle cancellation request approval
+      if (!modal.notif?.notification_cancellation_request_id) {
+        toast.error("Cancellation request id missing.");
+        return;
+      }
+      if (!modal.notif?.notification_appointment_id) {
+        toast.error("Appointment id missing.");
+        return;
+      }
+      try {
+        setProcessingId(modal.notif.notification_id);
+        await cancellationRequestAPI.reviewRequest({
+          requestId: modal.notif.notification_cancellation_request_id,
+          adminId: user.id,
+          approve: true,
+          comments: modal.comments,
+        });
+        toast.success("Request approved");
 
-      await appointmentsAPI.cancel(modal.notif.notification_appointment_id, {
-        cancelled_by: user.id,
-        reason: modal.comments.trim() || "Cancellation approved by admin",
-      });
+        await appointmentsAPI.cancel(modal.notif.notification_appointment_id, {
+          cancelled_by: user.id,
+          reason: modal.comments.trim() || "Cancellation approved by admin",
+        });
 
-      setModal({ open: false, notif: null, comments: "" });
-      await fetchNotifications();
-    } catch (error) {
-      console.error("Approve and cancel failed:", error);
-      toast.error("Failed to process cancellation approval");
-    } finally {
-      setProcessingId(null);
+        setModal({ open: false, notif: null, comments: "" });
+        await fetchNotifications();
+      } catch (error) {
+        console.error("Approve and cancel failed:", error);
+        toast.error("Failed to process cancellation approval");
+      } finally {
+        setProcessingId(null);
+      }
     }
   };
 
   const handleReject = async () => {
-    if (!modal.notif?.notification_cancellation_request_id) {
-      toast.error("Cancellation request id missing.");
-      return;
-    }
-    try {
-      setProcessingId(modal.notif.notification_id);
-      await cancellationRequestAPI.reviewRequest({
-        requestId: modal.notif.notification_cancellation_request_id,
-        adminId: user.id,
-        approve: false,
-        comments: modal.comments,
-      });
-      toast.success("Request rejected");
-      setModal({ open: false, notif: null, comments: "" });
-      await fetchNotifications();
-    } catch (error) {
-      console.error("Reject failed:", error);
-      toast.error("Failed to reject request");
-    } finally {
-      setProcessingId(null);
+    const notifType = getNotificationType(modal.notif);
+    
+    if (notifType === 'leave') {
+      // Handle leave request rejection
+      if (!modal.notif?.leave_request_id) {
+        toast.error("Leave request ID missing.");
+        return;
+      }
+      try {
+        setProcessingId(modal.notif.notification_id);
+        await attendanceAPI.rejectLeave(
+          modal.notif.leave_request_id,
+          user.id,
+          modal.comments || "Leave request rejected by admin"
+        );
+        toast.success("Leave request rejected");
+        setModal({ open: false, notif: null, comments: "" });
+        await fetchNotifications();
+      } catch (error) {
+        console.error("Leave rejection failed:", error);
+        toast.error("Failed to reject leave request");
+      } finally {
+        setProcessingId(null);
+      }
+    } else {
+      // Handle cancellation request rejection
+      if (!modal.notif?.notification_cancellation_request_id) {
+        toast.error("Cancellation request id missing.");
+        return;
+      }
+      try {
+        setProcessingId(modal.notif.notification_id);
+        await cancellationRequestAPI.reviewRequest({
+          requestId: modal.notif.notification_cancellation_request_id,
+          adminId: user.id,
+          approve: false,
+          comments: modal.comments,
+        });
+        toast.success("Request rejected");
+        setModal({ open: false, notif: null, comments: "" });
+        await fetchNotifications();
+      } catch (error) {
+        console.error("Reject failed:", error);
+        toast.error("Failed to reject request");
+      } finally {
+        setProcessingId(null);
+      }
     }
   };
 
@@ -163,7 +236,7 @@ export default function Notifications() {
             Notifications
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Review and manage cancellation requests
+            Review cancellation requests and view leave notifications
           </p>
           {notifications.length > 0 && (
             <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 mt-3">
@@ -193,10 +266,13 @@ export default function Notifications() {
           /* Notifications List */
           <div className="space-y-3">
             {notifications.map((notif) => {
-              const isProcessed =
-                notif.cancellation_status === "approved" || notif.cancellation_status === "rejected";
+              const notifType = getNotificationType(notif);
+              const isProcessed = notifType === 'leave' 
+                ? (notif.status === "approved" || notif.status === "rejected")
+                : (notif.cancellation_status === "approved" || notif.cancellation_status === "rejected");
               const isProcessing = processingId === notif.notification_id;
               const notificationType = (notif.notification_type || "").replace(/_/g, " ");
+              const displayStatus = notifType === 'leave' ? notif.status : notif.cancellation_status;
 
               return (
                 <div
@@ -204,7 +280,9 @@ export default function Notifications() {
                   className={`bg-white dark:bg-gray-800 border rounded-md transition-colors ${
                     isProcessed
                       ? "border-gray-200 dark:border-gray-700 opacity-75"
-                      : "border-blue-200 dark:border-blue-800"
+                      : notifType === 'leave'
+                        ? "border-orange-200 dark:border-orange-800"
+                        : "border-blue-200 dark:border-blue-800"
                   }`}
                 >
                   <div className="p-4">
@@ -215,25 +293,77 @@ export default function Notifications() {
                           <div className={`p-2 rounded-md ${
                             isProcessed
                               ? "bg-gray-100 dark:bg-gray-700"
-                              : "bg-blue-100 dark:bg-blue-900/30"
+                              : notifType === 'leave'
+                                ? "bg-orange-100 dark:bg-orange-900/30"
+                                : "bg-blue-100 dark:bg-blue-900/30"
                           }`}>
-                            <AlertCircle className={`h-5 w-5 ${
-                              isProcessed
-                                ? "text-gray-500 dark:text-gray-400"
-                                : "text-blue-600 dark:text-blue-400"
-                            }`} />
+                            {notifType === 'leave' ? (
+                              <FileText className={`h-5 w-5 ${
+                                isProcessed
+                                  ? "text-gray-500 dark:text-gray-400"
+                                  : "text-orange-600 dark:text-orange-400"
+                              }`} />
+                            ) : (
+                              <AlertCircle className={`h-5 w-5 ${
+                                isProcessed
+                                  ? "text-gray-500 dark:text-gray-400"
+                                  : "text-blue-600 dark:text-blue-400"
+                              }`} />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                 {notificationType}
                               </h3>
-                              {getStatusBadge(notif.cancellation_status)}
+                              {/* Only show status badge for cancellation requests */}
+                              {notifType === 'cancellation' && getStatusBadge(displayStatus)}
                             </div>
                             <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                              {notif.notification_message}
+                              {notif.notification_message || notif.message}
                             </p>
-                            {notif.notification_doctor_cancellation_reason && (
+                            
+                            {/* Leave Request Details */}
+                            {notifType === 'leave' && (notif.notification_metadata || notif.metadata) && (
+                              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-md p-3 mb-2 border border-orange-200 dark:border-orange-800">
+                                <div className="space-y-1.5 text-xs">
+                                  {(() => {
+                                    const meta = notif.notification_metadata || notif.metadata;
+                                    return (
+                                      <>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-600 dark:text-gray-400">Leave Type:</span>
+                                          <span className="font-medium text-gray-900 dark:text-white capitalize">
+                                            {meta.leaveType || 'N/A'}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-600 dark:text-gray-400">Duration:</span>
+                                          <span className="font-medium text-gray-900 dark:text-white">
+                                            {meta.startDate} to {meta.endDate}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-600 dark:text-gray-400">Total Days:</span>
+                                          <span className="font-medium text-gray-900 dark:text-white">
+                                            {meta.totalDays} {meta.totalDays === 1 ? 'day' : 'days'}
+                                          </span>
+                                        </div>
+                                        {meta.reason && (
+                                          <div className="pt-1.5 border-t border-orange-200 dark:border-orange-800">
+                                            <p className="text-gray-600 dark:text-gray-400 mb-0.5">Reason:</p>
+                                            <p className="text-gray-800 dark:text-gray-200">{meta.reason}</p>
+                                          </div>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Cancellation Request Details */}
+                            {notifType === 'cancellation' && notif.notification_doctor_cancellation_reason && (
                               <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-3 mb-2 border border-gray-200 dark:border-gray-700">
                                 <div className="flex items-start gap-1.5">
                                   <FileText className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
@@ -248,6 +378,7 @@ export default function Notifications() {
                                 </div>
                               </div>
                             )}
+                            
                             <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3.5 w-3.5" />
@@ -258,8 +389,8 @@ export default function Notifications() {
                         </div>
                       </div>
 
-                      {/* Right Section - Action Button */}
-                      {!isProcessed && (
+                      {/* Right Section - Action Button (Only for cancellation requests) */}
+                      {!isProcessed && notifType === 'cancellation' && (
                         <div className="flex items-center sm:items-start">
                           <button
                             onClick={() => openModal(notif)}
@@ -284,6 +415,19 @@ export default function Notifications() {
                           </button>
                         </div>
                       )}
+                      
+                      {/* For leave requests, show a link to Leave Management */}
+                      {notifType === 'leave' && (
+                        <div className="flex items-center sm:items-start">
+                          <button
+                            onClick={() => navigate('/leave-management')}
+                            className="px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 bg-orange-600 text-white hover:bg-orange-700"
+                          >
+                            <Calendar className="h-4 w-4" />
+                            Manage in Leave Tab
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -304,8 +448,14 @@ export default function Notifications() {
               <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Review Cancellation Request</h3>
+                    {getNotificationType(modal.notif) === 'leave' ? (
+                      <FileText className="h-5 w-5 text-orange-500 dark:text-orange-400" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    )}
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {getNotificationType(modal.notif) === 'leave' ? 'Review Leave Request' : 'Review Cancellation Request'}
+                    </h3>
                   </div>
                   <button
                     onClick={closeModal}
@@ -320,14 +470,50 @@ export default function Notifications() {
 
               {/* Modal Content */}
               <div className="p-4 space-y-3">
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-3 border border-gray-200 dark:border-gray-700">
+                <div className={`rounded-md p-3 border ${
+                  getNotificationType(modal.notif) === 'leave'
+                    ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                }`}>
                   <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                     Request Details:
                   </p>
                   <p className="text-sm text-gray-900 dark:text-white">
-                    {modal.notif?.notification_message}
+                    {modal.notif?.notification_message || modal.notif?.message}
                   </p>
-                  {modal.notif?.notification_doctor_cancellation_reason && (
+                  
+                  {/* Leave Request Details */}
+                  {getNotificationType(modal.notif) === 'leave' && modal.notif?.metadata && (
+                    <div className="mt-2 pt-2 border-t border-orange-200 dark:border-orange-800 space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">Leave Type:</span>
+                        <span className="font-medium text-gray-900 dark:text-white capitalize">
+                          {modal.notif.metadata.leaveType}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">Duration:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {modal.notif.metadata.startDate} to {modal.notif.metadata.endDate}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 dark:text-gray-400">Total Days:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {modal.notif.metadata.totalDays} {modal.notif.metadata.totalDays === 1 ? 'day' : 'days'}
+                        </span>
+                      </div>
+                      {modal.notif.metadata.reason && (
+                        <div className="pt-1">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">Reason:</p>
+                          <p className="text-xs text-gray-800 dark:text-gray-200">{modal.notif.metadata.reason}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Cancellation Request Details */}
+                  {getNotificationType(modal.notif) === 'cancellation' && modal.notif?.notification_doctor_cancellation_reason && (
                     <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                       <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-0.5">
                         Doctor's Reason:
@@ -341,12 +527,12 @@ export default function Notifications() {
 
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                    Add Comments (Optional)
+                    {getNotificationType(modal.notif) === 'leave' ? 'Rejection Reason (Required for rejection)' : 'Add Comments (Optional)'}
                   </label>
                   <textarea
                     rows={4}
                     className="w-full border border-gray-200 dark:border-gray-600 rounded-md p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
-                    placeholder="Enter your comments here..."
+                    placeholder={getNotificationType(modal.notif) === 'leave' ? 'Enter rejection reason...' : 'Enter your comments here...'}
                     value={modal.comments}
                     onChange={(e) => setModal({ ...modal, comments: e.target.value })}
                     disabled={processingId === modal.notif?.notification_id}

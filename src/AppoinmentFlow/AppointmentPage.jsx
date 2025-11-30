@@ -48,6 +48,7 @@
     const [selectedDate, setSelectedDate] = useState("");
     const [slots, setSlots] = useState([]);
     const [selectedSlot, setSelectedSlot] = useState("");
+    const [slotInfo, setSlotInfo] = useState(null); // Stores full slot response including leave info
     const [appointmentType, setAppointmentType] = useState("consultation");
     const [reason, setReason] = useState("");
     const [loading, setLoading] = useState(false);
@@ -70,6 +71,7 @@
     const [rescheduleDate, setRescheduleDate] = useState("");
     const [rescheduleSlot, setRescheduleSlot] = useState("");
     const [rescheduleSlots, setRescheduleSlots] = useState([]);
+    const [rescheduleSlotInfo, setRescheduleSlotInfo] = useState(null); // Stores full slot response for reschedule
     const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false);
     const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
@@ -194,19 +196,46 @@
       if (!selectedDoctor || !selectedDate) return;
       try {
         setLoadingSlots(true);
+        console.log("🔍 Fetching slots for:", {
+          doctorId: selectedDoctor.id,
+          doctorName: selectedDoctor.staff_name,
+          date: selectedDate
+        });
+        
         const response = await appointmentsAPI.getAvailableSlots(
           selectedDoctor.id,
           selectedDate
         );
+        
+        console.log("📦 Full API Response:", response);
+        console.log("🏥 on_leave flag:", response.on_leave);
+        console.log("📋 leave_type:", response.leave_type);
+        console.log("🕐 Number of slots:", response.slots?.length);
+        console.log("🎯 First slot sample:", response.slots?.[0]);
+        
+        setSlotInfo(response); // Store full response including on_leave flag
+        
         if (response.slots?.length) {
           setSlots(response.slots);
+          console.log("✅ Slots set successfully");
+          
+          // Show toast if doctor is on leave
+          if (response.on_leave) {
+            console.log("⚠️ Doctor is on leave - showing warning");
+            toast.warning(`Doctor is on ${response.leave_type || ''} leave on this date`);
+          } else {
+            console.log("✓ Doctor is available");
+          }
         } else {
+          console.log("❌ No slots in response");
           toast.error("No slots available");
           setSlots([]);
         }
-      } catch {
+      } catch (error) {
+        console.error("💥 Error fetching slots:", error);
         toast.error("Failed to fetch slots");
         setSlots([]);
+        setSlotInfo(null);
       } finally {
         setLoadingSlots(false);
       }
@@ -227,10 +256,17 @@
       setLoadingRescheduleSlots(true);
       try {
         const response = await appointmentsAPI.getAvailableSlots(staffId, date);
+        console.log("Reschedule slot response:", response); // Debug log
+        setRescheduleSlotInfo(response); // Store full response including leave info
         setRescheduleSlots(response.slots || []);
+        // Show toast if doctor is on leave
+        if (response.on_leave) {
+          toast.warning(`Doctor is on ${response.leave_type || ''} leave on this date`);
+        }
       } catch {
         toast.error("Failed to fetch slots");
         setRescheduleSlots([]);
+        setRescheduleSlotInfo(null);
       } finally {
         setLoadingRescheduleSlots(false);
       }
@@ -307,10 +343,10 @@
           appointment_time: selectedSlot,
           reason: reason.trim(),
           appointment_type: appointmentType,
-          status: "booked",
+          status: "pending",
         };
         const created = await appointmentsAPI.create(payload);
-        toast.success("Appointment booked successfully!");
+        toast.success("Appointment created successfully!");
         navigate("/confirmation", { state: { appointment: created } });
       } catch {
         toast.error("Failed to create appointment");
@@ -355,6 +391,16 @@
         document.documentElement.classList.add("dark");
       }
     }, [darkMode]);
+
+    // Debug useEffect to track slotInfo changes
+    useEffect(() => {
+      console.log("🔄 slotInfo changed:", slotInfo);
+      console.log("🔄 slotInfo.on_leave:", slotInfo?.on_leave);
+      console.log("🔄 slots.length:", slots.length);
+      if (slotInfo?.on_leave) {
+        console.log("🚨 SHOULD SHOW LEAVE BANNER NOW!");
+      }
+    }, [slotInfo, slots]);
 
     const renderStep = () => {
       switch (step) {
@@ -479,7 +525,7 @@
                             isDateFutureOrToday;
 
                           const statusColors = {
-                            booked: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                            pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
                             confirmed: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
                             fulfilled: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
                             cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -514,10 +560,10 @@
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                                   <span
                                     className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                                      statusColors[apt.status?.toLowerCase()] || statusColors.booked
+                                      statusColors[apt.status?.toLowerCase()] || statusColors.pending
                                     }`}
                                   >
-                                    {apt.status || "Booked"}
+                                    {apt.status || "Pending"}
                                   </span>
                                   {canModify && (
                                     <div className="flex gap-2">
@@ -640,34 +686,57 @@
                             </div>
                           ) : rescheduleSlots.length > 0 ? (
                             <div>
+                              {rescheduleSlotInfo?.on_leave && (
+                                <div className="bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-xl p-4 flex items-start gap-3 shadow-md mb-4">
+                                  <XCircleIcon className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                  <div className="flex-1">
+                                    <p className="text-base font-bold text-amber-900 dark:text-amber-100 mb-1">
+                                      ⚠️ Doctor on Leave
+                                    </p>
+                                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                                      Doctor is on {rescheduleSlotInfo.leave_type ? `${rescheduleSlotInfo.leave_type} ` : ''}leave on this date. All time slots are unavailable. Please select a different date.
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
                               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                Available Time Slots
+                                {rescheduleSlotInfo?.on_leave ? 'Time Slots (Unavailable - Doctor on Leave)' : 'Available Time Slots'}
                               </label>
                               <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto p-1">
                                 {rescheduleSlots.map((slot, idx) => {
                                   const isSelected = rescheduleSlot === slot.time;
+                                  const isOnLeave = slot.reason === "on_leave";
+                                  const tooltipText = isOnLeave
+                                    ? "Doctor on leave"
+                                    : slot.reason === "booked"
+                                    ? "Already booked"
+                                    : slot.reason === "past"
+                                    ? "Time has passed"
+                                    : "";
+                                  
                                   return (
                                     <button
                                       key={idx}
                                       type="button"
                                       className={`w-full rounded-xl py-3 px-4 text-sm font-semibold outline-none border-2 transition-all duration-200 ${
                                         slot.status === "unavailable"
-                                          ? "bg-gray-100 dark:bg-gray-700 text-gray-400 border-gray-200 dark:border-gray-600 cursor-not-allowed"
+                                          ? isOnLeave
+                                            ? "bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 cursor-not-allowed"
+                                            : "bg-gray-100 dark:bg-gray-700 text-gray-400 border-gray-200 dark:border-gray-600 cursor-not-allowed"
                                           : isSelected
                                           ? "bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300 shadow-lg scale-105"
                                           : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400"
                                       }`}
                                       disabled={slot.status === "unavailable"}
                                       onClick={() => setRescheduleSlot(slot.time)}
-                                      title={
-                                        slot.reason === "booked"
-                                          ? "Already booked"
-                                          : slot.reason === "past"
-                                          ? "Time has passed"
-                                          : ""
-                                      }
+                                      title={tooltipText}
                                     >
-                                      {slot.display_time}
+                                      <div className="flex flex-col items-center gap-1">
+                                        <span>{slot.display_time}</span>
+                                        {isOnLeave && (
+                                          <span className="text-[10px] font-medium">On Leave</span>
+                                        )}
+                                      </div>
                                     </button>
                                   );
                                 })}
@@ -819,41 +888,90 @@
               </div>
               {slots.length > 0 && (
                 <div className="space-y-3">
+                  {/* Debug Info - Remove after testing */}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded p-2 text-xs font-mono">
+                    <div>🔍 Debug Info:</div>
+                    <div>slotInfo exists: {slotInfo ? '✅ YES' : '❌ NO'}</div>
+                    <div>on_leave value: {String(slotInfo?.on_leave)}</div>
+                    <div>leave_type: {slotInfo?.leave_type || 'N/A'}</div>
+                    <div>slots count: {slots.length}</div>
+                    <div>Banner should show: {slotInfo?.on_leave ? '✅ YES' : '❌ NO'}</div>
+                  </div>
+                  
+                  {(() => {
+                    console.log("🎨 Rendering slots section");
+                    console.log("🎨 slotInfo:", slotInfo);
+                    console.log("🎨 slotInfo?.on_leave:", slotInfo?.on_leave);
+                    console.log("🎨 Should show banner:", slotInfo?.on_leave === true);
+                    return null;
+                  })()}
+                  {slotInfo?.on_leave && (
+                    <div className="bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-xl p-4 flex items-start gap-3 shadow-md mb-4">
+                      <XCircleIcon className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-base font-bold text-amber-900 dark:text-amber-100 mb-1">
+                          ⚠️ Doctor on Leave
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          Dr. {selectedDoctor?.staff_name} is on {slotInfo.leave_type ? `${slotInfo.leave_type} ` : ''}leave on this date. All time slots are unavailable. Please select a different date.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!slotInfo?.on_leave && (
+                    <div style={{display: 'none'}}>
+                      {console.log("❌ Banner NOT showing because slotInfo.on_leave is:", slotInfo?.on_leave)}
+                    </div>
+                  )}
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Available Time Slots
+                    {slotInfo?.on_leave ? 'Time Slots (Unavailable - Doctor on Leave)' : 'Available Time Slots'}
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-80 overflow-y-auto p-1">
-                    {slots.map((slot, i) => (
-                      <Button
-                        key={i}
-                        variant={selectedSlot === slot.time ? "default" : "outline"}
-                        className={`h-auto py-4 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
-                          slot.status === "unavailable"
-                            ? "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                            : selectedSlot === slot.time
-                            ? "bg-blue-600 text-white border-blue-700 shadow-lg scale-105"
-                            : "hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400"
-                        }`}
-                        onClick={() => {
-                          if (slot.status === "unavailable") return;
-                          setSelectedSlot(slot.time);
-                          setStep(4);
-                        }}
-                        disabled={slot.status === "unavailable"}
-                        title={
-                          slot.reason === "booked"
-                            ? "Already booked"
-                            : slot.reason === "past"
-                            ? "Time has passed"
-                            : ""
-                        }
-                      >
-                        <span className="font-semibold">{slot.display_time}</span>
-                        <div className="flex items-center gap-1">
-                          {renderSlotIcon(slot.status)}
-                        </div>
-                      </Button>
-                    ))}
+                    {slots.map((slot, i) => {
+                      const isOnLeave = slot.reason === "on_leave";
+                      const tooltipText = isOnLeave
+                        ? `Doctor on ${slotInfo?.leave_type || ''} leave`
+                        : slot.reason === "booked"
+                        ? "Already booked"
+                        : slot.reason === "past"
+                        ? "Time has passed"
+                        : "";
+                      
+                      return (
+                        <Button
+                          key={i}
+                          variant={selectedSlot === slot.time ? "default" : "outline"}
+                          className={`h-auto py-4 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
+                            slot.status === "unavailable"
+                              ? isOnLeave
+                                ? "cursor-not-allowed opacity-60 bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800"
+                                : "cursor-not-allowed opacity-50 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                              : selectedSlot === slot.time
+                              ? "bg-blue-600 text-white border-blue-700 shadow-lg scale-105"
+                              : "hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400"
+                          }`}
+                          onClick={() => {
+                            if (slot.status === "unavailable") return;
+                            setSelectedSlot(slot.time);
+                            setStep(4);
+                          }}
+                          disabled={slot.status === "unavailable"}
+                          title={tooltipText}
+                        >
+                          <span className={`font-semibold ${isOnLeave ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                            {slot.display_time}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {renderSlotIcon(slot.status)}
+                            {isOnLeave && (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                                On Leave
+                              </span>
+                            )}
+                          </div>
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

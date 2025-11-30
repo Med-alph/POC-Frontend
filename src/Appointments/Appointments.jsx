@@ -28,6 +28,7 @@ export default function Appointments() {
   const [editDoctor, setEditDoctor] = useState(null)
   const [editDate, setEditDate] = useState("")
   const [editSlots, setEditSlots] = useState([])
+  const [editSlotInfo, setEditSlotInfo] = useState(null) // Store full slot response for edit
   const [loadingEditSlots, setLoadingEditSlots] = useState(false)
   const [editSelectedSlot, setEditSelectedSlot] = useState("")
   const [editLoading, setEditLoading] = useState(false)
@@ -45,6 +46,7 @@ export default function Appointments() {
   const [loadingDoctors, setLoadingDoctors] = useState(false)
   const [selectedDate, setSelectedDate] = useState("")
   const [slots, setSlots] = useState([])
+  const [slotInfo, setSlotInfo] = useState(null) // Store full slot response including leave info
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState("")
   const [appointmentType, setAppointmentType] = useState("consultation")
@@ -77,11 +79,15 @@ export default function Appointments() {
     setLoading(true);
     try {
       const offset = (page - 1) * limit;
-      const result = await appointmentsAPI.getAll({ hospital_id: HOSPITAL_ID, limit, offset })
+      const result = await appointmentsAPI.getAll({ 
+        hospital_id: HOSPITAL_ID, 
+        limit, 
+        offset,
+        orderBy: 'created_at',
+        sort: 'DESC'
+      })
       setAppointments(Array.isArray(result.data) ? result.data : [])
       setTotal(result.total || 0)
-
-      // Optionally also track total from API result if available
     } catch {
       toast.error("Failed to load appointments.");
       setAppointments([]);
@@ -92,9 +98,20 @@ export default function Appointments() {
 
 
 
+  // Helper function to check if appointment date is today or future
+  const isAppointmentTodayOrFuture = (appointmentDate) => {
+    if (!appointmentDate) return false;
+    const aptDate = new Date(appointmentDate);
+    aptDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return aptDate >= today;
+  };
+
   async function fetchPatients() {
     try {
-      const result = await patientsAPI.getAll({ hospital_id: HOSPITAL_ID })
+      // Fetch all patients for search (use a large limit or fetch all)
+      const result = await patientsAPI.getAll({ hospital_id: HOSPITAL_ID, limit: 1000 })
       setPatients(Array.isArray(result.data) ? result.data : [])
     } catch {
       toast.error("Failed to load patients.")
@@ -145,15 +162,22 @@ export default function Appointments() {
   async function loadEditSlots(staffId, date) {
     if (!staffId || !date) {
       setEditSlots([])
+      setEditSlotInfo(null)
       return
     }
     setLoadingEditSlots(true)
     try {
       const response = await appointmentsAPI.getAvailableSlots(staffId, date)
+      console.log("📦 Edit Slot API Response:", response);
+      setEditSlotInfo(response); // Store full response including leave info
       setEditSlots(response.slots || [])
+      if (response.on_leave) {
+        toast.error(`Doctor is on ${response.leave_type || ''} leave on this date`);
+      }
     } catch {
       toast.error("Failed to fetch slots")
       setEditSlots([])
+      setEditSlotInfo(null)
     } finally {
       setLoadingEditSlots(false)
     }
@@ -170,10 +194,16 @@ export default function Appointments() {
     setLoadingSlots(true)
     try {
       const response = await appointmentsAPI.getAvailableSlots(selectedStaff.id, selectedDate)
+      console.log("📦 Admin Slot API Response:", response);
+      setSlotInfo(response); // Store full response including leave info
       setSlots(response.slots || [])
+      if (response.on_leave) {
+        toast.error(`Dr. ${selectedStaff.staff_name} is on ${response.leave_type || ''} leave on this date`);
+      }
     } catch {
       toast.error("Failed to fetch slots")
       setSlots([])
+      setSlotInfo(null);
     } finally {
       setLoadingSlots(false)
     }
@@ -202,11 +232,11 @@ export default function Appointments() {
   appointment_time: selectedSlot,
   appointment_type: appointmentType,
   reason: reason.trim(),
-  status: "booked",
+  status: "pending",
   updated_by: user?.id,  // Use updated_by here to match backend
 });
 
-      toast.success("Appointment booked!")
+      toast.success("Appointment created!")
       setOpen(false)
       resetModal()
       fetchAppointments()
@@ -343,7 +373,7 @@ try {
   function renderStatusBadge(status) {
     const base = "inline-block px-2 py-1 rounded text-xs font-medium border"
     switch ((status || "").toLowerCase()) {
-      case "booked": return <span className={`${base} bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800`}>Booked</span>
+      case "pending": return <span className={`${base} bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800`}>Pending</span>
       case "cancelled": return <span className={`${base} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800`}>Cancelled</span>
       case "fulfilled":
       case "completed": return <span className={`${base} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800`}>Completed</span>
@@ -400,25 +430,49 @@ try {
           {loadingEditSlots ? (
             <Loader2 className="animate-spin text-blue-500 mb-4" />
           ) : (
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto mb-4">
-              {editSlots.map((slot, idx) => {
-                const disabled = slot.status === "unavailable"
-                const selected = slot.time === editSelectedSlot
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => setEditSelectedSlot(slot.time)}
-                    className={`rounded-md py-2 px-2 text-sm border ${disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : selected ? "bg-blue-600 text-white border-blue-700" : "bg-white text-gray-900 hover:bg-blue-50"}`}
-                    title={slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time passed" : ""}
-                  >
-                    {slot.display_time}
-                  </button>
-                )
-              })}
-              {editSlots.length === 0 && <div className="col-span-2 text-gray-500">No slots available</div>}
-            </div>
+            <>
+              {editSlotInfo?.on_leave && (
+                <div className="bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-lg p-3 flex items-start gap-2 shadow-md mb-3">
+                  <XCircleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-1">
+                      ⚠️ Doctor on Leave
+                    </p>
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      Doctor is on {editSlotInfo.leave_type ? `${editSlotInfo.leave_type} ` : ''}leave. All slots unavailable. Please select a different date.
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto mb-4">
+                {editSlots.map((slot, idx) => {
+                  const disabled = slot.status === "unavailable"
+                  const selected = slot.time === editSelectedSlot
+                  const isOnLeave = slot.reason === "on_leave"
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setEditSelectedSlot(slot.time)}
+                      className={`rounded-md py-2 px-2 text-sm border ${
+                        disabled 
+                          ? isOnLeave 
+                            ? "bg-amber-50 text-amber-700 border-amber-300 cursor-not-allowed" 
+                            : "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                          : selected 
+                          ? "bg-blue-600 text-white border-blue-700" 
+                          : "bg-white text-gray-900 hover:bg-blue-50"
+                      }`}
+                      title={isOnLeave ? `Doctor on ${editSlotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time passed" : ""}
+                    >
+                      {slot.display_time}
+                    </button>
+                  )
+                })}
+                {editSlots.length === 0 && <div className="col-span-2 text-gray-500">No slots available</div>}
+              </div>
+            </>
           )}
 
 
@@ -454,7 +508,7 @@ try {
         <div className="mb-2"><strong>Reason:</strong> {selectedAppointment.reason || "-"}</div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setViewModalOpen(false)}>Close</Button>
-          {selectedAppointment.status?.toLowerCase() === "booked" && (
+          {selectedAppointment.status?.toLowerCase() === "pending" && (
             <Button variant="default" onClick={() => setIsEditing(true)}>
               <EditIcon className="inline h-4 w-4 mr-1" /> Edit
             </Button>
@@ -586,22 +640,45 @@ try {
               {loadingSlots ? (<><Loader2 className="h-4 w-4 animate-spin mr-2 inline" />Loading Slots...</>) : "Load Available Slots"}
             </Button>
             {slots.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                {slots.map((slot, idx) => (
-                  <Button
-                    key={idx}
-                    variant={selectedSlot === slot.time ? "default" : "outline"}
-                    className={`flex justify-between items-center ${slot.status === "unavailable" ? "cursor-not-allowed opacity-50 bg-red-50 border-red-300" : "hover:bg-green-50 hover:border-green-300"
-                      }`}
-                    onClick={() => slot.status !== "unavailable" && setSelectedSlot(slot.time)}
-                    disabled={slot.status === "unavailable"}
-                    title={slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time has passed" : ""}
-                  >
-                    <span>{slot.display_time}</span>
-                    {slot.status === "available" ? <CheckCircleIcon className="text-green-500 w-4 h-4" /> : <XCircleIcon className="text-red-500 w-4 h-4" />}
-                  </Button>
-                ))}
-              </div>
+              <>
+                {slotInfo?.on_leave && (
+                  <div className="bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-xl p-3 flex items-start gap-2 shadow-md mb-3">
+                    <XCircleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-1">
+                        ⚠️ Doctor on Leave
+                      </p>
+                      <p className="text-xs text-amber-800 dark:text-amber-200">
+                        Dr. {selectedStaff?.staff_name} is on {slotInfo.leave_type ? `${slotInfo.leave_type} ` : ''}leave. All slots unavailable. Please select a different date.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                  {slots.map((slot, idx) => {
+                    const isOnLeave = slot.reason === "on_leave";
+                    return (
+                      <Button
+                        key={idx}
+                        variant={selectedSlot === slot.time ? "default" : "outline"}
+                        className={`flex justify-between items-center ${
+                          slot.status === "unavailable" 
+                            ? isOnLeave 
+                              ? "cursor-not-allowed opacity-60 bg-amber-50 border-amber-300" 
+                              : "cursor-not-allowed opacity-50 bg-red-50 border-red-300" 
+                            : "hover:bg-green-50 hover:border-green-300"
+                        }`}
+                        onClick={() => slot.status !== "unavailable" && setSelectedSlot(slot.time)}
+                        disabled={slot.status === "unavailable"}
+                        title={isOnLeave ? `Doctor on ${slotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time has passed" : ""}
+                      >
+                        <span className={isOnLeave ? "text-amber-700" : ""}>{slot.display_time}</span>
+                        {slot.status === "available" ? <CheckCircleIcon className="text-green-500 w-4 h-4" /> : <XCircleIcon className={isOnLeave ? "text-amber-500 w-4 h-4" : "text-red-500 w-4 h-4"} />}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </>
             ) : <p>No slots available</p>}
             <div className="flex justify-end mt-4"><Button disabled={!selectedSlot} onClick={() => setStep(4)}>Continue</Button></div>
           </>
@@ -743,13 +820,20 @@ try {
                   <TableCell><span>{a.duration} min</span></TableCell>
                   <TableCell>{renderStatusBadge(a.status)}</TableCell>
                   <TableCell className="flex gap-2 items-center">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openViewModalWithAppointment(a)} >
-                      View
-                    </Button>
-                    {(a.status?.toLowerCase() !== "cancelled" && a.status?.toLowerCase() !== "fulfilled" && a.status?.toLowerCase() !== "completed") && (
-                      <Button variant="destructive" size="sm" className="h-8 w-auto px-2 py-1" onClick={() => openCancelModal(a)}>
-                        Cancel
-                      </Button>
+                    {isAppointmentTodayOrFuture(a.appointment_date) && (
+                      <>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openViewModalWithAppointment(a)} >
+                          View
+                        </Button>
+                        {(a.status?.toLowerCase() !== "cancelled" && a.status?.toLowerCase() !== "fulfilled" && a.status?.toLowerCase() !== "completed") && (
+                          <Button variant="destructive" size="sm" className="h-8 w-auto px-2 py-1" onClick={() => openCancelModal(a)}>
+                            Cancel
+                          </Button>
+                        )}
+                      </>
+                    )}
+                    {!isAppointmentTodayOrFuture(a.appointment_date) && (
+                      <span className="text-sm text-gray-400">Past</span>
                     )}
                   </TableCell>
                 </TableRow>

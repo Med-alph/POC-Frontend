@@ -247,7 +247,6 @@ const DoctorConsultation = () => {
         switch (status?.toLowerCase()) {
             case 'arrived':
                 return "bg-green-100 text-green-700";
-            case 'booked':
             case 'pending':
                 return "bg-yellow-100 text-yellow-700";
             case 'in-progress':
@@ -307,7 +306,7 @@ const DoctorConsultation = () => {
         insuranceProvider: appointmentData.patient?.insurance_provider || "N/A",
     };
 
-    const canStartConsultation = ['booked', 'arrived'].includes(appointmentData.status?.toLowerCase());
+    const canStartConsultation = ['pending', 'arrived'].includes(appointmentData.status?.toLowerCase());
     const canEndConsultation = appointmentData.status?.toLowerCase() === 'in-progress';
     const canCancelAppointment = !['fulfilled', 'completed', 'cancelled', 'in-progress'].includes(appointmentData.status?.toLowerCase());
     const isCompleted = ['fulfilled', 'completed'].includes(appointmentData.status?.toLowerCase());
