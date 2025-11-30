@@ -9,10 +9,10 @@ const isLocal = true;   // Local development environment
 // ============================================
 // API CONFIGURATION
 // ============================================
-export const baseUrl = isProd 
-  ? "https://backend-emr.medalph.com" 
-  : isLocal 
-    ? "http://localhost:9009" 
+export const baseUrl = isProd
+  ? "https://backend-emr.medalph.com"
+  : isLocal
+    ? "http://localhost:9009"
     : "";
 
 // Socket.IO URL (usually same as API base URL)
@@ -39,19 +39,19 @@ export const config = {
   appName: "MedAlph EMR",
   appVersion: "1.0.0",
   environment: isProd ? "production" : isLocal ? "local" : "development",
-  
+
   // Pagination
   defaultPageSize: 10,
   maxPageSize: 100,
-  
+
   // Timeouts (in milliseconds)
   apiTimeout: 30000,        // 30 seconds
   socketTimeout: 10000,     // 10 seconds
-  
+
   // Call settings
   callTimeout: 120000,      // 2 minutes (120 seconds)
   callRingDuration: 120,    // 2 minutes in seconds
-  
+
   // Timezone
   timezone: "Asia/Kolkata", // IST
 };

@@ -29,6 +29,8 @@ const doctorNavItems = [
   { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Home },
   { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock },
   { id: "FulfilledRecords", label: "Fulfilled Patient Records", path: "/fulfilled-records", icon: Users },
+  { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users },
+
   { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell },
 ];
 
@@ -39,18 +41,18 @@ export default function Navbar() {
   const user = useSelector((state) => state.auth.user);
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  
+
   // Only admins should receive leave request notifications
   const isAdmin = user?.designation_group?.toLowerCase() !== "doctor";
-  
+
   // Pass null for both userId and hospitalId if not admin to prevent socket connection
   const notifications = useAdminNotifications(
-    isAdmin ? user?.id : null, 
+    isAdmin ? user?.id : null,
     isAdmin ? user?.hospital_id : null
   );
   const [unreadIds, setUnreadIds] = useState([]);
   // Use the new notifications hook
-  const {  counts, markAsRead, dismissAll } = useNotifications({
+  const { counts, markAsRead, dismissAll } = useNotifications({
     autoFetch: true,
     limit: 10,
     filter: 'all',
@@ -91,49 +93,49 @@ export default function Navbar() {
   const toggleNotifications = () => {
     setShowNotifDropdown((prev) => !prev);
   };
-const handleNotificationClick = async (notif, idx) => {
-  console.log("Notification clicked:", notif);
+  const handleNotificationClick = async (notif, idx) => {
+    console.log("Notification clicked:", notif);
 
-  // 1️⃣ Navigation Logic (kept from vishnu-branch)
-  const isLeaveRequest =
-    notif.notification_type === "LEAVE_REQUEST" ||
-    notif.notificationType === "leave_request" ||
-    notif.leave_request_id ||
-    notif.type === "leave_request";
+    // 1️⃣ Navigation Logic (kept from vishnu-branch)
+    const isLeaveRequest =
+      notif.notification_type === "LEAVE_REQUEST" ||
+      notif.notificationType === "leave_request" ||
+      notif.leave_request_id ||
+      notif.type === "leave_request";
 
-  if (isLeaveRequest) {
-    navigate("/leave-management");
-  } else {
-    navigate("/notifications");
-  }
-
-  setShowNotifDropdown(false);
-
-  // 2️⃣ Local unread removal (instant UI update)
-  const notifId =
-    notif.notificationId ||
-    notif.id ||
-    `socket-${idx}-${notif.createdAt}`;
-
-  setUnreadIds((prev) => {
-    const updated = prev.filter((id) => id !== notifId);
-    console.log("Notification marked as read locally:", notifId);
-    return updated;
-  });
-
-  // 3️⃣ Mark as read in backend (clean code from main branch)
-  if (notif.status !== "read" && notif.notificationId) {
-    try {
-      await markAsRead(notif.notificationId);
-      console.log("✅ Successfully marked as read in backend");
-    } catch (e) {
-      console.log(
-        "⚠️ Could not mark as read in backend (notification may not be in DB yet):",
-        e.message
-      );
+    if (isLeaveRequest) {
+      navigate("/leave-management");
+    } else {
+      navigate("/notifications");
     }
-  }
-};
+
+    setShowNotifDropdown(false);
+
+    // 2️⃣ Local unread removal (instant UI update)
+    const notifId =
+      notif.notificationId ||
+      notif.id ||
+      `socket-${idx}-${notif.createdAt}`;
+
+    setUnreadIds((prev) => {
+      const updated = prev.filter((id) => id !== notifId);
+      console.log("Notification marked as read locally:", notifId);
+      return updated;
+    });
+
+    // 3️⃣ Mark as read in backend (clean code from main branch)
+    if (notif.status !== "read" && notif.notificationId) {
+      try {
+        await markAsRead(notif.notificationId);
+        console.log("✅ Successfully marked as read in backend");
+      } catch (e) {
+        console.log(
+          "⚠️ Could not mark as read in backend (notification may not be in DB yet):",
+          e.message
+        );
+      }
+    }
+  };
 
 
 
@@ -165,7 +167,7 @@ const handleNotificationClick = async (notif, idx) => {
             </button>
             {showNotifDropdown && (
               <>
-                <div 
+                <div
                   className="fixed inset-0 z-40"
                   onClick={() => setShowNotifDropdown(false)}
                 />
@@ -204,28 +206,25 @@ const handleNotificationClick = async (notif, idx) => {
                           return (
                             <li
                               key={notifId}
-                              className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
-                                isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
-                              }`}
+                              className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                                }`}
                               onClick={() => handleNotificationClick(notif, idx)}
                             >
                               <div className="flex items-start gap-3">
-                                <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 ${
-                                  isUnread ? 'bg-blue-600' : 'bg-transparent'
-                                }`} />
+                                <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 ${isUnread ? 'bg-blue-600' : 'bg-transparent'
+                                  }`} />
                                 <div className="flex-1 min-w-0">
-                                  <div className={`text-sm font-medium mb-1 ${
-                                    isUnread 
-                                      ? 'text-gray-900 dark:text-white' 
-                                      : 'text-gray-700 dark:text-gray-300'
-                                  }`}>
+                                  <div className={`text-sm font-medium mb-1 ${isUnread
+                                    ? 'text-gray-900 dark:text-white'
+                                    : 'text-gray-700 dark:text-gray-300'
+                                    }`}>
                                     {notif.title || "Notification"}
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     {notif.body || ""}
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {notif.createdAt ? new Date(notif.createdAt).toLocaleString('en-IN', { 
+                                    {notif.createdAt ? new Date(notif.createdAt).toLocaleString('en-IN', {
                                       timeZone: 'Asia/Kolkata',
                                       year: 'numeric',
                                       month: 'short',
@@ -332,17 +331,15 @@ const handleNotificationClick = async (notif, idx) => {
                 <button
                   key={item.id}
                   onClick={() => handleTabClick(item.path)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-md font-medium text-sm transition-colors whitespace-nowrap ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-md font-medium text-sm transition-colors whitespace-nowrap ${isActive
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                    }`}
                 >
-                  <IconComponent className={`h-4 w-4 ${
-                    isActive 
-                      ? "text-white" 
-                      : "text-gray-500 dark:text-gray-400"
-                  }`} />
+                  <IconComponent className={`h-4 w-4 ${isActive
+                    ? "text-white"
+                    : "text-gray-500 dark:text-gray-400"
+                    }`} />
                   <span>{item.label}</span>
                 </button>
               );
