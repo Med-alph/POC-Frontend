@@ -50,7 +50,7 @@ export default function Navbar() {
   );
   const [unreadIds, setUnreadIds] = useState([]);
   // Use the new notifications hook
-  const { notifications, counts, markAsRead, dismissAll } = useNotifications({
+  const {  counts, markAsRead, dismissAll } = useNotifications({
     autoFetch: true,
     limit: 10,
     filter: 'all',
