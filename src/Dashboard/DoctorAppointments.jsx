@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { CalendarDays, User, X, Clock } from "lucide-react";
+import { CalendarDays, User, X, Clock, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import toast from "react-hot-toast";
 import JitsiMeeting from "@/components/JitsiMeeting";
 import socketService from "@/services/socketService";
@@ -363,9 +364,28 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
                     </p>
                   </div>
                 </div>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded ml-2 ${getStatusColor(appt.status)}`}>
-                  {appt.status?.toUpperCase() || 'UNKNOWN'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/doctor-patient-record/${appt.patient_id}`);
+                        }}
+                        className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                        aria-label="Show patient details"
+                      >
+                        <Info className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Show patient details</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded ${getStatusColor(appt.status)}`}>
+                    {appt.status?.toUpperCase() || 'UNKNOWN'}
+                  </span>
+                </div>
               </div>
             ))}
           </div>

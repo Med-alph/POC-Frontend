@@ -79,9 +79,9 @@ export default function Appointments() {
     setLoading(true);
     try {
       const offset = (page - 1) * limit;
-      const result = await appointmentsAPI.getAll({ 
-        hospital_id: HOSPITAL_ID, 
-        limit, 
+      const result = await appointmentsAPI.getAll({
+        hospital_id: HOSPITAL_ID,
+        limit,
         offset,
         orderBy: 'created_at',
         sort: 'DESC'
@@ -224,17 +224,17 @@ export default function Appointments() {
     if (!reason.trim()) return toast.error("Enter reason")
     setFormLoading(true)
     try {
- await appointmentsAPI.create({
-  hospital_id: HOSPITAL_ID,
-  patient_id: selectedPatient.id,
-  staff_id: selectedStaff.id,
-  appointment_date: selectedDate,
-  appointment_time: selectedSlot,
-  appointment_type: appointmentType,
-  reason: reason.trim(),
-  status: "pending",
-  updated_by: user?.id,  // Use updated_by here to match backend
-});
+      await appointmentsAPI.create({
+        hospital_id: HOSPITAL_ID,
+        patient_id: selectedPatient.id,
+        staff_id: selectedStaff.id,
+        appointment_date: selectedDate,
+        appointment_time: selectedSlot,
+        appointment_type: appointmentType,
+        reason: reason.trim(),
+        status: "pending",
+        updated_by: user?.id,  // Use updated_by here to match backend
+      });
 
       toast.success("Appointment created!")
       setOpen(false)
@@ -330,14 +330,14 @@ export default function Appointments() {
     }
     setEditLoading(true)
     // When calling the update API, include updated_by (e.g., current user ID)
-try {
-  await appointmentsAPI.update(selectedAppointment.id, {
-    staff_id: editDoctor.id,
-    appointment_date: editDate,
-    appointment_time: editSelectedSlot,
-    appointment_type: editAppointmentType,
-    updated_by: user?.id,
-  });
+    try {
+      await appointmentsAPI.update(selectedAppointment.id, {
+        staff_id: editDoctor.id,
+        appointment_date: editDate,
+        appointment_time: editSelectedSlot,
+        appointment_type: editAppointmentType,
+        updated_by: user?.id,
+      });
       toast.success("Appointment updated")
       setViewModalOpen(false)
       setIsEditing(false)
@@ -455,15 +455,14 @@ try {
                       type="button"
                       disabled={disabled}
                       onClick={() => setEditSelectedSlot(slot.time)}
-                      className={`rounded-md py-2 px-2 text-sm border ${
-                        disabled 
-                          ? isOnLeave 
-                            ? "bg-amber-50 text-amber-700 border-amber-300 cursor-not-allowed" 
-                            : "bg-gray-100 text-gray-400 cursor-not-allowed" 
-                          : selected 
-                          ? "bg-blue-600 text-white border-blue-700" 
-                          : "bg-white text-gray-900 hover:bg-blue-50"
-                      }`}
+                      className={`rounded-md py-2 px-2 text-sm border ${disabled
+                          ? isOnLeave
+                            ? "bg-amber-50 text-amber-700 border-amber-300 cursor-not-allowed"
+                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : selected
+                            ? "bg-blue-600 text-white border-blue-700"
+                            : "bg-white text-gray-900 hover:bg-blue-50"
+                        }`}
                       title={isOnLeave ? `Doctor on ${editSlotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time passed" : ""}
                     >
                       {slot.display_time}
@@ -661,13 +660,12 @@ try {
                       <Button
                         key={idx}
                         variant={selectedSlot === slot.time ? "default" : "outline"}
-                        className={`flex justify-between items-center ${
-                          slot.status === "unavailable" 
-                            ? isOnLeave 
-                              ? "cursor-not-allowed opacity-60 bg-amber-50 border-amber-300" 
-                              : "cursor-not-allowed opacity-50 bg-red-50 border-red-300" 
+                        className={`flex justify-between items-center ${slot.status === "unavailable"
+                            ? isOnLeave
+                              ? "cursor-not-allowed opacity-60 bg-amber-50 border-amber-300"
+                              : "cursor-not-allowed opacity-50 bg-red-50 border-red-300"
                             : "hover:bg-green-50 hover:border-green-300"
-                        }`}
+                          }`}
                         onClick={() => slot.status !== "unavailable" && setSelectedSlot(slot.time)}
                         disabled={slot.status === "unavailable"}
                         title={isOnLeave ? `Doctor on ${slotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time has passed" : ""}

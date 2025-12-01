@@ -17,6 +17,12 @@ import DoctorDashboard from "./Dashboard/DoctorDashboard";
 import DoctorPatientRecord from "./Patients/PatientRecords/DoctorPatientRecord";
 import DoctorConsultation from "./Doctors/DoctorConsultation";
 import DoctorAttendance from "./Dashboard/DoctorAttendance";
+
+// Doctor Appointment components
+import DoctorAttendancePage from "./Doctors/Attendance/AttendancePage"
+import DermImageComparison from "./Gallery/PatientGallery"
+
+import AdminLogin from "./Admin/AdminLogin";
 import AdminDashboard from "./Admin/AdminDashboard";
 import RolesManagement from "./Admin/RolesManagement";
 import PermissionsManagement from "./Admin/PermissionsManagement";
@@ -63,16 +69,15 @@ function AppContent() {
 
 
   const shouldHideMainNavbar = [
-  "/patient-dashboard",
-  "/notifications",
-];
+    "/patient-dashboard",
+  ];
 
 
-const shouldShowNavbar =
-  !authRoutes.includes(location.pathname) &&
-  !adminRoutes.includes(location.pathname) &&
-  !patientRoutes.includes(location.pathname) &&
-  !shouldHideMainNavbar.includes(location.pathname);
+  const shouldShowNavbar =
+    !authRoutes.includes(location.pathname) &&
+    !adminRoutes.includes(location.pathname) &&
+    !patientRoutes.includes(location.pathname) &&
+    !shouldHideMainNavbar.includes(location.pathname);
   return (
     <div className="min-h-svh flex flex-col">
       {shouldShowNavbar && <Navbar />}
@@ -99,6 +104,7 @@ const shouldShowNavbar =
         <Route path="/doctor-attendance" element={<DoctorAttendance />} />
         <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
         <Route path="/fulfilled-records" element={<FulfilledRecords />} />
+        <Route path="/patient-gallery" element={<DermImageComparison />} />
 
         <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
 
