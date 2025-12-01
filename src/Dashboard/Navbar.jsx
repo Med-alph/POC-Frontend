@@ -10,9 +10,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCredentials } from "../features/auth/authSlice";
-import { useNotifications } from "../hooks/useNotifications";
-import toast from "react-hot-toast";
-import notificationsAPI from "../api/notifications";
+import useAdminNotifications from "../hooks/useAdminNotifications";
+import notificationAPI from "../api/notificationapi";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home },
@@ -51,12 +50,6 @@ export default function Navbar() {
     isAdmin ? user?.hospital_id : null
   );
   const [unreadIds, setUnreadIds] = useState([]);
-  // Use the new notifications hook
-  const { counts, markAsRead, dismissAll } = useNotifications({
-    autoFetch: true,
-    limit: 10,
-    filter: 'all',
-  });
 
   useEffect(() => {
     const currentPath = location.pathname;
@@ -88,7 +81,7 @@ export default function Navbar() {
   };
 
   const filteredNavItems = user?.designation_group?.toLowerCase() === "doctor" ? doctorNavItems : navigationItems;
-  const unreadCount = counts?.unread || 0;
+  const unreadCount = unreadIds.length;
 
   const toggleNotifications = () => {
     setShowNotifDropdown((prev) => !prev);
@@ -123,10 +116,10 @@ export default function Navbar() {
       return updated;
     });
 
-    // 3️⃣ Mark as read in backend (clean code from main branch)
+    // 3️⃣ Mark as read in backend
     if (notif.status !== "read" && notif.notificationId) {
       try {
-        await markAsRead(notif.notificationId);
+        await notificationAPI.markAsRead(notif.notificationId);
         console.log("✅ Successfully marked as read in backend");
       } catch (e) {
         console.log(
@@ -218,10 +211,7 @@ export default function Navbar() {
                                     ? 'text-gray-900 dark:text-white'
                                     : 'text-gray-700 dark:text-gray-300'
                                     }`}>
-                                    {notif.title || "Notification"}
-                                  </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                    {notif.body || ""}
+                                    {notif.message || "Notification"}
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
                                     {notif.createdAt ? new Date(notif.createdAt).toLocaleString('en-IN', {
@@ -255,13 +245,9 @@ export default function Navbar() {
                           </button>
                         )}
                         <button
-                          onClick={async () => {
-                            try {
-                              await dismissAll();
-                              setShowNotifDropdown(false);
-                            } catch (e) {
-                              console.error("Failed to clear all notifications:", e);
-                            }
+                          onClick={() => {
+                            setUnreadIds([]);
+                            setShowNotifDropdown(false);
                           }}
                           className="text-sm text-red-600 dark:text-red-400 hover:underline ml-auto"
                         >

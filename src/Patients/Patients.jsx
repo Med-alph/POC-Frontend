@@ -46,6 +46,7 @@ export default function Patients() {
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState("all")
+    const [ageGroupFilter, setAgeGroupFilter] = useState("all")
     const [appointmentTypeFilter, setAppointmentTypeFilter] = useState("all")
     const [sortBy, setSortBy] = useState("name")
     const [sortOrder, setSortOrder] = useState("asc")
