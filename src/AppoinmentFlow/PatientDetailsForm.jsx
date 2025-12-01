@@ -9,7 +9,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Stethoscope, ArrowLeft, Moon, Sun, User, Calendar, Phone, Mail, FileText, Heart, Pill } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
-
+//this is a comment
 const PatientDetailsForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
