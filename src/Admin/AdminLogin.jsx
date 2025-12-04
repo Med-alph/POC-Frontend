@@ -149,9 +149,16 @@ export default function AdminLogin() {
           <Button
             onClick={handleLogin}
             disabled={loading || !email || !password}
-            className="w-full bg-blue-600 hover:bg-blue-700 py-5 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 hover:bg-blue-700 py-5 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Signing in...</span>
+              </div>
+            ) : (
+              "Sign In"
+            )}
           </Button>
 
           {/* Back to regular login */}

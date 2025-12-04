@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import DoctorAppointments from "./DoctorAppointments";
 import { CalendarDays, UserX, Clock, CheckCircle2, Timer, LogIn, LogOut } from "lucide-react";
-import TodaysSchedule from "./comps/TodaysSchedule";
+// import TodaysSchedule from "./comps/TodaysSchedule"; // Commented out - using NextHoursChart instead
 import { useSelector } from "react-redux";
 import appointmentsAPI from "../api/appointmentsapi";
 import attendanceAPI from "../api/attendanceapi";
@@ -485,7 +485,7 @@ const DoctorDashboard = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Today's Appointments */}
           <div className="lg:col-span-1">
             <DoctorAppointments
@@ -494,13 +494,13 @@ const DoctorDashboard = () => {
             />
           </div>
 
-          {/* Today's Schedule */}
-          <div className="lg:col-span-1">
+          {/* Today's Schedule - COMMENTED OUT: Using NextHoursChart instead which shows proper timing */}
+          {/* <div className="lg:col-span-1">
             <TodaysSchedule
               appointments={todaysData?.appointments || []}
               loading={loading}
             />
-          </div>
+          </div> */}
 
           {/* Upcoming Appointments */}
           <div className="lg:col-span-1">
