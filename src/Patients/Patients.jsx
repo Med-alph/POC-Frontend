@@ -500,7 +500,7 @@ export default function Patients() {
                                                     </Avatar>
                                                     <div>
                                                         <p className="font-medium text-gray-900 dark:text-white">{patient.patient_name}</p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">ID: {patient.id.slice(0, 8)}...</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">{patient.patient_code || patient.id.slice(0, 8) + '...'}</p>
                                                     </div>
                                                 </div>
                                             </TableCell>

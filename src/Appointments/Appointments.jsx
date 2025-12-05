@@ -774,6 +774,7 @@ export default function Appointments() {
           <Table className="min-w-[700px] md:min-w-full">
             <TableHeader>
               <TableRow>
+                <TableHead>Appointment ID</TableHead>
                 <TableHead>Patient</TableHead>
                 <TableHead>Doctor</TableHead>
                 <TableHead>Date & Time</TableHead>
@@ -787,24 +788,27 @@ export default function Appointments() {
               {appointments.map(a => (
                 <TableRow key={a.id}>
                   <TableCell>
+                    <span className="font-mono text-sm font-medium">{a.appointment_code || a.id.slice(0, 8) + '...'}</span>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback>{a.patient_id?.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(a.patient?.patient_name || a.patient_name)?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{a.patient_name || a.patient_id}</p>
-                        <p className="text-xs text-gray-500">ID: {a.id}</p>
+                        <p className="font-medium">{a.patient?.patient_name || a.patient_name || a.patient_id}</p>
+                        <p className="text-xs text-gray-500">{a.patient?.patient_code || a.patient_code || a.patient_id}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback>{a.staff_id?.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(a.staff?.staff_name || a.staff_name)?.charAt(0).toUpperCase() || 'S'}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{a.staff_name || a.staff_id}</p>
-                        <p className="text-xs text-gray-500">{a.specialty || "Unknown"}</p>
+                        <p className="font-medium">{a.staff?.staff_name || a.staff_name || a.staff_id}</p>
+                        <p className="text-xs text-gray-500">{a.staff?.staff_code || a.staff_code || a.staff_id}</p>
                       </div>
                     </div>
                   </TableCell>
