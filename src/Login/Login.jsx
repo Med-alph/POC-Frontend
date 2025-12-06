@@ -20,6 +20,7 @@ export default function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { addToast: toast } = useToast()
@@ -27,6 +28,7 @@ export default function Login() {
   const handleLogin = async () => {
     try {
       setError("")
+      setIsLoading(true)
 
       const response = await authAPI.login({ email, password })
 
@@ -59,6 +61,8 @@ export default function Login() {
         description: error.message || "Please check your credentials.",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -125,9 +129,17 @@ export default function Login() {
           {/* Login Button */}
           <Button
             onClick={handleLogin}
-            className="w-full bg-blue-600 hover:bg-blue-700 py-5 text-base font-medium"
+            disabled={isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 py-5 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Login
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Logging in...</span>
+              </div>
+            ) : (
+              "Login"
+            )}
           </Button>
 
           {/* Footer Links */}

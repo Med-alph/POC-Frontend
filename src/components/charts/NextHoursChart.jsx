@@ -63,13 +63,39 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
     }
 
     const tasks = data.gantt || [];
+    
+    // WORKAROUND: Parse appointment_date and appointment_time as local time
+    // Backend is incorrectly treating local times as UTC
+    const tasksWithLocalTimestamps = tasks.map(task => {
+      // Get the appointment from the appointments array if available
+      const appointment = data.appointments?.find(apt => apt.id === task.id);
+      
+      if (appointment?.appointment_date && appointment?.appointment_time) {
+        // Parse as local time by creating date string without 'Z' suffix
+        const dateStr = appointment.appointment_date; // "2025-12-04"
+        const timeStr = appointment.appointment_time; // "20:00:00"
+        
+        // Create local date by parsing without timezone
+        const localStartDate = new Date(`${dateStr}T${timeStr}`);
+        const localEndDate = new Date(localStartDate.getTime() + (task.duration_minutes || 30) * 60 * 1000);
+        
+        return {
+          ...task,
+          startTimestamp: localStartDate.getTime(),
+          endTimestamp: localEndDate.getTime(),
+        };
+      }
+      
+      return task;
+    });
+    
     const range = data.meta?.gantt_range || {};
     const numHours = data.hours || hours;
     
     // Get the start time (round down to the hour)
     const rangeStart = range.start 
       ? new Date(range.start).getTime()
-      : Math.min(...tasks.map(t => t.startTimestamp));
+      : Math.min(...tasksWithLocalTimestamps.map(t => t.startTimestamp));
     
     const startDate = new Date(rangeStart);
     startDate.setMinutes(0, 0, 0); // Round down to the hour
@@ -96,7 +122,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
     }
 
     // Group tasks by hour and calculate positions within each hour column
-    const processedTasks = tasks.map((task) => {
+    const processedTasks = tasksWithLocalTimestamps.map((task) => {
       const taskStart = task.startTimestamp;
       const taskEnd = task.endTimestamp;
       
@@ -263,8 +289,9 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
 
                   {/* Gantt bars - only show tasks within their hour columns */}
                   {ganttData.tasks.map((task) => {
-                    const startTime = new Date(task.start_date);
-                    const endTime = new Date(task.end_date);
+                    // Use timestamps directly to avoid timezone conversion issues
+                    const startTime = new Date(task.startTimestamp);
+                    const endTime = new Date(task.endTimestamp);
                     const duration = task.duration_minutes || 30;
                     const maxRow = Math.max(...ganttData.tasks.map(t => t.row || 0));
                     const rowHeight = 50;
@@ -318,6 +345,9 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                   const task = ganttData.tasks.find(t => t.id === hoveredTask);
                   if (!task) return null;
                   const rowHeight = 50;
+                  // Use timestamps directly to avoid timezone conversion issues
+                  const startTime = new Date(task.startTimestamp);
+                  const endTime = new Date(task.endTimestamp);
                   return (
                     <div 
                       className="absolute z-20 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-md p-3 shadow-xl pointer-events-none border border-gray-700"
@@ -330,7 +360,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                       <div className="font-semibold mb-1">{task.patient_name}</div>
                       <div className="text-gray-300 mb-1">{task.appointment_type}</div>
                       <div className="text-gray-300 mb-1">
-                        {new Date(task.start_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - {new Date(task.end_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        {startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - {endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                       <div className="text-gray-300">Duration: {task.duration_minutes} min</div>
                       {task.reason && <div className="text-gray-300 mt-1">Reason: {task.reason}</div>}
@@ -430,7 +460,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Date</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {new Date(selectedTask.start_date).toLocaleDateString('en-US', {
+                        {new Date(selectedTask.startTimestamp).toLocaleDateString('en-US', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
@@ -441,11 +471,11 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Time</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {new Date(selectedTask.start_date).toLocaleTimeString('en-US', {
+                        {new Date(selectedTask.startTimestamp).toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
                           hour12: true
-                        })} - {new Date(selectedTask.end_date).toLocaleTimeString('en-US', {
+                        })} - {new Date(selectedTask.endTimestamp).toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
                           hour12: true
