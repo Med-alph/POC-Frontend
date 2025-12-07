@@ -7,7 +7,7 @@ import {
   CalendarDays, UserCircle2, Plus, Loader2, ChevronLeft, ChevronRight,
   ArrowLeft, Phone, Image, RefreshCw, Mail, MapPin, Shield, Heart,
   Clock, PhoneCall, PhoneIncoming, PhoneOutgoing, PhoneMissed, Download,
-  AlertCircle, Droplet, FileText, Users, X, Bell, CheckCircle
+  AlertCircle, Droplet, FileText, Users, X, Bell, CheckCircle, Camera
 } from "lucide-react";
 import PatientNavbar from "./PatientNavbar";
 import appointmentsAPI from "@/api/appointmentsapi";
@@ -16,9 +16,13 @@ import staffApi from "@/api/staffapi";
 import authAPI from "@/api/authapi";
 import { remindersAPI } from "@/api/remindersapi";
 import notificationsAPI from "@/api/notifications";
+import imagesAPI from "@/api/imagesapi";
 import toast, { Toaster } from "react-hot-toast";
 import CallNotification from "@/components/CallNotification";
 import JitsiMeeting from "@/components/JitsiMeeting";
+import UploadSessionModal from "@/components/UploadSessionModal";
+import SessionTimeline from "@/components/SessionTimeline";
+import ImageViewer from "@/components/ImageViewer";
 import socketService from "@/services/socketService";
 import { videoCallAPI } from "@/api/videocallapi";
 import { generateRoomName } from "@/utils/callUtils";
@@ -114,6 +118,13 @@ export default function PatientDashboard() {
 
   // Call history
   const [callHistory, setCallHistory] = useState([]);
+
+  // Images
+  const [sessions, setSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
   const [loadingCallHistory, setLoadingCallHistory] = useState(false);
   const [callsCurrentPage, setCallsCurrentPage] = useState(1);
   const [callsTotalCount, setCallsTotalCount] = useState(0);
@@ -256,6 +267,12 @@ export default function PatientDashboard() {
     fetchReminders();
   }, [activeTab, patient?.id]);
 
+  // Fetch sessions when images tab is active
+  useEffect(() => {
+    if (activeTab !== "images" || !patient?.id) return;
+    fetchSessions();
+  }, [activeTab, patient?.id]);
+
   // Fetch notification count on mount and periodically
   useEffect(() => {
     if (!patient?.id) return;
@@ -355,6 +372,48 @@ export default function PatientDashboard() {
       console.error('Failed to mark reminder as complete:', error);
       toast.error("Failed to mark reminder as complete");
     }
+  };
+
+  const fetchSessions = async () => {
+    if (!patient?.id) return;
+    setLoadingSessions(true);
+    try {
+      const result = await imagesAPI.getPatientSessions(patient.id);
+      setSessions(result || []);
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+      toast.error("Failed to load images");
+      setSessions([]);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const handleUploadSuccess = () => {
+    fetchSessions();
+    toast.success("Images uploaded successfully!");
+  };
+
+  const handleViewImages = (session) => {
+    setSelectedSession(session);
+    setShowImageViewer(true);
+  };
+
+  const handleSetBaseline = (sessionId) => {
+    setSessions(prev => prev.map(s => ({
+      ...s,
+      is_baseline: s.id === sessionId
+    })));
+  };
+
+  const handleDeleteSession = (sessionId) => {
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+  };
+
+  const handleUpdateNotes = (sessionId, notes) => {
+    setSessions(prev => prev.map(s => 
+      s.id === sessionId ? { ...s, notes } : s
+    ));
   };
 
   const fetchAppointments = async () => {
@@ -1002,26 +1061,34 @@ export default function PatientDashboard() {
 
   const renderImagesTab = () => (
     <Card>
-      <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Image className="w-5 h-5" />Medical Images & Reports</CardTitle></CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Camera className="w-5 h-5" />
+          My Images
+        </CardTitle>
+        <Button 
+          onClick={() => setShowUploadModal(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Camera className="w-4 h-4 mr-2" />
+          Upload Images
+        </Button>
+      </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {DUMMY_IMAGES.map((img) => (
-            <div key={img.id} className="border rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                <img src={img.thumbnail} alt={img.name} className="w-full h-full object-cover" />
-              </div>
-              <div className="p-3">
-                <p className="font-medium text-gray-900 truncate">{img.name}</p>
-                <p className="text-xs text-gray-500">{img.type} • {img.date}</p>
-                <p className="text-xs text-gray-400 mt-1">{img.doctor}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-gray-400">{img.size}</span>
-                  <Button size="sm" variant="outline" className="h-8"><Download className="w-3 h-3 mr-1" />Download</Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {loadingSessions ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+          </div>
+        ) : (
+          <SessionTimeline
+            sessions={sessions}
+            onViewImages={handleViewImages}
+            onDelete={handleDeleteSession}
+            onUpdateNotes={handleUpdateNotes}
+            onSetBaseline={handleSetBaseline}
+            canManage={false}
+          />
+        )}
       </CardContent>
     </Card>
   );
@@ -1365,6 +1432,22 @@ export default function PatientDashboard() {
       </div>
       {renderCancelModal()}
       {renderRescheduleModal()}
+
+      {/* Upload Session Modal */}
+      <UploadSessionModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        patientId={patient?.id}
+        uploadedBy={{ id: patient?.id, type: 'patient' }}
+        onSuccess={handleUploadSuccess}
+      />
+
+      {/* Image Viewer */}
+      <ImageViewer
+        isOpen={showImageViewer}
+        onClose={() => setShowImageViewer(false)}
+        session={selectedSession}
+      />
     </div>
   );
 }
