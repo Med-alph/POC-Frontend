@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { User, ClipboardList, Activity, Stethoscope, Pill, FlaskConical, Play, StopCircle, XCircle, Clock } from "lucide-react";
+import { User, ClipboardList, Activity, Stethoscope, Pill, FlaskConical, Play, StopCircle, XCircle, Clock, Camera } from "lucide-react";
 import appointmentsAPI from "../api/appointmentsapi";
 import consultationsAPI from "../api/consultationsapi";
+import imagesAPI from "../api/imagesapi";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import cancellationRequestAPI from "../api/cancellationrequestapi";
+import UploadSessionModal from "../components/UploadSessionModal";
 
 const DoctorConsultation = () => {
     const { appointmentId } = useParams();
@@ -21,6 +23,10 @@ const DoctorConsultation = () => {
     const [isSaving, setIsSaving] = useState(false);
     
     const [cancelRequested, setCancelRequested] = useState(false);
+    
+    // Image upload state
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploadedSessions, setUploadedSessions] = useState([]);
     
     const [soapNotes, setSoapNotes] = useState({
         subjective: "",
@@ -468,6 +474,50 @@ const DoctorConsultation = () => {
                 </div>
             </div>
 
+            {/* Image Upload Section */}
+            <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                        <Camera className="h-5 w-5 text-blue-500" /> Patient Images
+                        {!isConsultationStarted && !isCompleted && (
+                            <span className="text-xs text-gray-500 font-normal ml-2">(Start consultation to upload)</span>
+                        )}
+                    </h2>
+                    {isConsultationStarted && !isCompleted && (
+                        <button
+                            onClick={() => setShowUploadModal(true)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Camera className="h-4 w-4" />
+                            Upload Images
+                        </button>
+                    )}
+                </div>
+                
+                {uploadedSessions.length > 0 ? (
+                    <div className="space-y-2">
+                        {uploadedSessions.map((session, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                                <Camera className="h-4 w-4 text-green-600" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {session.body_part} - {session.image_count} image{session.image_count > 1 ? 's' : ''} uploaded
+                                    </p>
+                                    {session.notes && (
+                                        <p className="text-xs text-gray-600 mt-1">{session.notes}</p>
+                                    )}
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                    {new Date(session.uploaded_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-500 italic">No images uploaded during this consultation</p>
+                )}
+            </div>
+
             {/* Prescription Section */}
             <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
                 <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-3">
@@ -654,6 +704,23 @@ const DoctorConsultation = () => {
                     </div>
                 </div>
             )}
+
+            {/* Upload Session Modal */}
+            <UploadSessionModal
+                isOpen={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                patientId={appointmentData?.patient_id}
+                uploadedBy={{ id: user?.id, type: 'doctor' }}
+                onSuccess={(result) => {
+                    setUploadedSessions(prev => [...prev, {
+                        body_part: result.body_part || 'Unknown',
+                        image_count: result.image_urls?.length || 0,
+                        notes: result.notes || '',
+                        uploaded_at: new Date().toISOString()
+                    }]);
+                    toast.success('Images uploaded successfully!');
+                }}
+            />
         </div>
     );
 };

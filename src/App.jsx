@@ -21,6 +21,8 @@ import DoctorAttendance from "./Dashboard/DoctorAttendance";
 // Doctor Appointment components
 import DoctorAttendancePage from "./Doctors/Attendance/AttendancePage"
 import DermImageComparison from "./Gallery/PatientGallery"
+import DynamicPatientGallery from "./Gallery/DynamicPatientGallery"
+import PatientImagesPage from "./Gallery/PatientImagesPage"
 
 import AdminLogin from "./Admin/AdminLogin";
 import AdminDashboard from "./Admin/AdminDashboard";
@@ -104,7 +106,8 @@ function AppContent() {
         <Route path="/doctor-attendance" element={<DoctorAttendance />} />
         <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
         <Route path="/fulfilled-records" element={<FulfilledRecords />} />
-        <Route path="/patient-gallery" element={<DermImageComparison />} />
+        <Route path="/patient-gallery" element={<DynamicPatientGallery />} />
+        <Route path="/patient-images/:patientId" element={<PatientImagesPage />} />
 
         <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
 
