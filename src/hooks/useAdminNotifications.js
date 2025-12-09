@@ -2,11 +2,79 @@ import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { baseUrl } from '../constants/Constant';
 import toast from 'react-hot-toast';
+import notificationAPI from '../api/notificationapi';
+import { getAuthToken } from '../utils/auth';
 
 const SOCKET_SERVER_URL = baseUrl;
 
 function useAdminNotifications(adminUserId, hospitalId) {
   const [notifications, setNotifications] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Fetch historical notifications on mount
+  useEffect(() => {
+    if (!adminUserId) {
+      console.log('❌ No userId provided for fetching notifications');
+      return;
+    }
+
+    const fetchHistoricalNotifications = async () => {
+      setIsLoadingHistory(true);
+      try {
+        console.log('📥 Fetching historical notifications for user:', adminUserId);
+        
+        // Use the base URL with auth token (backend will identify user from token)
+        const token = getAuthToken();
+        
+        if (!token) {
+          console.warn('⚠️ No auth token found, skipping historical fetch');
+          return;
+        }
+        
+        console.log('🔑 Using auth token:', token.substring(0, 20) + '...');
+        
+        const response = await fetch(`${baseUrl}/notifications?limit=50&filter=unread`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('📡 Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Response error:', errorText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📦 Response data:', data);
+        
+        if (data.notifications) {
+          // Normalize the historical notifications
+          const historicalNotifs = data.notifications.map(notif => ({
+            ...notif,
+            type: notif.notification_type?.toUpperCase() || notif.type?.toUpperCase(),
+            notification_type: notif.notification_type?.toUpperCase() || notif.type?.toUpperCase(),
+            notificationId: notif.id || notif.notificationId,
+            createdAt: notif.created_at || notif.createdAt,
+            message: notif.body || notif.message || notif.title,
+          }));
+          
+          console.log('✅ Loaded historical notifications:', historicalNotifs.length);
+          setNotifications(historicalNotifs);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching historical notifications:', error);
+        // Don't show error to user, just log it - notifications will come via socket
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchHistoricalNotifications();
+  }, [adminUserId]);
 
   useEffect(() => {
     // Don't connect if no adminUserId or hospitalId provided
@@ -72,7 +140,18 @@ function useAdminNotifications(adminUserId, hospitalId) {
         notificationId: payload.id || payload.notificationId,
       };
       
-      setNotifications((prev) => [structuredNotification, ...prev]);
+      // Avoid duplicates - check if notification already exists
+      setNotifications((prev) => {
+        const exists = prev.some(n => 
+          (n.notificationId && n.notificationId === structuredNotification.notificationId) ||
+          (n.id && n.id === structuredNotification.notificationId)
+        );
+        if (exists) {
+          console.log('⚠️ Duplicate notification, skipping:', structuredNotification.notificationId);
+          return prev;
+        }
+        return [structuredNotification, ...prev];
+      });
       
       // Show toast notification
       toast.success('New appointment cancellation request', {
@@ -102,7 +181,18 @@ function useAdminNotifications(adminUserId, hospitalId) {
       
       console.log('📦 Structured notification:', structuredNotification);
       
-      setNotifications((prev) => [structuredNotification, ...prev]);
+      // Avoid duplicates - check if notification already exists
+      setNotifications((prev) => {
+        const exists = prev.some(n => 
+          (n.notificationId && n.notificationId === structuredNotification.notificationId) ||
+          (n.id && n.id === structuredNotification.notificationId)
+        );
+        if (exists) {
+          console.log('⚠️ Duplicate notification, skipping:', structuredNotification.notificationId);
+          return prev;
+        }
+        return [structuredNotification, ...prev];
+      });
       
       // Show toast notification with doctor name and leave type
       const doctorName = payload.doctorName || 'A doctor';
@@ -111,6 +201,52 @@ function useAdminNotifications(adminUserId, hospitalId) {
         duration: 5000,
         icon: '🏖️',
       });
+    });
+
+    // Listen for image upload notifications
+    socket.on('new_notification', (payload) => {
+      console.log('📸 New notification received (image/session)', payload);
+      
+      // Structure the notification properly for display
+      const structuredNotification = {
+        ...payload,
+        // Normalize the type to uppercase for consistency
+        type: payload.type?.toUpperCase() || payload.notification_type,
+        notification_type: payload.type?.toUpperCase() || payload.notification_type,
+        status: 'unread',
+        createdAt: payload.created_at || payload.createdAt || new Date().toISOString(),
+        message: payload.body || payload.message || payload.title,
+        notificationId: payload.id || payload.notificationId,
+      };
+      
+      // Avoid duplicates - check if notification already exists
+      setNotifications((prev) => {
+        const exists = prev.some(n => 
+          (n.notificationId && n.notificationId === structuredNotification.notificationId) ||
+          (n.id && n.id === structuredNotification.notificationId)
+        );
+        if (exists) {
+          console.log('⚠️ Duplicate notification, skipping:', structuredNotification.notificationId);
+          return prev;
+        }
+        return [structuredNotification, ...prev];
+      });
+      
+      // Show toast notification based on type
+      const isImageUpload = payload.type === 'image_uploaded' || payload.type === 'IMAGE_UPLOADED';
+      const isSessionReview = payload.type === 'session_reviewed' || payload.type === 'SESSION_REVIEWED';
+      
+      if (isImageUpload) {
+        toast.info(payload.body || payload.message, {
+          duration: 5000,
+          icon: '📸',
+        });
+      } else if (isSessionReview) {
+        toast.info(payload.body || payload.message, {
+          duration: 5000,
+          icon: '✅',
+        });
+      }
     });
 
     // Optional: Listen for other notification events
