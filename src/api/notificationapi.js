@@ -38,8 +38,8 @@ const notificationAPI = {
 
   // Mark a notification as read
   markAsRead: async (notificationId) => {
-    return apiRequest(`/notifications/${notificationId}/read`, {
-      method: 'PATCH',
+    return apiRequest(`/notifications/${notificationId}/mark-read`, {
+      method: 'POST',
     });
   },
 
