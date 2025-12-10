@@ -24,6 +24,7 @@ import { clearCredentials } from "../features/auth/authSlice";
 import { useNotifications } from "../hooks/useNotifications";
 import toast from "react-hot-toast";
 import notificationsAPI from "../api/notifications";
+import socketService from "../services/socketService";
 
 const patientNavItems = [
   { id: "patientDashboard", label: "Dashboard", path: "/patient-dashboard", icon: Home },
@@ -75,6 +76,47 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
     }
   }, [showNotifDropdown, notificationsLoading, refreshNotifications]);
 
+  // Connect to notifications socket and listen for real-time notifications
+  useEffect(() => {
+    if (!patientId) return;
+
+    console.log("🔌 Patient connecting to notifications socket:", patientId);
+
+    // Connect to notifications namespace
+    const notifSocket = socketService.connectNotifications(patientId);
+
+    if (notifSocket) {
+      const handleNewNotification = (data) => {
+        console.log("📩 Patient received new notification via socket:", data);
+        
+        // Show toast for image upload and session review notifications
+        if (data.type === "IMAGE_UPLOADED") {
+          toast.info(data.message, {
+            duration: 5000,
+            icon: "📸"
+          });
+          // Auto-refresh notifications
+          refreshNotifications();
+        } else if (data.type === "SESSION_REVIEWED") {
+          toast.success(data.message, {
+            duration: 5000,
+            icon: "✅"
+          });
+          // Auto-refresh notifications
+          refreshNotifications();
+        }
+      };
+
+      // Listen for new_notification event on notifications socket
+      notifSocket.on("new_notification", handleNewNotification);
+
+      return () => {
+        notifSocket.off("new_notification", handleNewNotification);
+        socketService.disconnectNotifications();
+      };
+    }
+  }, [patientId, refreshNotifications]);
+
   // Effect to update active tab on path change
   useEffect(() => {
     const currentPath = window.location.pathname;
@@ -117,7 +159,6 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
   };
 
   const handleNotificationClick = async (notif) => {
-    // Just mark as read, don't navigate
     setShowNotifDropdown(false);
     
     // Mark as read if unread
@@ -126,6 +167,17 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
         await markAsRead(notif.id);
       } catch (e) {
         toast.error("Failed to mark notification as read");
+      }
+    }
+
+    // Navigate based on notification type
+    const isImageUpload = notif.type === "IMAGE_UPLOADED" || notif.notification_type === "IMAGE_UPLOADED";
+    const isSessionReview = notif.type === "SESSION_REVIEWED" || notif.notification_type === "SESSION_REVIEWED";
+
+    if (isImageUpload || isSessionReview) {
+      // Switch to images tab in patient dashboard
+      if (onTabChange) {
+        onTabChange("images");
       }
     }
   };

@@ -12,6 +12,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { clearCredentials } from "../features/auth/authSlice";
 import useAdminNotifications from "../hooks/useAdminNotifications";
 import notificationAPI from "../api/notificationapi";
+import socketService from "../services/socketService";
+import toast from "react-hot-toast";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home },
@@ -41,13 +43,13 @@ export default function Navbar() {
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
 
-  // Only admins should receive leave request notifications
+  // Connect to notifications for all users (admins and doctors)
   const isAdmin = user?.designation_group?.toLowerCase() !== "doctor";
 
-  // Pass null for both userId and hospitalId if not admin to prevent socket connection
+  // Pass userId and hospitalId for all users to receive notifications
   const notifications = useAdminNotifications(
-    isAdmin ? user?.id : null,
-    isAdmin ? user?.hospital_id : null
+    user?.id || null,
+    user?.hospital_id || null
   );
   const [unreadIds, setUnreadIds] = useState([]);
 
@@ -70,6 +72,8 @@ export default function Navbar() {
   }, [notifications]);
 
 
+
+
   const handleLogout = () => {
     dispatch(clearCredentials());
     navigate("/");
@@ -89,15 +93,28 @@ export default function Navbar() {
   const handleNotificationClick = async (notif, idx) => {
     console.log("Notification clicked:", notif);
 
-    // 1️⃣ Navigation Logic (kept from vishnu-branch)
+    // 1️⃣ Navigation Logic
+    // Normalize type checking (handle both uppercase and lowercase)
+    const notifType = (notif.notification_type || notif.notificationType || notif.type || '').toUpperCase();
+    
     const isLeaveRequest =
-      notif.notification_type === "LEAVE_REQUEST" ||
-      notif.notificationType === "leave_request" ||
-      notif.leave_request_id ||
-      notif.type === "leave_request";
+      notifType === "LEAVE_REQUEST" ||
+      notif.leave_request_id;
+
+    const isImageUpload = notifType === "IMAGE_UPLOADED";
+
+    const isSessionReview = notifType === "SESSION_REVIEWED";
 
     if (isLeaveRequest) {
       navigate("/leave-management");
+    } else if (isImageUpload || isSessionReview) {
+      // Navigate to patient gallery
+      const patientId = notif.metadata?.patient_id || notif.patientId;
+      if (patientId) {
+        navigate(`/patient-gallery?patientId=${patientId}`);
+      } else {
+        navigate("/patient-gallery");
+      }
     } else {
       navigate("/notifications");
     }
