@@ -24,6 +24,7 @@
   import { patientsAPI } from "@/api/patientsapi";
   import appointmentsAPI from "@/api/appointmentsapi";
   import staffApi from "../api/staffapi";
+  import NewAppointmentFlow from "./NewAppointmentFlow";
 
   export default function AppointmentForm() {
     const navigate = useNavigate();
@@ -54,6 +55,11 @@
     const [loading, setLoading] = useState(false);
     const [loadingDoctors, setLoadingDoctors] = useState(false);
     const [loadingSlots, setLoadingSlots] = useState(false);
+
+    // New doctor preference flow states
+    const [doctorPreference, setDoctorPreference] = useState(""); // "yes" or "no"
+    const [availableDoctors, setAvailableDoctors] = useState([]);
+    const [loadingAvailableDoctors, setLoadingAvailableDoctors] = useState(false);
 
     const [patientAppointments, setPatientAppointments] = useState([]);
     const [loadingAppointments, setLoadingAppointments] = useState(false);
@@ -167,7 +173,7 @@
       setRegisteredPatient(existingPatientData);
       setShowPatientConfirmation(false);
       toast.success(`Welcome back, ${existingPatientData.patient_name}`);
-      setTimeout(() => setStep(2), 500);
+      setTimeout(() => setStep(2), 500); // Go to new appointment flow
     };
 
     useEffect(() => {
@@ -251,6 +257,96 @@
       fetchRescheduleSlots(appointment.staff_id, appointment.appointment_date);
     };
 
+    // New function to fetch available doctors for selected date/time
+    const fetchAvailableDoctors = async () => {
+      if (!selectedDate || !selectedSlot) return;
+      
+      try {
+        setLoadingAvailableDoctors(true);
+        
+        // Get available doctors from the API (backend now handles filtering)
+        const response = await appointmentsAPI.getAvailableDoctors(
+          selectedDate,
+          selectedSlot,
+          HOSPITAL_ID
+        );
+        
+        console.log("Available doctors response:", response);
+        
+        // Handle both array format and object format
+        const doctors = Array.isArray(response) ? response : (response.doctors || []);
+        
+        // Map the response to match expected format
+        const mappedDoctors = doctors.map(doctor => ({
+          id: doctor.doctorId || doctor.id,
+          staff_name: doctor.doctorName || doctor.staff_name,
+          department: doctor.department,
+          staff_code: doctor.specialty || doctor.staff_code,
+        }));
+        
+        console.log("Final mapped doctors:", mappedDoctors);
+        setAvailableDoctors(mappedDoctors);
+        
+        if (mappedDoctors.length === 0) {
+          toast.info("No doctors available for this time slot");
+        }
+        
+      } catch (error) {
+        console.error("Error fetching available doctors:", error);
+        toast.error("Failed to fetch available doctors");
+        setAvailableDoctors([]);
+      } finally {
+        setLoadingAvailableDoctors(false);
+      }
+    };
+
+    // Handle doctor preference selection
+    const handleDoctorPreference = async (preference) => {
+      setDoctorPreference(preference);
+      
+      if (preference === "yes") {
+        // Show doctor list
+        await fetchAvailableDoctors();
+        setStep(2); // Go to doctor selection step
+      } else {
+        // Skip doctor selection, go to date/time
+        setSelectedDoctor(null); // Clear any previously selected doctor
+        setStep(3); // Go to date/time selection
+      }
+    };
+
+    // Book appointment with any available doctor
+    const handleBookAnyAvailable = async () => {
+      if (!selectedDate || !selectedSlot || !reason.trim() || !registeredPatient) {
+        toast.error("Please fill all required fields");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const appointmentData = {
+          hospital_id: HOSPITAL_ID,
+          patient_id: registeredPatient.id,
+          patientPhone: phone,
+          appointment_date: selectedDate,
+          appointment_time: selectedSlot,
+          appointment_type: appointmentType,
+          reason: reason.trim(),
+          preferredDoctor: false,
+          status: "pending",
+        };
+
+        const created = await appointmentsAPI.bookAnyAvailable(appointmentData);
+        toast.success("Appointment booked successfully!");
+        navigate("/confirmation", { state: { appointment: created } });
+      } catch (error) {
+        console.error("Error booking appointment:", error);
+        toast.error("Failed to book appointment");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const fetchRescheduleSlots = async (staffId, date) => {
       if (!staffId || !date) return;
       setLoadingRescheduleSlots(true);
@@ -258,7 +354,18 @@
         const response = await appointmentsAPI.getAvailableSlots(staffId, date);
         console.log("Reschedule slot response:", response); // Debug log
         setRescheduleSlotInfo(response); // Store full response including leave info
-        setRescheduleSlots(response.slots || []);
+        
+        // Filter out the current appointment's time slot when rescheduling
+        let availableSlots = response.slots || [];
+        if (appointmentToReschedule && date === appointmentToReschedule.appointment_date) {
+          availableSlots = availableSlots.filter(slot => 
+            slot.time !== appointmentToReschedule.appointment_time
+          );
+          console.log(`🚫 Filtered out current appointment time: ${appointmentToReschedule.appointment_time}`);
+        }
+        
+        setRescheduleSlots(availableSlots);
+        
         // Show toast if doctor is on leave
         if (response.on_leave) {
           toast.warning(`Doctor is on ${response.leave_type || ''} leave on this date`);
@@ -324,31 +431,52 @@
       }
     };
 
-    // Regular appointment booking
+    // Regular appointment booking (when doctor is selected)
     const handleConfirm = async () => {
       if (!reason.trim()) return toast.error("Enter reason for visit");
       if (!registeredPatient) return toast.error("Patient info missing");
-      if (!selectedDoctor) return toast.error("Select a doctor");
       if (!selectedDate) return toast.error("Select a date");
       if (!selectedSlot) return toast.error("Select a time slot");
 
       try {
         setLoading(true);
-        const payload = {
-          hospital_id: HOSPITAL_ID,
-          patient_id: registeredPatient.id,
-          patientPhone: phone,
-          staff_id: selectedDoctor.id,
-          appointment_date: selectedDate,
-          appointment_time: selectedSlot,
-          reason: reason.trim(),
-          appointment_type: appointmentType,
-          status: "pending",
-        };
-        const created = await appointmentsAPI.create(payload);
-        toast.success("Appointment created successfully!");
-        navigate("/confirmation", { state: { appointment: created } });
-      } catch {
+        
+        if (selectedDoctor) {
+          // Book with specific doctor
+          const payload = {
+            hospital_id: HOSPITAL_ID,
+            patient_id: registeredPatient.id,
+            patientPhone: phone,
+            staff_id: selectedDoctor.id,
+            appointment_date: selectedDate,
+            appointment_time: selectedSlot,
+            reason: reason.trim(),
+            appointment_type: appointmentType,
+            preferredDoctor: true,
+            status: "pending",
+          };
+          const created = await appointmentsAPI.create(payload);
+          toast.success("Appointment created successfully!");
+          navigate("/confirmation", { state: { appointment: created } });
+        } else {
+          // Book with any available doctor
+          const appointmentData = {
+            hospital_id: HOSPITAL_ID,
+            patient_id: registeredPatient.id,
+            patientPhone: phone,
+            appointment_date: selectedDate,
+            appointment_time: selectedSlot,
+            appointment_type: appointmentType,
+            reason: reason.trim(),
+            preferredDoctor: false,
+            status: "pending",
+          };
+          const created = await appointmentsAPI.bookAnyAvailable(appointmentData);
+          toast.success("Appointment booked successfully!");
+          navigate("/confirmation", { state: { appointment: created } });
+        }
+      } catch (error) {
+        console.error("Error booking appointment:", error);
         toast.error("Failed to create appointment");
       } finally {
         setLoading(false);
@@ -405,6 +533,205 @@
     const renderStep = () => {
       switch (step) {
         case 1:
+          return (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Patient Information</h2>
+              </div>
+              {checkingPatient ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400">Verifying patient information...</p>
+                </div>
+              ) : showPatientConfirmation && existingPatientData ? (
+                <>
+                  <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800 shadow-lg">
+                    <CardHeader className="border-b border-green-200 dark:border-green-700 bg-white/50 dark:bg-gray-800/50">
+                      <CardTitle className="text-green-800 dark:text-green-200 flex items-center gap-2">
+                        <CheckCircleIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        Patient Found!
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Full Name</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {existingPatientData.patient_name}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Phone</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {existingPatientData.phone}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Date of Birth</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            {existingPatientData.date_of_birth ? formatDate(existingPatientData.date_of_birth) : "Not provided"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Gender</p>
+                          <p className="font-semibold text-gray-900 dark:text-white capitalize">
+                            {existingPatientData.gender || "Not specified"}
+                          </p>
+                        </div>
+                        {existingPatientData.email && (
+                          <div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Email</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {existingPatientData.email}
+                            </p>
+                          </div>
+                        )}
+                        {existingPatientData.insurance_provider && (
+                          <div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Insurance</p>
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {existingPatientData.insurance_provider}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {existingPatientData.address && (
+                        <div className="mb-6 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Address</p>
+                          <p className="text-sm text-gray-900 dark:text-white">{existingPatientData.address}</p>
+                        </div>
+                      )}
+                      <Button
+                        className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                        onClick={handleContinueWithExistingPatient}
+                      >
+                        Continue to Appointment Booking
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  {/* Existing appointments section remains the same */}
+                  <div className="mt-8">
+                    <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Your Appointments</h4>
+                    {loadingAppointments ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="animate-spin text-blue-600 h-8 w-8 mr-3" />
+                        <p className="text-gray-600 dark:text-gray-400">Loading appointments...</p>
+                      </div>
+                    ) : patientAppointments.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                        <p className="text-gray-500 dark:text-gray-400">No appointments found.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {patientAppointments.map((apt) => {
+                          const isDateFutureOrToday = (() => {
+                            if (!apt.appointment_date) return false;
+                            const aptDate = new Date(apt.appointment_date);
+                            aptDate.setHours(0, 0, 0, 0);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return aptDate >= today;
+                          })();
+
+                          const getStatusColor = (status) => {
+                            switch (status) {
+                              case "confirmed": return "bg-green-100 text-green-800 border-green-200";
+                              case "pending": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+                              case "cancelled": return "bg-red-100 text-red-800 border-red-200";
+                              case "completed": return "bg-blue-100 text-blue-800 border-blue-200";
+                              case "in-progress": return "bg-purple-100 text-purple-800 border-purple-200";
+                              default: return "bg-gray-100 text-gray-800 border-gray-200";
+                            }
+                          };
+
+                          return (
+                            <div
+                              key={apt.id}
+                              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(apt.status)}`}>
+                                      {apt.status?.charAt(0).toUpperCase() + apt.status?.slice(1)}
+                                    </span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      {apt.appointment_code}
+                                    </span>
+                                  </div>
+                                  <h5 className="font-semibold text-gray-900 dark:text-white mb-1">
+                                    {apt.staff?.staff_name || "Unknown"}
+                                  </h5>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                    {formatDate(apt.appointment_date)} at {apt.appointment_time}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                                    {apt.reason}
+                                  </p>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                  {isDateFutureOrToday && apt.status !== "cancelled" && apt.status !== "completed" && (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs"
+                                        onClick={() => openRescheduleModal(apt)}
+                                      >
+                                        Reschedule
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs text-red-600 border-red-300 hover:bg-red-50"
+                                        onClick={() => {
+                                          setAppointmentToCancel(apt);
+                                          setCancelModalOpen(true);
+                                        }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    No patient record found. Please register to continue.
+                  </p>
+                  <Button 
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all" 
+                    onClick={() => setShowAddPatientDialog(true)}
+                  >
+                    Register New Patient
+                  </Button>
+                </div>
+              )}
+              <AddPatientDialog
+                open={showAddPatientDialog}
+                setOpen={setShowAddPatientDialog}
+                onAdd={handleAddPatient}
+              />
+            </div>
+          );
+        default:
+          // For steps 2 and beyond, use the new appointment flow
+          return registeredPatient ? (
+            <NewAppointmentFlow 
+              registeredPatient={registeredPatient} 
+              phone={phone} 
+            />
+          ) : null;
+      }
+    };
           return (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
@@ -802,18 +1129,18 @@
                 </Button>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Select Doctor</h2>
               </div>
-              {loadingDoctors ? (
+              {loadingAvailableDoctors ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
                   <p className="text-gray-600 dark:text-gray-400">Loading doctors...</p>
                 </div>
-              ) : doctors.length === 0 ? (
+              ) : availableDoctors.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                   <p className="text-gray-500 dark:text-gray-400">No doctors available</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
-                  {doctors.map((doc) => (
+                  {availableDoctors.map((doc) => (
                     <div
                       key={doc.id}
                       className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${
@@ -1023,7 +1350,7 @@
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Appointment Summary</h4>
                   <div className="space-y-2 text-sm">
                     <p className="text-gray-700 dark:text-gray-300">
-                      <span className="font-medium">Doctor:</span> {selectedDoctor?.staff_name}
+                      <span className="font-medium">Doctor:</span> {selectedDoctor ? selectedDoctor.staff_name : "Any available doctor"}
                     </p>
                     <p className="text-gray-700 dark:text-gray-300">
                       <span className="font-medium">Date:</span> {formatDate(selectedDate)}

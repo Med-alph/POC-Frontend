@@ -10,6 +10,7 @@ import {
   AlertCircle, Droplet, FileText, Users, X, Bell, CheckCircle, Camera
 } from "lucide-react";
 import PatientNavbar from "./PatientNavbar";
+import NewAppointmentFlow from "./NewAppointmentFlow";
 import appointmentsAPI from "@/api/appointmentsapi";
 import { patientsAPI } from "@/api/patientsapi";
 import staffApi from "@/api/staffapi";
@@ -75,10 +76,11 @@ export default function PatientDashboard() {
   const [bookingStep, setBookingStep] = useState(1);
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [doctorPreference, setDoctorPreference] = useState(""); // "yes" or "no"
   const [selectedDate, setSelectedDate] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState("");
   const [slots, setSlots] = useState([]);
   const [slotInfo, setSlotInfo] = useState(null); // Store full slot response including leave info
-  const [selectedSlot, setSelectedSlot] = useState("");
   const [appointmentType, setAppointmentType] = useState("consultation");
   const [reason, setReason] = useState("");
   const [loadingDoctors, setLoadingDoctors] = useState(false);
@@ -146,7 +148,7 @@ export default function PatientDashboard() {
         const isConnected = socketService.isConnected();
         console.log('Patient Socket.IO connection status:', isConnected);
         if (isConnected) {
-          toast.success('Connected to call service');
+          toast.success('Connected to call service'); 
         } else {
           toast.error('Failed to connect to call service');
         }
@@ -516,7 +518,17 @@ export default function PatientDashboard() {
   const fetchRescheduleSlots = async (staffId, date) => {
     if (!staffId || !date) return;
     setLoadingRescheduleSlots(true);
-    try { const response = await appointmentsAPI.getAvailableSlots(staffId, date); setRescheduleSlots(response.slots || []); }
+    try { 
+      const response = await appointmentsAPI.getAvailableSlots(staffId, date); 
+      let slots = response.slots || [];
+      
+      // If rescheduling for the same date, exclude the current appointment time
+      if (appointmentToReschedule && date === appointmentToReschedule.appointment_date) {
+        slots = slots.filter(slot => slot.time !== appointmentToReschedule.appointment_time);
+      }
+      
+      setRescheduleSlots(slots);
+    }
     catch { setRescheduleSlots([]); } finally { setLoadingRescheduleSlots(false); }
   };
   const handleRescheduleConfirm = async () => {
@@ -637,7 +649,43 @@ export default function PatientDashboard() {
   // ========== TAB RENDERERS ==========
 
   const renderAppointmentsTab = () => {
-    if (view === "booking") return renderBookingFlow();
+    if (view === "booking") {
+      // Use the new appointment flow with proper styling
+      return (
+        <Card>
+          <CardHeader className="border-b">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setView("list")}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Appointments
+              </Button>
+              <CardTitle className="text-lg">Book New Appointment</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <NewAppointmentFlow 
+              registeredPatient={patient} 
+              phone={patient?.phone}
+              onSuccess={(appointment) => {
+                // Go back to appointments list and refresh
+                setView("list");
+                if (appointment) {
+                  // Appointment was successfully booked
+                  fetchAppointments();
+                  toast.success("Appointment booked successfully!");
+                }
+                // If appointment is null, user just went back
+              }}
+            />
+          </CardContent>
+        </Card>
+      );
+    }
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
