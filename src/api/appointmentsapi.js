@@ -126,6 +126,24 @@ export const appointmentsAPI = {
     });
   },
 
+  // Get available doctors for specific date/time
+  getAvailableDoctors: async (date, time, hospitalId) => {
+    const params = new URLSearchParams({
+      date,
+      time,
+      hospital_id: hospitalId
+    });
+    return apiRequest(`/appointments/available-doctors?${params}`);
+  },
+
+  // Book appointment with any available doctor
+  bookAnyAvailable: async (appointmentData) => {
+    return apiRequest('/appointments/book-any-available', {
+      method: 'POST',
+      body: JSON.stringify(appointmentData),
+    });
+  },
+
   // Reschedule appointment
   reschedule: async (id, newDateTime) => {
     return apiRequest(`/appointments/${id}/reschedule`, {
@@ -170,11 +188,17 @@ export const appointmentsAPI = {
   },
 
   // Get available slots for a doctor on a specific date
-  getAvailableSlots: async (staffId, date) => {
+  getAvailableSlots: async (staffId, date, excludeAppointmentId = null) => {
     const params = new URLSearchParams({
       staff_id: staffId,
       date: date,
     });
+    
+    // Exclude current appointment when rescheduling
+    if (excludeAppointmentId) {
+      params.append('exclude_appointment_id', excludeAppointmentId);
+    }
+    
     return apiRequest(`/appointments/available-slots?${params.toString()}`);
   },
 
@@ -219,6 +243,24 @@ export const appointmentsAPI = {
     const url = 
        `/appointments/stats/appointments-status-counts?hospital_id=${hospital_id}`
     return apiRequest(url);
+  },
+
+  // Get available doctors for specific date/time
+  getAvailableDoctors: async (date, time, hospitalId) => {
+    const params = new URLSearchParams({
+      date,
+      time,
+      hospital_id: hospitalId
+    });
+    return apiRequest(`/appointments/available-doctors?${params}`);
+  },
+
+  // Book appointment with any available doctor
+  bookAnyAvailable: async (appointmentData) => {
+    return apiRequest('/appointments/book-any-available', {
+      method: 'POST',
+      body: JSON.stringify(appointmentData),
+    });
   },
 
 

@@ -33,7 +33,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 import PatientDetails from "./AppoinmentFlow/PatientDetails";
 import OTPVerification from "./AppoinmentFlow/OTPVerification";
-import AppointmentPage from "./AppoinmentFlow/AppointmentPage";
+import AppointmentPage from "./AppoinmentFlow/SimpleAppointmentPage";
 import ConfirmationPage from "./AppoinmentFlow/ConfirmationPage";
 import LandingPage from "./AppoinmentFlow/LandingPage";
 import PatientDetailsForm from "./AppoinmentFlow/PatientDetailsForm";
