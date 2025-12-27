@@ -165,6 +165,17 @@ const imagesAPI = {
       method: 'DELETE',
     });
   },
+
+  // AI Analysis
+  analyzeImages: async (oldImages, newImages) => {
+    return apiRequest('/derma/ai-analysis', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        oldImages: oldImages.map(img => img.imageUrl), 
+        newImages: newImages.map(img => img.imageUrl) 
+      }),
+    });
+  },
 };
 
 export default imagesAPI;

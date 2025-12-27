@@ -45,6 +45,7 @@
     "react-easy-crop": "^5.5.6",
     "react-hot-toast": "^2.6.0",
     "react-image-crop": "^11.0.10",
+    "react-markdown": "^10.1.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.3",
     "react-to-print": "^3.2.0",
