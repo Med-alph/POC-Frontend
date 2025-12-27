@@ -26,12 +26,10 @@ export default function ItemTable({ items, onTotalChange }) {
     };
 
     return (
-        <Card className="shadow-xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 text-white">
-                <CardTitle className="text-xl font-bold flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-lg">
-                        <ShoppingCart className="h-6 w-6" />
-                    </div>
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+            <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                     Billing Items
                 </CardTitle>
             </CardHeader>
@@ -67,8 +65,8 @@ export default function ItemTable({ items, onTotalChange }) {
                                 >
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                                                <Package className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-md">
+                                                <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                             </div>
                                             <span className="font-semibold text-gray-900 dark:text-white">
                                                 {item.name}
@@ -81,7 +79,7 @@ export default function ItemTable({ items, onTotalChange }) {
                                             min={1}
                                             value={item.qty}
                                             onChange={(e) => updateQty(item.id, Number(e.target.value))}
-                                            className="w-20 h-10 text-center font-semibold border-2 focus:border-blue-500 dark:focus:border-blue-400"
+                                            className="w-20 h-10 text-center font-semibold border focus:border-blue-500 dark:focus:border-blue-400 rounded-md"
                                         />
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
