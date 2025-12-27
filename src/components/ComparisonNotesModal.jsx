@@ -1,12 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
+import imagesAPI from '../api/imagesapi';
 
 const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', leftImages, rightImages }) => {
   const [notes, setNotes] = useState(existingNotes);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState({ plain: '', html: '' });
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const textareaRef = useRef(null);
+  const overlayRef = useRef(null);
+
+  // Convert markdown to HTML for display in overlay
+  const markdownToHtml = (markdown) => {
+    return markdown
+      .replace(/^#{1,6}\s+/gm, '') // Remove headers but keep content
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Convert **bold** to <strong>
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>') // Convert *italic* to <em>
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/`([^`]+)`/g, '$1') // Remove inline code
+      .replace(/^- /gm, '• ') // Convert markdown bullets to bullet points
+      .replace(/\n/g, '<br>') // Convert newlines to <br>
+      .trim();
+  };
+
+  // Convert markdown to plain text for textarea value
+  const markdownToPlainText = (markdown) => {
+    return markdown
+      .replace(/^#{1,6}\s+/gm, '') // Remove headers but keep content
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold markdown but keep text
+      .replace(/\*([^*]+)\*/g, '$1') // Remove italic markdown
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/`([^`]+)`/g, '$1') // Remove inline code
+      .replace(/^- /gm, '• ') // Convert markdown bullets to bullet points
+      .replace(/\n\s*\n/g, '\n\n') // Clean up whitespace
+      .trim();
+  };
 
 
 
@@ -19,75 +50,34 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
     setAiLoading(true);
 
     try {
-      const GROK_KEY = import.meta.env.VITE_GROK_API_KEY;
-
-      const response = await fetch("https://api.x.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${GROK_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "grok-4-latest",
-          temperature: 0.1,
-          messages: [
-            {
-              role: "system",
-              content: `
-  You are a dermatology clinical assistant.
-  Compare OLD vs NEW skin images.
-  DO NOT diagnose.
-  Provide observational comparison only.
-  Return text suitable for clinical notes.
-  `
-            },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "OLD (baseline) images" },
-                ...leftImages.map(img => ({
-                  type: "image_url",
-                  image_url: { url: img.imageUrl }
-                })),
-                { type: "text", text: "NEW (follow-up) images" },
-                ...rightImages.map(img => ({
-                  type: "image_url",
-                  image_url: { url: img.imageUrl }
-                })),
-                {
-                  type: "text",
-                  text: `
-  Summarize:
-  • Size change
-  • Color change
-  • Texture/border change
-  • Risk flag (yes/no)
-  `
-                }
-              ]
-            }
-          ]
-        })
-      });
-
-      const data = await response.json();
-      const aiText = data.choices[0].message.content;
-
-      // Append to notes (doctor editable)
-      setNotes(prev => `
-  AI Image Comparison (Testing Only)
-  
-  ${aiText}
-  
-  -------------------------------
-  ${prev}
-  `);
-
-      toast.success("AI analysis added to notes");
+      const response = await imagesAPI.analyzeImages(leftImages, rightImages);
+      
+      if (response.success) {
+        const aiText = response.data.analysis;
+        const plainText = markdownToPlainText(aiText);
+        const htmlText = markdownToHtml(aiText);
+        
+        // Set as suggestion instead of directly inserting
+        const suggestionText = `AI Image Comparison (Testing Only)\n\n${plainText}\n\n`;
+        const suggestionHtml = `<strong>AI Image Comparison (Testing Only)</strong><br><br>${htmlText}<br><br>`;
+        
+        setAiSuggestion({ plain: suggestionText, html: suggestionHtml });
+        setShowSuggestion(true);
+        toast.success("AI analysis ready - Press Tab to accept");
+        
+        // Focus textarea
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+          }
+        }, 100);
+      } else {
+        throw new Error(response.message || "AI analysis failed");
+      }
 
     } catch (err) {
       console.error(err);
-      toast.error("AI analysis failed");
+      toast.error(err.message || "AI analysis failed");
     } finally {
       setAiLoading(false);
     }
@@ -101,7 +91,7 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
 
   const handleSave = async () => {
     if (!notes.trim()) {
-      toast.error('Please enter some notes');
+      toast.error('Please enter some notes or run AI analysis');
       return;
     }
 
@@ -117,10 +107,51 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
     }
   };
 
+  const handleTextareaFocus = () => {
+    // Keep suggestion visible when focused
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Tab' && showSuggestion) {
+      e.preventDefault();
+      // Accept the AI suggestion - prepend to existing notes
+      setNotes(prev => aiSuggestion.plain + (prev ? prev : ''));
+      setShowSuggestion(false);
+      setAiSuggestion({ plain: '', html: '' });
+      toast.success("AI analysis accepted");
+    } else if (e.key === 'Escape' && showSuggestion) {
+      // Reject the suggestion
+      setShowSuggestion(false);
+      setAiSuggestion({ plain: '', html: '' });
+      toast.info("AI analysis dismissed");
+    }
+  };
+
+  const handleTextChange = (e) => {
+    setNotes(e.target.value);
+    // Hide suggestion if user starts typing
+    if (showSuggestion && e.target.value !== notes) {
+      setShowSuggestion(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <style>{`
+        .ai-suggestion-overlay strong {
+          font-weight: 700 !important;
+          color: rgb(75 85 99) !important;
+        }
+        .ai-suggestion-overlay em {
+          font-style: italic !important;
+          color: rgb(75 85 99) !important;
+        }
+        .ai-suggestion-overlay {
+          color: rgb(156 163 175) !important;
+        }
+      `}</style>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
@@ -189,20 +220,73 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
             variant="outline"
             onClick={runAiAnalysis}
             disabled={aiLoading}
+            className="mb-4"
           >
             {aiLoading ? "Analyzing..." : "AI Analysis"}
           </Button>
 
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Enter your clinical observations here...&#10;&#10;Examples:&#10;• Lesion size reduced from 5mm to 3mm&#10;• 20% improvement in redness&#10;• Recommend continuing current treatment&#10;• Patient reports reduced itching"
-            className="w-full h-64 p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-sm"
-            autoFocus
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            {notes.length} characters • These notes will be saved to the patient's medical record
-          </p>
+          {/* Textarea Container with Overlay */}
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={notes}
+              onChange={handleTextChange}
+              onFocus={handleTextareaFocus}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter your clinical observations here...&#10;&#10;Examples:&#10;• Lesion size reduced from 5mm to 3mm&#10;• 20% improvement in redness&#10;• Recommend continuing current treatment&#10;• Patient reports reduced itching"
+              className={`w-full h-64 p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm bg-white ${
+                showSuggestion ? 'text-transparent caret-gray-900' : 'text-gray-900'
+              }`}
+              autoFocus
+            />
+            
+            {/* AI Suggestion Overlay */}
+            {showSuggestion && (
+              <div 
+                ref={overlayRef}
+                className="absolute top-0 left-0 w-full h-full p-4 pointer-events-none rounded-lg overflow-hidden"
+                style={{ 
+                  fontFamily: 'inherit',
+                  fontSize: '0.875rem',
+                  lineHeight: '1.25rem'
+                }}
+              >
+                {/* AI suggestion positioned first */}
+                <div 
+                  className="ai-suggestion-overlay"
+                  style={{
+                    color: 'rgb(156 163 175)',
+                    opacity: 0.7
+                  }}
+                  dangerouslySetInnerHTML={{ __html: aiSuggestion.html }}
+                />
+                
+                {/* Existing notes positioned after AI suggestion */}
+                {notes && (
+                  <>
+                    <br />
+                    <div className="text-gray-900 whitespace-pre-wrap">
+                      {notes}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-gray-500">
+              {notes.length} characters • These notes will be saved to the patient's medical record
+            </p>
+            {showSuggestion && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="bg-gray-100 px-2 py-1 rounded">Tab</span>
+                <span>to accept</span>
+                <span className="bg-gray-100 px-2 py-1 rounded">Esc</span>
+                <span>to dismiss</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Footer */}
