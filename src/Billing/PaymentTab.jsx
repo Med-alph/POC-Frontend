@@ -82,46 +82,44 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* LEFT SIDE: Payment options */}
-      <Card className="w-full lg:w-2/3 shadow-xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 text-white">
-          <h2 className="text-2xl font-bold flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <CreditCard className="h-6 w-6" />
-            </div>
+      <Card className="w-full lg:w-2/3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             Select Payment Method
           </h2>
         </CardHeader>
         <CardContent className="p-6">
           <Tabs value={method} onValueChange={setMethod}>
-            <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full mb-6 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
+            <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full mb-6 bg-gray-100 dark:bg-gray-700 rounded-md p-1">
               <TabsTrigger 
                 value="card"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
               >
                 <CreditCard className="h-4 w-4 mr-2" /> Card
               </TabsTrigger>
               <TabsTrigger 
                 value="upi"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
               >
                 <Smartphone className="h-4 w-4 mr-2" /> UPI
               </TabsTrigger>
               <TabsTrigger 
                 value="wallet"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
               >
                 <Wallet className="h-4 w-4 mr-2" /> Wallet
               </TabsTrigger>
               <TabsTrigger 
                 value="later"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg font-semibold transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
               >
                 Pay Later
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="card" className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-4 border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
                   Pay securely using your debit/credit card.
                 </p>
@@ -132,7 +130,7 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
                     </Label>
                     <Input 
                       placeholder="Enter cardholder name" 
-                      className="h-12 border-2 focus:border-blue-500 dark:focus:border-blue-400"
+                      className="h-12 border focus:border-blue-500 dark:focus:border-blue-400 rounded-md"
                     />
                   </div>
                 </div>
@@ -140,7 +138,7 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
             </TabsContent>
 
             <TabsContent value="upi" className="space-y-4">
-              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-4 border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
                   Enter your UPI ID to continue with instant payment.
                 </p>
@@ -151,7 +149,7 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
                     </Label>
                     <Input 
                       placeholder="username@upi" 
-                      className="h-12 border-2 focus:border-purple-500 dark:focus:border-purple-400"
+                      className="h-12 border focus:border-blue-500 dark:focus:border-blue-400 rounded-md"
                     />
                   </div>
                 </div>
@@ -159,7 +157,7 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
             </TabsContent>
 
             <TabsContent value="wallet" className="space-y-4">
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 border border-yellow-200 dark:border-yellow-800">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-4 border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   You can pay using digital wallets like Paytm, PhonePe, Google Pay, etc.
                 </p>
@@ -167,7 +165,7 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
             </TabsContent>
 
             <TabsContent value="later" className="space-y-4">
-              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-4 border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   The amount will be added to the patient's pending balance and can be paid later.
                 </p>
@@ -178,12 +176,10 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
       </Card>
 
       {/* RIGHT SIDE: Summary & Button */}
-      <Card className="w-full lg:w-1/3 h-fit shadow-xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-500 text-white">
-          <h2 className="text-xl font-bold flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <Receipt className="h-5 w-5" />
-            </div>
+      <Card className="w-full lg:w-1/3 h-fit bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             Payment Summary
           </h2>
         </CardHeader>
@@ -193,10 +189,10 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
               <span className="text-gray-700 dark:text-gray-300 font-medium">Amount</span>
               <span className="text-xl font-bold text-gray-900 dark:text-white">₹{amount.toFixed(2)}</span>
             </div>
-            <div className="border-t-2 border-gray-200 dark:border-gray-700 pt-4">
-              <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800">
-                <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
-                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">₹{amount.toFixed(2)}</span>
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="flex justify-between items-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+                <span className="text-base font-semibold text-gray-900 dark:text-white">Total</span>
+                <span className="text-xl font-semibold text-blue-600 dark:text-blue-400">₹{amount.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -204,7 +200,7 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
         <CardFooter className="p-6 pt-0">
           <Button
             disabled={loading || method === "later"}
-            className="w-full text-lg py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full text-base py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={openRazorpay}
           >
             {loading ? (

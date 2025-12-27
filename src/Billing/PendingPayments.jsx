@@ -3,12 +3,10 @@ import { Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function PendingPayments({ appointments }) {
     return (
-        <Card className="shadow-xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700 overflow-hidden h-fit">
-            <CardHeader className="bg-gradient-to-r from-orange-600 via-orange-500 to-red-500 text-white">
-                <CardTitle className="text-lg font-bold flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-lg">
-                        <Clock className="h-5 w-5" />
-                    </div>
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden h-fit">
+            <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                     Pending Payments
                 </CardTitle>
             </CardHeader>
@@ -23,7 +21,7 @@ export default function PendingPayments({ appointments }) {
                         {appointments.map(a => (
                             <div
                                 key={a.appointmentId}
-                                className={`cursor-pointer p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                                className={`cursor-pointer p-3 rounded-md border transition-all ${
                                     a.pendingAmount > 0 
                                         ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30" 
                                         : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30"
