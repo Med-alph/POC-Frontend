@@ -6,6 +6,94 @@ import toast from 'react-hot-toast';
 const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', leftImages, rightImages }) => {
   const [notes, setNotes] = useState(existingNotes);
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+
+
+
+  const runAiAnalysis = async () => {
+    if (!leftImages.length || !rightImages.length) {
+      toast.error("Need at least one old and one new image");
+      return;
+    }
+
+    setAiLoading(true);
+
+    try {
+      const GROK_KEY = import.meta.env.VITE_GROK_API_KEY;
+
+      const response = await fetch("https://api.x.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${GROK_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "grok-4-latest",
+          temperature: 0.1,
+          messages: [
+            {
+              role: "system",
+              content: `
+  You are a dermatology clinical assistant.
+  Compare OLD vs NEW skin images.
+  DO NOT diagnose.
+  Provide observational comparison only.
+  Return text suitable for clinical notes.
+  `
+            },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "OLD (baseline) images" },
+                ...leftImages.map(img => ({
+                  type: "image_url",
+                  image_url: { url: img.imageUrl }
+                })),
+                { type: "text", text: "NEW (follow-up) images" },
+                ...rightImages.map(img => ({
+                  type: "image_url",
+                  image_url: { url: img.imageUrl }
+                })),
+                {
+                  type: "text",
+                  text: `
+  Summarize:
+  • Size change
+  • Color change
+  • Texture/border change
+  • Risk flag (yes/no)
+  `
+                }
+              ]
+            }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      const aiText = data.choices[0].message.content;
+
+      // Append to notes (doctor editable)
+      setNotes(prev => `
+  AI Image Comparison (Testing Only)
+  
+  ${aiText}
+  
+  -------------------------------
+  ${prev}
+  `);
+
+      toast.success("AI analysis added to notes");
+
+    } catch (err) {
+      console.error(err);
+      toast.error("AI analysis failed");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+
 
   useEffect(() => {
     setNotes(existingNotes);
@@ -96,6 +184,15 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Clinical Observations
           </label>
+
+          <Button
+            variant="outline"
+            onClick={runAiAnalysis}
+            disabled={aiLoading}
+          >
+            {aiLoading ? "Analyzing..." : "AI Analysis"}
+          </Button>
+
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
