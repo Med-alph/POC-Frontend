@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart } from "lucide-react";
+import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart, GalleryThumbnails } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import toast from 'react-hot-toast';
@@ -8,7 +8,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import consultationsAPI from "../../api/consultationsapi";
 
-const tabs = ["Appointments", "SOAP Notes", "Medications", "Lab Results", "Allergies & Notes"];
+const tabs = ["Appointments", "SOAP Notes", "Medications", "Lab Results", "Allergies & Notes", 'Gallery'];
 
 const DoctorPatientRecord = () => {
     const { patientId } = useParams();
@@ -23,34 +23,34 @@ const DoctorPatientRecord = () => {
         fetchPatientRecords();
     }, [patientId]);
 
-   const fetchPatientRecords = async () => {
-  try {
-    setLoading(true);
+    const fetchPatientRecords = async () => {
+        try {
+            setLoading(true);
 
-    if (patientId) {
-      const response = await consultationsAPI.getByPatient(patientId); // now returns { patient, consultations }
+            if (patientId) {
+                const response = await consultationsAPI.getByPatient(patientId); // now returns { patient, consultations }
 
-      if (response.patient) {
-        setPatientData(response.patient);
-      } else {
-        setPatientData(null); // or empty object to handle no patient found
-      }
+                if (response.patient) {
+                    setPatientData(response.patient);
+                } else {
+                    setPatientData(null); // or empty object to handle no patient found
+                }
 
-      if (response.consultations && response.consultations.length > 0) {
-        setConsultations(response.consultations);
-        toast.success("Patient records loaded");
-      } else {
-        setConsultations([]); // no consultations but patient data present
-        toast.info("No consultation records found");
-      }
-    }
-  } catch (err) {
-    console.error("Failed to fetch patient records:", err);
-    toast.error(`Failed to load patient records: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+                if (response.consultations && response.consultations.length > 0) {
+                    setConsultations(response.consultations);
+                    toast.success("Patient records loaded");
+                } else {
+                    setConsultations([]); // no consultations but patient data present
+                    toast.info("No consultation records found");
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch patient records:", err);
+            toast.error(`Failed to load patient records: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
 
@@ -378,17 +378,22 @@ const DoctorPatientRecord = () => {
                                     "Medications": Pill,
                                     "Lab Results": FlaskConical,
                                     "Allergies & Notes": AlertCircle,
+                                    "Gallery": GalleryThumbnails,
                                 };
                                 const Icon = tabIcons[tab] || FileText;
                                 return (
                                     <button
                                         key={tab}
-                                        onClick={() => setActiveTab(tab)}
-                                        className={`whitespace-nowrap flex items-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm transition-all ${
-                                            activeTab === tab
-                                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-                                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-                                        }`}
+                                        onClick={() => {
+                                            if (tab == "Gallery") {
+                                                navigate(`/patient-gallery?patientId=${patientId}`)
+                                            }
+                                            setActiveTab(tab)
+                                        }}
+                                        className={`whitespace-nowrap flex items-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm transition-all ${activeTab === tab
+                                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                            }`}
                                     >
                                         <Icon className="h-4 w-4" />
                                         {tab}
@@ -573,13 +578,12 @@ const DoctorPatientRecord = () => {
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                                                            lab.status === 'completed' 
-                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700' 
-                                                                : lab.status === 'in_progress' 
-                                                                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
-                                                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
-                                                        }`}>
+                                                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${lab.status === 'completed'
+                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700'
+                                                            : lab.status === 'in_progress'
+                                                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
+                                                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                                                            }`}>
                                                             {lab.status?.toUpperCase() || 'PENDING'}
                                                         </span>
                                                     </div>
@@ -652,6 +656,8 @@ const DoctorPatientRecord = () => {
                                 </Card>
                             </div>
                         )}
+
+
                     </CardContent>
                 </Card>
             </div>

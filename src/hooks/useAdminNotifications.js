@@ -22,35 +22,35 @@ function useAdminNotifications(adminUserId, hospitalId) {
       setIsLoadingHistory(true);
       try {
         console.log('📥 Fetching historical notifications for user:', adminUserId);
-        
+
         // Use the base URL with auth token (backend will identify user from token)
         const token = getAuthToken();
-        
+
         if (!token) {
           console.warn('⚠️ No auth token found, skipping historical fetch');
           return;
         }
-        
+
         console.log('🔑 Using auth token:', token.substring(0, 20) + '...');
-        
+
         const response = await fetch(`${baseUrl}/notifications?limit=50&filter=unread`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
-        
+
         console.log('📡 Response status:', response.status, response.statusText);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('❌ Response error:', errorText);
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('📦 Response data:', data);
-        
+
         if (data.notifications) {
           // Normalize the historical notifications
           const historicalNotifs = data.notifications.map(notif => ({
@@ -61,7 +61,7 @@ function useAdminNotifications(adminUserId, hospitalId) {
             createdAt: notif.created_at || notif.createdAt,
             message: notif.body || notif.message || notif.title,
           }));
-          
+
           console.log('✅ Loaded historical notifications:', historicalNotifs.length);
           setNotifications(historicalNotifs);
         }
@@ -93,9 +93,9 @@ function useAdminNotifications(adminUserId, hospitalId) {
     });
 
     const socket = io(`${SOCKET_SERVER_URL}/notifications`, {
-      query: { 
+      query: {
         userId: adminUserId,
-        hospitalId: hospitalId 
+        hospitalId: hospitalId
       },
       transports: ['websocket', 'polling']
     });
@@ -104,7 +104,7 @@ function useAdminNotifications(adminUserId, hospitalId) {
     socket.on('connect', () => {
       console.log('✅ Socket connected:', socket.id);
       console.log('🏥 Hospital ID:', hospitalId);
-      
+
       // Join hospital admin room if hospitalId is provided
       if (hospitalId) {
         const roomName = `hospital_${hospitalId}_admins`;
@@ -128,7 +128,7 @@ function useAdminNotifications(adminUserId, hospitalId) {
     // Listen for appointment cancellation requests
     socket.on('appointmentCancellationRequested', (payload) => {
       console.log('📋 New cancellation request notification', payload);
-      
+
       // Structure the notification properly for display
       const structuredNotification = {
         ...payload,
@@ -139,10 +139,10 @@ function useAdminNotifications(adminUserId, hospitalId) {
         // Use the id from payload as notificationId (this is the actual DB notification id)
         notificationId: payload.id || payload.notificationId,
       };
-      
+
       // Avoid duplicates - check if notification already exists
       setNotifications((prev) => {
-        const exists = prev.some(n => 
+        const exists = prev.some(n =>
           (n.notificationId && n.notificationId === structuredNotification.notificationId) ||
           (n.id && n.id === structuredNotification.notificationId)
         );
@@ -152,7 +152,7 @@ function useAdminNotifications(adminUserId, hospitalId) {
         }
         return [structuredNotification, ...prev];
       });
-      
+
       // Show toast notification
       toast.success('New appointment cancellation request', {
         duration: 4000,
@@ -166,7 +166,7 @@ function useAdminNotifications(adminUserId, hospitalId) {
       console.log('🔍 Payload keys:', Object.keys(payload));
       console.log('🔍 notificationId:', payload.notificationId);
       console.log('🔍 id:', payload.id);
-      
+
       // Structure the notification properly for display
       // Backend sends the actual notification DB id, not the leave_request_id
       const structuredNotification = {
@@ -178,12 +178,12 @@ function useAdminNotifications(adminUserId, hospitalId) {
         // Use the id from payload as notificationId (this is the actual DB notification id)
         notificationId: payload.id || payload.notificationId,
       };
-      
+
       console.log('📦 Structured notification:', structuredNotification);
-      
+
       // Avoid duplicates - check if notification already exists
       setNotifications((prev) => {
-        const exists = prev.some(n => 
+        const exists = prev.some(n =>
           (n.notificationId && n.notificationId === structuredNotification.notificationId) ||
           (n.id && n.id === structuredNotification.notificationId)
         );
@@ -193,7 +193,7 @@ function useAdminNotifications(adminUserId, hospitalId) {
         }
         return [structuredNotification, ...prev];
       });
-      
+
       // Show toast notification with doctor name and leave type
       const doctorName = payload.doctorName || 'A doctor';
       const leaveType = payload.leaveType || 'leave';
@@ -206,7 +206,7 @@ function useAdminNotifications(adminUserId, hospitalId) {
     // Listen for image upload notifications
     socket.on('new_notification', (payload) => {
       console.log('📸 New notification received (image/session)', payload);
-      
+
       // Structure the notification properly for display
       const structuredNotification = {
         ...payload,
@@ -218,10 +218,10 @@ function useAdminNotifications(adminUserId, hospitalId) {
         message: payload.body || payload.message || payload.title,
         notificationId: payload.id || payload.notificationId,
       };
-      
+
       // Avoid duplicates - check if notification already exists
       setNotifications((prev) => {
-        const exists = prev.some(n => 
+        const exists = prev.some(n =>
           (n.notificationId && n.notificationId === structuredNotification.notificationId) ||
           (n.id && n.id === structuredNotification.notificationId)
         );
@@ -231,11 +231,11 @@ function useAdminNotifications(adminUserId, hospitalId) {
         }
         return [structuredNotification, ...prev];
       });
-      
+
       // Show toast notification based on type
       const isImageUpload = payload.type === 'image_uploaded' || payload.type === 'IMAGE_UPLOADED';
       const isSessionReview = payload.type === 'session_reviewed' || payload.type === 'SESSION_REVIEWED';
-      
+
       if (isImageUpload) {
         toast.info(payload.body || payload.message, {
           duration: 5000,
