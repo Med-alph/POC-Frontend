@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,7 @@ const navigationItems = [
   { id: "patients", label: "Patients", path: "/patients", icon: Users },
   { id: "doctors", label: "Doctors", path: "/doctors", icon: Stethoscope },
   { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar },
+  { id: "inventory", label: "Inventory", path: "/inventory", icon: Package },
   { id: "leave-management", label: "Leave Management", path: "/leave-management", icon: Calendar },
   { id: "attendance-management", label: "Attendance Management", path: "/admin/attendance", icon: Clock },
   { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock },
@@ -56,7 +57,18 @@ export default function Navbar() {
   useEffect(() => {
     const currentPath = location.pathname;
     const allNavItems = [...navigationItems, ...doctorNavItems];
-    const activeItem = allNavItems.find((item) => item.path === currentPath);
+    
+    // Find active item - check for exact match first, then check if current path starts with item path
+    let activeItem = allNavItems.find((item) => item.path === currentPath);
+    
+    // If no exact match found, check for parent route matches (e.g., /inventory should be active for /inventory/items)
+    if (!activeItem) {
+      activeItem = allNavItems.find((item) => 
+        currentPath.startsWith(item.path + '/') || 
+        (item.path !== '/' && currentPath.startsWith(item.path))
+      );
+    }
+    
     setActiveTab(activeItem?.id || "");
   }, [location.pathname]);
 

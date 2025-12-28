@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import cancellationRequestAPI from "../api/cancellationrequestapi";
 import UploadSessionModal from "../components/UploadSessionModal";
+import MedicationAutocomplete from "../components/MedicationAutocomplete";
 
 const DoctorConsultation = () => {
     const { appointmentId } = useParams();
@@ -227,6 +228,19 @@ const DoctorConsultation = () => {
 
     const addLabOrder = () =>
         setLabOrders([...labOrders, { test_name: "", instructions: "" }]);
+
+    const handleMedicationSelect = (index, medication) => {
+        const updated = [...prescriptions];
+        updated[index].medicine_name = medication.name;
+        setPrescriptions(updated);
+        
+        // Show stock info to doctor
+        if (!medication.is_available) {
+            toast.error(`${medication.name} is currently out of stock`);
+        } else if (medication.current_stock < 10) {
+            toast.warning(`${medication.name} has low stock (${medication.current_stock} ${medication.unit} remaining)`);
+        }
+    };
 
     const calculateAge = (dob) => {
         if (!dob) return "N/A";
@@ -526,17 +540,17 @@ const DoctorConsultation = () => {
 
                 {prescriptions.map((pres, index) => (
                     <div key={index} className="grid md:grid-cols-4 gap-3 mb-3">
-                        <input
-                            type="text"
-                            placeholder="Medicine Name"
-                            className="border p-2 rounded-md text-sm"
+                        <MedicationAutocomplete
+                            placeholder="Search medications..."
                             value={pres.medicine_name}
-                            onChange={(e) => {
+                            onChange={(value) => {
                                 const updated = [...prescriptions];
-                                updated[index].medicine_name = e.target.value;
+                                updated[index].medicine_name = value;
                                 setPrescriptions(updated);
                             }}
+                            onSelect={(medication) => handleMedicationSelect(index, medication)}
                             disabled={!isConsultationStarted || isCompleted}
+                            className="w-full"
                         />
                         <input
                             type="text"
