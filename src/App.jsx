@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 import Dashboard from "./Dashboard/Dashboard";
 import Patients from "./Patients/Patients";
@@ -48,6 +49,13 @@ import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
 import BillingPage from "./Billing/BillingMainPage";
 import PatientDashboard from "./AppoinmentFlow/PatientDashboard";
 import AuthCallback from "./AppoinmentFlow/AuthCallback";
+
+// Inventory Management
+import InventoryLayout from "./Inventory/InventoryLayout";
+import InventoryDashboard from "./Inventory/InventoryDashboard";
+import ItemsPage from "./Inventory/ItemsPage";
+import CategoriesPage from "./Inventory/CategoriesPage";
+import TransactionsPage from "./Inventory/TransactionsPage";
 
 function AppContent() {
   const location = useLocation();
@@ -100,6 +108,15 @@ function AppContent() {
         <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
         <Route path="/TenantListPage" element={<TenantListPage />} />
         <Route path="/Staffs" element={<StaffListPage />} />
+
+        {/* Inventory Management Routes */}
+        <Route path="/inventory" element={<InventoryLayout />}>
+          <Route index element={<InventoryDashboard />} />
+          <Route path="dashboard" element={<InventoryDashboard />} />
+          <Route path="items" element={<ItemsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="transactions" element={<TransactionsPage />} />
+        </Route>
 
         {/* Doctor view routes */}
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
@@ -170,6 +187,7 @@ function App() {
   return (
     <Router>
       <AppContent />
+      <Toaster position="top-right" />
     </Router>
   );
 }
