@@ -33,6 +33,32 @@ const hospitalsAPI = {
   getById: async (id) => {
     return apiRequest(`/hospitals/${id}`);
   },
+
+  getByTenant: async (tenantId) => {
+    // If tenantId is provided, use it; otherwise, the backend should determine from auth token
+    const endpoint = tenantId ? `/hospitals/tenant/${tenantId}` : '/hospitals/tenant';
+    return apiRequest(endpoint);
+  },
+
+  create: async (hospitalData) => {
+    return apiRequest('/hospitals', {
+      method: 'POST',
+      body: JSON.stringify(hospitalData),
+    });
+  },
+
+  update: async (id, hospitalData) => {
+    return apiRequest(`/hospitals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(hospitalData),
+    });
+  },
+
+  delete: async (id) => {
+    return apiRequest(`/hospitals/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export default hospitalsAPI;

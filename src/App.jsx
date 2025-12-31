@@ -32,6 +32,12 @@ import PermissionsManagement from "./Admin/PermissionsManagement";
 import StaffRoleAssignment from "./Admin/StaffRoleAssignment";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// App Admin Components
+import { AppAdminAuthProvider } from "./AppAdmin/contexts/AppAdminAuthContext";
+import AppAdminLogin from "./AppAdmin/Login/AppAdminLogin";
+import AppAdminProtectedRoute from "./AppAdmin/components/AppAdminProtectedRoute";
+import AppAdminDashboard from "./AppAdmin/Dashboard/AppAdminDashboard";
+
 import PatientDetails from "./AppoinmentFlow/PatientDetails";
 import OTPVerification from "./AppoinmentFlow/OTPVerification";
 import AppointmentPage from "./AppoinmentFlow/SimpleAppointmentPage";
@@ -62,7 +68,7 @@ function AppContent() {
 
   // Routes that should NOT show the navbar
   const authRoutes = [
-    "/", "/signup", "/forgotpassword", "/admin/login", "/tenantadmin/dashboard", "/tenantadmin/login"
+    "/", "/signup", "/forgotpassword", "/admin/login", "/tenantadmin/dashboard", "/tenantadmin/login", "/app-admin/login"
   ];
 
   const adminRoutes = [
@@ -86,6 +92,7 @@ function AppContent() {
   const shouldShowNavbar =
     !authRoutes.includes(location.pathname) &&
     !adminRoutes.includes(location.pathname) &&
+    !location.pathname.startsWith('/app-admin') && // Hide navbar for all app-admin routes
     !patientRoutes.includes(location.pathname) &&
     !shouldHideMainNavbar.includes(location.pathname);
   return (
@@ -178,6 +185,14 @@ function AppContent() {
 
         {/* Billing  */}
         <Route path="/billing/:appoinmentid" element={<BillingPage />} />
+
+        {/* App Admin Routes */}
+        <Route path="/app-admin/login" element={<AppAdminLogin />} />
+        <Route path="/app-admin/*" element={
+          <AppAdminProtectedRoute>
+            <AppAdminDashboard />
+          </AppAdminProtectedRoute>
+        } />
       </Routes>
     </div>
   );
@@ -185,10 +200,12 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-      <Toaster position="top-right" />
-    </Router>
+    <AppAdminAuthProvider>
+      <Router>
+        <AppContent />
+        <Toaster position="top-right" />
+      </Router>
+    </AppAdminAuthProvider>
   );
 }
 

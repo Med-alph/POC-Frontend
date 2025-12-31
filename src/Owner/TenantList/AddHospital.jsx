@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-import tenantsAPI from "../../api/tenantsAPI";
+import tenantsAPI from "../../api/tenantsapi";
 
 export default function AddHospitalDialog({
   onAdd,
@@ -70,7 +70,7 @@ export default function AddHospitalDialog({
 
     // Integrations
     integration_keys: tenantData.integration_keys || null,
-    branch_type: tenantData.branch_type || "",
+    branch_types: Array.isArray(tenantData.branch_types) ? tenantData.branch_types : (tenantData.branch_type ? [tenantData.branch_type] : []),
   });
 
 
@@ -79,7 +79,7 @@ export default function AddHospitalDialog({
 
     // Handle array fields
     if (
-      ["phone", "working_days", "departments", "preferred_languages", "notification_channels"].includes(name)
+      ["phone", "working_days", "departments", "preferred_languages", "notification_channels", "branch_types"].includes(name)
     ) {
       setFormData((prev) => ({
         ...prev,
@@ -256,7 +256,7 @@ export default function AddHospitalDialog({
           <Section title="Integrations / Branches">
             <div className="grid grid-cols-2 gap-4">
               <Input name="integration_keys" placeholder="Integration Keys (JSON or comma separated)" value={formData.integration_keys} onChange={handleChange} />
-              <Input name="branch_type" placeholder="Branch Type (Main / Satellite)" value={formData.branch_type} onChange={handleChange} />
+              <Input name="branch_types" placeholder="Branch Types (comma separated, e.g., Main, Satellite)" value={formData.branch_types.join(", ")} onChange={handleChange} />
             </div>
           </Section>
 
