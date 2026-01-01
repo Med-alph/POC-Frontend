@@ -75,15 +75,20 @@ export const tenantsAPI = {
           ? tenantData.working_days.filter(Boolean)
           : [tenantData.working_days]
         : [],
-      preferred_languages: tenantData.languages
-        ? Array.isArray(tenantData.languages)
-          ? tenantData.languages.filter(Boolean)
-          : [tenantData.languages]
+      preferred_languages: tenantData.preferred_languages
+        ? Array.isArray(tenantData.preferred_languages)
+          ? tenantData.preferred_languages.filter(Boolean)
+          : [tenantData.preferred_languages]
         : [],
-      notification_channels: tenantData.notificationChannels
-        ? Array.isArray(tenantData.notificationChannels)
-          ? tenantData.notificationChannels.filter(Boolean)
-          : [tenantData.notificationChannels]
+      notification_channels: tenantData.notification_channels
+        ? Array.isArray(tenantData.notification_channels)
+          ? tenantData.notification_channels.filter(Boolean)
+          : [tenantData.notification_channels]
+        : [],
+      branch_types: tenantData.branch_types
+        ? Array.isArray(tenantData.branch_types)
+          ? tenantData.branch_types.filter(Boolean)
+          : [tenantData.branch_types]
         : [],
     }
 
