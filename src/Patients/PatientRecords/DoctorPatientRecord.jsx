@@ -1,23 +1,35 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart, GalleryThumbnails } from "lucide-react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart, GalleryThumbnails, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import consultationsAPI from "../../api/consultationsapi";
+import CopilotPanel from "@/components/CopilotPanel";
 
 const tabs = ["Appointments", "SOAP Notes", "Medications", "Lab Results", "Allergies & Notes", 'Gallery'];
 
 const DoctorPatientRecord = () => {
     const { patientId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState(tabs[0]);
+    
+    // Check if navigation state contains activeTab
+    useEffect(() => {
+        if (location.state?.activeTab && tabs.includes(location.state.activeTab)) {
+            setActiveTab(location.state.activeTab);
+            // Clear the state to avoid re-applying on re-renders
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate, location.pathname]);
     const [loading, setLoading] = useState(true);
     const [patientData, setPatientData] = useState(null);
     const [consultations, setConsultations] = useState([]);
     const [appointments, setAppointments] = useState([]);
+    const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
     useEffect(() => {
         fetchPatientRecords();
@@ -301,6 +313,13 @@ const DoctorPatientRecord = () => {
                         >
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Back
+                        </Button>
+                        <Button
+                            onClick={() => setIsCopilotOpen(true)}
+                            className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                        >
+                            <Sparkles className="h-4 w-4" />
+                            AI Insights
                         </Button>
                         <Button
                             onClick={downloadAllSOAPNotes}
@@ -661,6 +680,13 @@ const DoctorPatientRecord = () => {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Copilot Panel */}
+            <CopilotPanel
+                isOpen={isCopilotOpen}
+                onClose={() => setIsCopilotOpen(false)}
+                patientId={patientId}
+            />
         </div>
     );
 };

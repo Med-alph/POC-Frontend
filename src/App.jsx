@@ -45,6 +45,7 @@ import ConfirmationPage from "./AppoinmentFlow/ConfirmationPage";
 import LandingPage from "./AppoinmentFlow/LandingPage";
 import PatientDetailsForm from "./AppoinmentFlow/PatientDetailsForm";
 import FulfilledRecords from "./Doctors/FulfilledRecords";
+import CopilotPage from "./Doctors/CopilotPage";
 import TenantAdminLogin from "./TenantAdmin/TenantAdminLogin";
 import TenantAdminDashboard from "./TenantAdmin/TenantAdminDashboard";
 import Notifications from "./Dashboard/Notifications";
@@ -135,6 +136,7 @@ function AppContent() {
         <Route path="/fulfilled-records" element={<FulfilledRecords />} />
         <Route path="/patient-gallery" element={<DynamicPatientGallery />} />
         <Route path="/patient-images/:patientId" element={<PatientImagesPage />} />
+        <Route path="/copilot" element={<CopilotPage />} />
 
         <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
 

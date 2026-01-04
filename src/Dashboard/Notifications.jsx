@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { 
   Bell, 
   X, 
@@ -27,27 +27,30 @@ export default function Notifications() {
   const [loading, setLoading] = useState(false);
   const [processingId, setProcessingId] = useState(null);
   const [modal, setModal] = useState({ open: false, notif: null, comments: "" });
+  const [filter, setFilter] = useState('unread');
 
-  const fetchNotifications = async () => {
-    if (!user) {
-      console.warn("User not found, skipping fetch");
-      return;
-    }
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await notificationAPI.getUserNotifications(user.id);
-      setNotifications(data);
+      const response = await notificationAPI.list({
+        limit: 50,
+        filter: filter
+      });
+      // Handle both array response and object with notifications property
+      const notificationsData = Array.isArray(response) ? response : (response.notifications || response.data || []);
+      setNotifications(notificationsData);
     } catch (error) {
       toast.error("Failed to load notifications");
       console.error("Fetch notifications failed:", error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
   useEffect(() => {
     fetchNotifications();
-  }, [user]);
+  }, [fetchNotifications]);
 
   const openModal = (notif) => {
     setModal({ open: true, notif, comments: "" });
@@ -228,22 +231,47 @@ export default function Notifications() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="p-6 lg:p-8">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <main className="flex-1 p-6 lg:p-8">
+        <Toaster position="top-right" />
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
             Notifications
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Review cancellation requests and view leave notifications
+            View and manage all your notifications
           </p>
-          {notifications.length > 0 && (
-            <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 mt-3">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Total:</span>
-              <span className="font-semibold text-blue-600 dark:text-blue-400">{notifications.length}</span>
-            </div>
-          )}
+          
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              onClick={() => setFilter('unread')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                filter === 'unread'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              Unread
+            </button>
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                filter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              All
+            </button>
+            {notifications.length > 0 && (
+              <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Total:</span>
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{notifications.length}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Loading State */}
@@ -270,19 +298,56 @@ export default function Notifications() {
               const isProcessed = notifType === 'leave' 
                 ? (notif.status === "approved" || notif.status === "rejected")
                 : (notif.cancellation_status === "approved" || notif.cancellation_status === "rejected");
-              const isProcessing = processingId === notif.notification_id;
-              const notificationType = (notif.notification_type || "").replace(/_/g, " ");
+              const isProcessing = processingId === (notif.notification_id || notif.id);
+              
+              // Support both old and new notification formats
+              const notificationId = notif.notification_id || notif.id;
+              const notificationType = (notif.notification_type || notif.type || "").replace(/_/g, " ");
+              const notificationTitle = notif.title || notif.notification_type || notif.type || "Notification";
+              const notificationBody = notif.body || notif.notification_message || notif.message || "";
+              const notificationSeverity = notif.severity || 'info';
+              const notificationStatus = notif.status || 'unread';
+              const notificationData = notif.data || notif.notification_metadata || notif.metadata || {};
               const displayStatus = notifType === 'leave' ? notif.status : notif.cancellation_status;
+
+              // Get severity color
+              const getSeverityColor = (severity) => {
+                switch(severity) {
+                  case 'critical':
+                    return {
+                      bg: 'bg-red-100 dark:bg-red-900/30',
+                      border: 'border-red-200 dark:border-red-800',
+                      icon: 'text-red-600 dark:text-red-400',
+                      badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
+                    };
+                  case 'warning':
+                    return {
+                      bg: 'bg-orange-100 dark:bg-orange-900/30',
+                      border: 'border-orange-200 dark:border-orange-800',
+                      icon: 'text-orange-600 dark:text-orange-400',
+                      badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800'
+                    };
+                  default:
+                    return {
+                      bg: 'bg-blue-100 dark:bg-blue-900/30',
+                      border: 'border-blue-200 dark:border-blue-800',
+                      icon: 'text-blue-600 dark:text-blue-400',
+                      badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                    };
+                }
+              };
+
+              const severityColors = getSeverityColor(notificationSeverity);
 
               return (
                 <div
-                  key={notif.notification_id}
+                  key={notificationId}
                   className={`bg-white dark:bg-gray-800 border rounded-md transition-colors ${
-                    isProcessed
+                    isProcessed || notificationStatus === 'read' || notificationStatus === 'dismissed'
                       ? "border-gray-200 dark:border-gray-700 opacity-75"
                       : notifType === 'leave'
                         ? "border-orange-200 dark:border-orange-800"
-                        : "border-blue-200 dark:border-blue-800"
+                        : severityColors.border
                   }`}
                 >
                   <div className="p-4">
@@ -291,11 +356,11 @@ export default function Notifications() {
                       <div className="flex-1 space-y-3">
                         <div className="flex items-start gap-3">
                           <div className={`p-2 rounded-md ${
-                            isProcessed
+                            isProcessed || notificationStatus === 'read'
                               ? "bg-gray-100 dark:bg-gray-700"
                               : notifType === 'leave'
                                 ? "bg-orange-100 dark:bg-orange-900/30"
-                                : "bg-blue-100 dark:bg-blue-900/30"
+                                : severityColors.bg
                           }`}>
                             {notifType === 'leave' ? (
                               <FileText className={`h-5 w-5 ${
@@ -305,23 +370,59 @@ export default function Notifications() {
                               }`} />
                             ) : (
                               <AlertCircle className={`h-5 w-5 ${
-                                isProcessed
+                                isProcessed || notificationStatus === 'read'
                                   ? "text-gray-500 dark:text-gray-400"
-                                  : "text-blue-600 dark:text-blue-400"
+                                  : severityColors.icon
                               }`} />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                                {notificationType}
+                                {notificationTitle}
                               </h3>
+                              {/* Severity Badge */}
+                              {notificationSeverity && notificationSeverity !== 'info' && (
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${severityColors.badge}`}>
+                                  {notificationSeverity.charAt(0).toUpperCase() + notificationSeverity.slice(1)}
+                                </span>
+                              )}
+                              {/* Status Badge */}
+                              {notificationStatus && (
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${
+                                  notificationStatus === 'read' || notificationStatus === 'dismissed'
+                                    ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400 border border-gray-200 dark:border-gray-800'
+                                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800'
+                                }`}>
+                                  {notificationStatus.charAt(0).toUpperCase() + notificationStatus.slice(1)}
+                                </span>
+                              )}
                               {/* Only show status badge for cancellation requests */}
                               {notifType === 'cancellation' && getStatusBadge(displayStatus)}
                             </div>
                             <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                              {notif.notification_message || notif.message}
+                              {notificationBody}
                             </p>
+                            
+                            {/* Display notification data/details if available */}
+                            {Object.keys(notificationData).length > 0 && (
+                              <div className={`${notifType === 'leave' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'} rounded-md p-3 mb-2 border`}>
+                                <div className="space-y-1.5 text-xs">
+                                  {Object.entries(notificationData).map(([key, value]) => {
+                                    if (value === null || value === undefined) return null;
+                                    const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                    return (
+                                      <div key={key} className="flex items-center justify-between">
+                                        <span className="text-gray-600 dark:text-gray-400">{displayKey}:</span>
+                                        <span className="font-medium text-gray-900 dark:text-white">
+                                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                             
                             {/* Leave Request Details */}
                             {notifType === 'leave' && (notif.notification_metadata || notif.metadata) && (
@@ -382,16 +483,48 @@ export default function Notifications() {
                             <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3.5 w-3.5" />
-                                <span>{formatDate(notif.notification_created_at || notif.createdAt)}</span>
+                                <span>{formatDate(notif.notification_created_at || notif.created_at || notif.createdAt)}</span>
                               </div>
+                              {notif.type && (
+                                <div className="flex items-center gap-1">
+                                  <FileText className="h-3.5 w-3.5" />
+                                  <span className="capitalize">{notif.type}</span>
+                                </div>
+                              )}
+                              {notif.target_type && (
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3.5 w-3.5" />
+                                  <span>{notif.target_type}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Right Section - Action Button (Only for cancellation requests) */}
-                      {!isProcessed && notifType === 'cancellation' && (
-                        <div className="flex items-center sm:items-start">
+                      {/* Right Section - Action Buttons */}
+                      <div className="flex items-center sm:items-start gap-2">
+                        {/* Mark as read button for unread notifications */}
+                        {notificationStatus === 'unread' && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await notificationAPI.markAsRead(notificationId);
+                                toast.success("Notification marked as read");
+                                await fetchNotifications();
+                              } catch (error) {
+                                toast.error("Failed to mark as read");
+                              }
+                            }}
+                            className="px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Mark Read
+                          </button>
+                        )}
+                        
+                        {/* Action Button (Only for cancellation requests) */}
+                        {!isProcessed && notifType === 'cancellation' && (
                           <button
                             onClick={() => openModal(notif)}
                             disabled={isProcessing}
@@ -413,12 +546,10 @@ export default function Notifications() {
                               </>
                             )}
                           </button>
-                        </div>
-                      )}
-                      
-                      {/* For leave requests, show a link to Leave Management */}
-                      {notifType === 'leave' && (
-                        <div className="flex items-center sm:items-start">
+                        )}
+                        
+                        {/* For leave requests, show a link to Leave Management */}
+                        {notifType === 'leave' && (
                           <button
                             onClick={() => navigate('/leave-management')}
                             className="px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 bg-orange-600 text-white hover:bg-orange-700"
@@ -426,8 +557,8 @@ export default function Notifications() {
                             <Calendar className="h-4 w-4" />
                             Manage in Leave Tab
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -581,7 +712,7 @@ export default function Notifications() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

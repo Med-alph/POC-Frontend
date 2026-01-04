@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import useAdminNotifications from "../hooks/useAdminNotifications";
 import notificationAPI from "../api/notificationapi";
 import socketService from "../services/socketService";
 import toast from "react-hot-toast";
+import CopilotChat from "../components/CopilotChat";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
 
@@ -34,7 +35,7 @@ const doctorNavItems = [
   { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "FulfilledRecords", label: "Fulfilled Patient Records", path: "/fulfilled-records", icon: Users, requiredModule: UI_MODULES.PATIENTS },
   { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
-  { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
+  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles },  { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
 ];
 
 export default function Navbar() {
@@ -45,6 +46,31 @@ export default function Navbar() {
   const { hasModule, loading: permissionsLoading } = usePermissions();
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [showCopilotChat, setShowCopilotChat] = useState(false);
+  
+  // Extract patientId from current route
+  const getPatientIdFromRoute = () => {
+    const path = location.pathname;
+    // Check for /doctor-patient-record/:patientId pattern
+    const patientRecordMatch = path.match(/\/doctor-patient-record\/([^/]+)/);
+    if (patientRecordMatch) {
+      return patientRecordMatch[1];
+    }
+    // Check for /patient-images/:patientId pattern
+    const patientImagesMatch = path.match(/\/patient-images\/([^/]+)/);
+    if (patientImagesMatch) {
+      return patientImagesMatch[1];
+    }
+    // Check for query params
+    const searchParams = new URLSearchParams(location.search);
+    const patientIdFromQuery = searchParams.get('patientId');
+    if (patientIdFromQuery) {
+      return patientIdFromQuery;
+    }
+    return null;
+  };
+  
+  const currentPatientId = getPatientIdFromRoute();
 
   // Connect to notifications for all users (admins and doctors)
   const isAdmin = user?.designation_group?.toLowerCase() !== "doctor";
@@ -203,6 +229,19 @@ export default function Navbar() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {/* Copilot Chat Button */}
+          <button
+            className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            onClick={() => setShowCopilotChat(!showCopilotChat)}
+            aria-label="Clinical Copilot"
+            title={currentPatientId ? "Clinical Copilot" : "Open a patient to use Copilot"}
+          >
+            <MessageSquare className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            {!currentPatientId && (
+              <span className="absolute -top-0.5 -right-0.5 text-xs font-semibold bg-gray-400 rounded-full h-3 w-3 flex items-center justify-center" title="No patient selected" />
+            )}
+          </button>
+          
           <div className="relative">
             <button
               className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -391,6 +430,14 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+      
+      {/* Copilot Chat */}
+      <CopilotChat
+        patientId={currentPatientId}
+        visitId={null}
+        isOpen={showCopilotChat}
+        onClose={() => setShowCopilotChat(false)}
+      />
     </div>
   );
 }
