@@ -14,26 +14,27 @@ import useAdminNotifications from "../hooks/useAdminNotifications";
 import notificationAPI from "../api/notificationapi";
 import socketService from "../services/socketService";
 import toast from "react-hot-toast";
+import { usePermissions } from "../contexts/PermissionsContext";
+import { UI_MODULES } from "../constants/Constant";
 
 const navigationItems = [
-  { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home },
-  { id: "patients", label: "Patients", path: "/patients", icon: Users },
-  { id: "doctors", label: "Doctors", path: "/doctors", icon: Stethoscope },
-  { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar },
-  { id: "inventory", label: "Inventory", path: "/inventory", icon: Package },
-  { id: "leave-management", label: "Leave Management", path: "/leave-management", icon: Calendar },
-  { id: "attendance-management", label: "Attendance Management", path: "/admin/attendance", icon: Clock },
-  { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock },
-  { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell },
+  { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home, requiredModule: UI_MODULES.DASHBOARD },
+  { id: "patients", label: "Patients", path: "/patients", icon: Users, requiredModule: UI_MODULES.PATIENTS },
+  { id: "doctors", label: "Doctors", path: "/doctors", icon: Stethoscope, requiredModule: UI_MODULES.DOCTORS },
+  { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar, requiredModule: UI_MODULES.APPOINTMENTS },
+  { id: "inventory", label: "Inventory", path: "/inventory", icon: Package, requiredModule: UI_MODULES.INVENTORY },
+  { id: "leave-management", label: "Leave Management", path: "/leave-management", icon: Calendar, requiredModule: UI_MODULES.LEAVE_MANAGEMENT },
+  { id: "attendance-management", label: "Attendance Management", path: "/admin/attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
+  { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock, requiredModule: UI_MODULES.REMINDERS },
+  { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS },
 ];
 
 const doctorNavItems = [
-  { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Home },
-  { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock },
-  { id: "FulfilledRecords", label: "Fulfilled Patient Records", path: "/fulfilled-records", icon: Users },
-  { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users },
-
-  { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell },
+  { id: "doctorDashboard", label: "Doctor-dashboard", path: "/doctor-dashboard", icon: Home, requiredModule: UI_MODULES.DASHBOARD },
+  { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
+  { id: "FulfilledRecords", label: "Fulfilled Patient Records", path: "/fulfilled-records", icon: Users, requiredModule: UI_MODULES.PATIENTS },
+  { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
+  { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
 ];
 
 export default function Navbar() {
@@ -41,6 +42,7 @@ export default function Navbar() {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
+  const { hasModule, loading: permissionsLoading } = usePermissions();
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
 
@@ -96,7 +98,34 @@ export default function Navbar() {
     setShowNotifDropdown(false);
   };
 
-  const filteredNavItems = user?.designation_group?.toLowerCase() === "doctor" ? doctorNavItems : navigationItems;
+  // Determine navigation items based on role first, then designation_group
+  const isDoctor = user?.role?.toLowerCase() === "doctor" || 
+                   (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist");
+  const filteredNavItems = isDoctor ? doctorNavItems : navigationItems;
+  
+  console.log('User role:', user?.role);
+  console.log('User designation_group:', user?.designation_group);
+  console.log('Is doctor navigation:', isDoctor);
+  console.log('Using nav items:', isDoctor ? 'doctorNavItems' : 'navigationItems');
+  
+  // Filter navigation items based on user permissions
+  const visibleNavItems = filteredNavItems.filter(item => {
+    // If no required module specified, show the item
+    if (!item.requiredModule) return true;
+    
+    // If permissions are still loading, don't show items that require permissions
+    if (permissionsLoading) return false;
+    
+    // Check if user has permission for this module
+    const hasPermission = hasModule(item.requiredModule);
+    console.log(`Navigation item: ${item.label}, Required: ${item.requiredModule}, Has Permission: ${hasPermission}`);
+    return hasPermission;
+  });
+  
+  console.log('All filtered nav items:', filteredNavItems.map(item => item.label));
+  console.log('Visible nav items:', visibleNavItems.map(item => item.label));
+  console.log('Permissions loading:', permissionsLoading);
+  
   const unreadCount = unreadIds.length;
 
   const toggleNotifications = () => {
@@ -339,7 +368,7 @@ export default function Navbar() {
       <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="px-6 lg:px-8">
           <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-            {filteredNavItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const IconComponent = item.icon;
               const isActive = activeTab === item.id;
               return (

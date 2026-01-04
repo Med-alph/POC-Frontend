@@ -63,6 +63,9 @@ import ItemsPage from "./Inventory/ItemsPage";
 import CategoriesPage from "./Inventory/CategoriesPage";
 import TransactionsPage from "./Inventory/TransactionsPage";
 
+// Permissions Context
+import { PermissionsProvider } from "./contexts/PermissionsContext";
+
 function AppContent() {
   const location = useLocation();
 
@@ -201,10 +204,12 @@ function AppContent() {
 function App() {
   return (
     <AppAdminAuthProvider>
-      <Router>
-        <AppContent />
-        <Toaster position="top-right" />
-      </Router>
+      <PermissionsProvider>
+        <Router>
+          <AppContent />
+          <Toaster position="top-right" />
+        </Router>
+      </PermissionsProvider>
     </AppAdminAuthProvider>
   );
 }

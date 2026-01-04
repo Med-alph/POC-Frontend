@@ -8,6 +8,8 @@ import { ArrowLeft, Loader2, CheckCircleIcon, XCircleIcon } from "lucide-react";
 import appointmentsAPI from "../api/appointmentsapi";
 import toast from "react-hot-toast";
 
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+// Hardcode hospital_id for patient dashboard since patient flow is incomplete
 const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
 
 export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess }) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react"
+import { useSelector } from "react-redux"
 
 import toast, { Toaster } from 'react-hot-toast'
 import { Input } from "@/components/ui/input"
@@ -66,6 +67,10 @@ export default function Doctors() {
     const [filterDialogOpen, setFilterDialogOpen] = useState(false)
     const [editDoctor, setEditDoctor] = useState(null)
     const [editDialogOpen, setEditDialogOpen] = useState(false)
+
+    // Get hospital ID from user data
+    const user = useSelector((state) => state.auth.user);
+    const hospitalId = user?.hospital_id;
 
     // Computed values
     const filteredAndSortedDoctors = useMemo(() => {
@@ -137,9 +142,6 @@ export default function Doctors() {
     const fetchDoctors = async () => {
   try {
     setLoading(true);
-
-    // Hardcoded hospital ID (replace with dynamic later)
-    const hospitalId = "550e8400-e29b-41d4-a716-446655440001";
 
     const params = {
       hospital_id: hospitalId,
@@ -589,7 +591,7 @@ export default function Doctors() {
 
                 {/* Add Staff Dialog */}
                 <CreateStaffDialog
-                    hospitalId="550e8400-e29b-41d4-a716-446655440001"
+                    hospitalId={hospitalId}
                     onAdd={(newStaff) => {
                         setDoctors(prev => [...prev, newStaff])
                         toast.success(`Doctor "${newStaff.staff_name}" added!`)
@@ -600,7 +602,7 @@ export default function Doctors() {
 
                 {/* Edit Staff Dialog */}
                 <CreateStaffDialog
-                    hospitalId="550e8400-e29b-41d4-a716-446655440001"
+                    hospitalId={hospitalId}
                     editStaff={editDoctor}
                     onAdd={handleUpdateDoctor}
                     open={editDialogOpen}

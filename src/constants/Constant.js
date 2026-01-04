@@ -5,8 +5,8 @@
 
 
 // Set ONLY ONE to true at a time
-const isProd = true;   // Production environment
-const isLocal = false;   // Local development environment
+const isProd = false;   // Production environment
+const isLocal = true;   // Local development environment
 
 // ============================================
 // API CONFIGURATION
@@ -56,6 +56,149 @@ export const config = {
 
   // Timezone
   timezone: "Asia/Kolkata", // IST
+};
+
+// ============================================
+// RBAC UI MODULES (Basic definitions only)
+// ============================================
+export const UI_MODULES = {
+  DASHBOARD: 'DASHBOARD',
+  PATIENTS: 'PATIENTS',
+  DOCTORS: 'DOCTORS',
+  APPOINTMENTS: 'APPOINTMENTS',
+  INVENTORY: 'INVENTORY',
+  STAFF_MANAGEMENT: 'STAFF_MANAGEMENT',
+  LEAVE_MANAGEMENT: 'LEAVE_MANAGEMENT',
+  ATTENDANCE: 'ATTENDANCE',
+  REMINDERS: 'REMINDERS',
+  NOTIFICATIONS: 'NOTIFICATIONS',
+  BILLING: 'BILLING',
+  GALLERY: 'GALLERY',
+  VIDEO_CONSULTATIONS: 'VIDEO_CONSULTATIONS',
+  AI_ANALYSIS: 'AI_ANALYSIS',
+  REPORTS: 'REPORTS',
+  CANCELLATION_REQUESTS: 'CANCELLATION_REQUESTS'
+};
+
+export const UI_MODULE_LABELS = {
+  DASHBOARD: 'Dashboard',
+  PATIENTS: 'Patient Management',
+  DOCTORS: 'Doctor Management',
+  APPOINTMENTS: 'Appointments',
+  INVENTORY: 'Inventory Management',
+  STAFF_MANAGEMENT: 'Staff Management',
+  LEAVE_MANAGEMENT: 'Leave Management',
+  ATTENDANCE: 'Attendance Management',
+  REMINDERS: 'Reminders',
+  NOTIFICATIONS: 'Notifications',
+  BILLING: 'Billing & Payments',
+  GALLERY: 'Patient Gallery',
+  VIDEO_CONSULTATIONS: 'Video Consultations',
+  AI_ANALYSIS: 'AI Medical Analysis',
+  REPORTS: 'Reports & Analytics',
+  CANCELLATION_REQUESTS: 'Cancellation Requests'
+};
+
+// Plan Feature → UI Modules Mapping
+export const PLAN_FEATURE_TO_MODULES = {
+  // Core Features (Starter Plan)
+  'patient_records_limit': [
+    UI_MODULES.DASHBOARD,
+    UI_MODULES.PATIENTS,
+    UI_MODULES.GALLERY
+  ],
+  'appointments_limit': [
+    UI_MODULES.APPOINTMENTS,
+    UI_MODULES.REMINDERS,
+    UI_MODULES.CANCELLATION_REQUESTS
+  ],
+  'staff_limit': [
+    UI_MODULES.DOCTORS,
+    UI_MODULES.STAFF_MANAGEMENT,
+    UI_MODULES.LEAVE_MANAGEMENT,
+    UI_MODULES.ATTENDANCE
+  ],
+  'hospital_limit': [
+    // Tenant-level feature, not user-level
+  ],
+  
+  // Premium Features
+  'inventory_management': [UI_MODULES.INVENTORY],
+  'video_calls': [UI_MODULES.VIDEO_CONSULTATIONS],
+  'whatsapp_integration': [UI_MODULES.NOTIFICATIONS],
+  
+  // Enterprise Features
+  'ai_analysis': [UI_MODULES.AI_ANALYSIS],
+  
+  // Future features (to be added to backend)
+  'billing_management': [UI_MODULES.BILLING],
+  'reports_analytics': [UI_MODULES.REPORTS]
+};
+
+// Reverse mapping: UI Module → Plan Features
+export const MODULE_TO_PLAN_FEATURES = {
+  [UI_MODULES.DASHBOARD]: ['patient_records_limit'], // Basic access
+  [UI_MODULES.PATIENTS]: ['patient_records_limit'],
+  [UI_MODULES.GALLERY]: ['patient_records_limit'],
+  [UI_MODULES.APPOINTMENTS]: ['appointments_limit'],
+  [UI_MODULES.REMINDERS]: ['appointments_limit'],
+  [UI_MODULES.CANCELLATION_REQUESTS]: ['appointments_limit'],
+  [UI_MODULES.DOCTORS]: ['staff_limit'],
+  [UI_MODULES.STAFF_MANAGEMENT]: ['staff_limit'],
+  [UI_MODULES.LEAVE_MANAGEMENT]: ['staff_limit'],
+  [UI_MODULES.ATTENDANCE]: ['staff_limit'],
+  [UI_MODULES.INVENTORY]: ['inventory_management'],
+  [UI_MODULES.VIDEO_CONSULTATIONS]: ['video_calls'],
+  [UI_MODULES.NOTIFICATIONS]: ['whatsapp_integration'],
+  [UI_MODULES.AI_ANALYSIS]: ['ai_analysis'],
+  [UI_MODULES.BILLING]: ['billing_management'], // Future
+  [UI_MODULES.REPORTS]: ['reports_analytics'] // Future
+};
+
+// Helper function to convert UI modules to plan features
+export const convertModulesToPlanFeatures = (modules) => {
+  const planFeatures = new Set();
+  
+  modules.forEach(module => {
+    const features = MODULE_TO_PLAN_FEATURES[module] || [];
+    features.forEach(feature => planFeatures.add(feature));
+  });
+  
+  return Array.from(planFeatures);
+};
+
+// Helper function to convert plan features to UI modules
+export const convertPlanFeaturesToModules = (features) => {
+  const uiModules = new Set();
+  
+  features.forEach(feature => {
+    const modules = PLAN_FEATURE_TO_MODULES[feature] || [];
+    modules.forEach(module => uiModules.add(module));
+  });
+  
+  return Array.from(uiModules);
+};
+// ============================================
+// RBAC FEATURES (Legacy - for backward compatibility)
+// ============================================
+export const FEATURES = {
+  INVENTORY: 'INVENTORY',
+  APPOINTMENTS: 'APPOINTMENTS',
+  DERMA_AI: 'DERMA_AI',
+  REPORTS: 'REPORTS',
+  STAFF_MANAGEMENT: 'STAFF_MANAGEMENT',
+  BILLING: 'BILLING',
+  PATIENTS: 'PATIENTS'
+};
+
+export const FEATURE_LABELS = {
+  INVENTORY: 'Inventory Management',
+  APPOINTMENTS: 'Appointments',
+  DERMA_AI: 'Dermatology AI',
+  REPORTS: 'Reports & Analytics',
+  STAFF_MANAGEMENT: 'Staff Management',
+  BILLING: 'Billing & Payments',
+  PATIENTS: 'Patient Management'
 };
 
 // ============================================

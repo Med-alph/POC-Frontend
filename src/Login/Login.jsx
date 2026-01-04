@@ -33,11 +33,8 @@ export default function Login() {
       const response = await authAPI.login({ email, password })
 
       if (response.access_token && response.user) {
-        // Store token and user data in Redux
-        dispatch(setCredentials({
-          access_token: response.access_token,
-          user: response.user
-        }))
+        // Store complete response in Redux (including uiModules)
+        dispatch(setCredentials(response))
 
         toast({
           title: "Login Successful 🎉",

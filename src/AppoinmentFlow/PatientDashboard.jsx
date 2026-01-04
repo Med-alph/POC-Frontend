@@ -28,6 +28,8 @@ import socketService from "@/services/socketService";
 import { videoCallAPI } from "@/api/videocallapi";
 import { generateRoomName } from "@/utils/callUtils";
 
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+// Hardcode hospital_id for patient dashboard since patient flow is incomplete
 const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
 const PAGE_SIZE = 10;
 

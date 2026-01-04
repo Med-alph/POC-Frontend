@@ -59,7 +59,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const { access_token, user } = action.payload
+      const { access_token, user, uiModules } = action.payload
       state.token = access_token
       state.user = user
       state.isAuthenticated = true
@@ -68,6 +68,7 @@ const authSlice = createSlice({
       // Persist to localStorage
       localStorage.setItem('access_token', access_token)
       localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('loginResponse', JSON.stringify(action.payload)) // Store complete response
     },
     clearCredentials: (state) => {
       state.token = null
@@ -79,6 +80,7 @@ const authSlice = createSlice({
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('loginResponse') // Clear complete response
     },
     clearError: (state) => {
       state.error = null
@@ -96,7 +98,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false
-        const { access_token, user } = action.payload
+        const { access_token, user, uiModules } = action.payload
         state.token = access_token
         state.user = user
         state.isAuthenticated = true
@@ -105,6 +107,7 @@ const authSlice = createSlice({
         // Persist to localStorage
         localStorage.setItem('access_token', access_token)
         localStorage.setItem('user', JSON.stringify(user))
+        localStorage.setItem('loginResponse', JSON.stringify(action.payload)) // Store complete response
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false
@@ -121,6 +124,7 @@ const authSlice = createSlice({
         // Clear localStorage
         localStorage.removeItem('access_token')
         localStorage.removeItem('user')
+        localStorage.removeItem('loginResponse') // Clear complete response
       })
   },
 })

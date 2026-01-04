@@ -13,8 +13,19 @@ import {
 import toast from 'react-hot-toast';
 
 export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
+    // Get hospital_id from localStorage user if not provided as prop
+    const getUserHospitalId = () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            return user.hospital_id || hospitalId;
+        } catch (error) {
+            console.error('Error parsing user from localStorage:', error);
+            return hospitalId;
+        }
+    };
+
     const [formData, setFormData] = useState({
-        hospital_id: hospitalId || "550e8400-e29b-41d4-a716-446655440001",
+        hospital_id: getUserHospitalId(),
         patient_name: "",
         dob: "",
         contact_info: "",
@@ -30,8 +41,8 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
 
     // Update hospital_id in form when prop changes
     useEffect(() => {
-        // console.log("Hospital ID changed, updating formData");
-        setFormData(prev => ({ ...prev, hospital_id: hospitalId || "550e8400-e29b-41d4-a716-446655440001" }));
+        const currentHospitalId = getUserHospitalId();
+        setFormData(prev => ({ ...prev, hospital_id: currentHospitalId }));
     }, [hospitalId]);
 
     // Log formData on every change for debugging
@@ -78,11 +89,10 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
             console.log('Calling onAdd with patientData:', patientData);
             await onAdd(patientData); // Await API call completion here
             console.log('onAdd call successful');
-            setOpen(false);
-
+            
             // Reset form only after success
             setFormData({
-                hospital_id: hospitalId || "550e8400-e29b-41d4-a716-446655440001",
+                hospital_id: getUserHospitalId(),
                 patient_name: "",
                 dob: "",
                 contact_info: "",
@@ -95,10 +105,14 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId }) {
                 allergies: "",
                 status: "active"
             });
+            
+            // Close dialog after successful creation
+            setOpen(false);
             // console.log('Form reset after success');
 
         } catch (error) {
             console.error('Error in form submission:', error);
+            // Only show error toast if the parent function threw an error
             toast.error("Failed to create patient. Please try again.");
         }
     };

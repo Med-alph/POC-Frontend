@@ -145,7 +145,8 @@ export default function Patients() {
     const fetchPatients = async () => {
         try {
             setLoading(true)
-            const hospitalId = "550e8400-e29b-41d4-a716-446655440001"
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const hospitalId = user.hospital_id;
             const offset = (currentPage - 1) * PAGE_SIZE
             const params = { 
                 hospital_id: hospitalId,
@@ -227,7 +228,10 @@ export default function Patients() {
     const handleAddPatient = async (newPatient) => {
         try {
             const response = await patientsAPI.create(newPatient)
-            const createdPatient = response?.data ?? response  // <-- key fix here
+            console.log("API Response:", response)
+            
+            // Handle the response structure - API returns { patient: {...}, token: "..." }
+            const createdPatient = response?.patient ?? response?.data ?? response
 
             console.log("Created patient object:", createdPatient)
 
@@ -235,12 +239,16 @@ export default function Patients() {
                 throw new Error("Created patient data invalid")
             }
 
+            // Add the new patient to the list and refresh the table
             setPatients(prev => [...prev.filter(p => p.id !== createdPatient.id), createdPatient])
-            toast.success(`Patient "${createdPatient.patient_name}" added!`)
-            setOpenDialog(false)
+            toast.success(`Patient "${createdPatient.patient_name}" added successfully!`)
+            
+            // Refresh the patient list to ensure we have the latest data
+            fetchPatients()
         } catch (error) {
             console.error("Add patient error:", error)
             toast.error("Failed to add patient, please try again.")
+            throw error // Re-throw so AddPatient component knows it failed
         }
     }
 
