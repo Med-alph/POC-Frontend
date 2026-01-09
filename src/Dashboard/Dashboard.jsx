@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import appointmentsAPI from "../api/appointmentsapi";
 import patientsAPI from "../api/patientsapi"; // Assume you have this API file
 import LiveAppointmentList from "./comps/LiveAppoinment";
+import ComplianceBanner from "@/components/compliance/ComplianceBanner";
 
 ChartJS.register(
   CategoryScale,
@@ -462,6 +463,10 @@ export default function Dashboard() {
       {/* <Navbar /> */}
       <main className="flex-1 p-6 lg:p-8">
         <Toaster position="top-right" />
+        
+        {/* Compliance Banner */}
+        <ComplianceBanner />
+        
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
             Good Morning, Care Coordinator

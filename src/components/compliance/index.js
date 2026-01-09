@@ -1,0 +1,16 @@
+export { default as PatientConsentModal } from './PatientConsentModal';
+export { default as TermsAcceptanceCheckbox } from './TermsAcceptanceCheckbox';
+export { default as PrivacyPolicyPage } from './PrivacyPolicyPage';
+export { default as TermsOfServicePage } from './TermsOfServicePage';
+export { default as ConsentStatusIndicator } from './ConsentStatusIndicator';
+export { default as ComplianceBanner } from './ComplianceBanner';
+export { default as DataProtectionNotice } from './DataProtectionNotice';
+export { default as ComplianceFooter } from './ComplianceFooter';
+export { default as PatientConsentStatus } from './PatientConsentStatus';
+export { default as TermsAcceptanceModal } from './TermsAcceptanceModal';
+export { default as TermsGuard } from './TermsGuard';
+export { default as HospitalConsentManagement } from './HospitalConsentManagement';
+export { default as StaffConsentRecording } from './StaffConsentRecording';
+export { default as PatientSelfConsent } from './PatientSelfConsent';
+export { default as ConsentTextEditor } from './ConsentTextEditor';
+export { default as ConsentPreview } from './ConsentPreview';

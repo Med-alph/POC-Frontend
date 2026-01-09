@@ -1,18 +1,21 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { usePermissions } from '../contexts/PermissionsContext';
+import { useSelector } from 'react-redux';
 import { Shield, AlertCircle } from 'lucide-react';
 
-const ProtectedRoute = ({ 
-  children, 
+const ProtectedRoute = ({
+  children,
   feature,  // Legacy support
   module,   // New module-based protection
-  features = [], 
+  features = [],
   modules = [],
+  requiredPermissions = [], // Support for array of permissions
   requireAll = false,
-  fallback = null 
+  fallback = null
 }) => {
   const { userFeatures, loading, hasFeature, hasAnyFeature, hasAllFeatures } = usePermissions();
+  const reduxUser = useSelector((state) => state.auth.user);
 
   // Show loading state while permissions are being fetched
   if (loading) {
@@ -29,7 +32,14 @@ const ProtectedRoute = ({
   // Check permissions
   let hasAccess = false;
 
-  if (module) {
+  // Check for HOSPITAL_ADMIN role if specified in requiredPermissions
+  if (requiredPermissions.includes('HOSPITAL_ADMIN')) {
+    // Check both permission context user AND redux user to be safe
+    const userRole = reduxUser?.role || reduxUser?.designation_group;
+    if (userRole === 'Admin') {
+      hasAccess = true;
+    }
+  } else if (module) {
     hasAccess = hasFeature(module);
   } else if (feature) {
     // Legacy support
@@ -39,6 +49,10 @@ const ProtectedRoute = ({
   } else if (features.length > 0) {
     // Legacy support
     hasAccess = requireAll ? hasAllFeatures(features) : hasAnyFeature(features);
+  } else if (requiredPermissions.length > 0) {
+    // General permission check if not handled above
+    // For now, assume other permissions map to features
+    hasAccess = requireAll ? hasAllFeatures(requiredPermissions) : hasAnyFeature(requiredPermissions);
   } else {
     // No specific module required, allow access
     hasAccess = true;

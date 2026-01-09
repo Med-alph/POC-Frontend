@@ -14,6 +14,7 @@ import {
 import { Mail, Lock, Eye, EyeOff, Shield } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 import tenantsuperadminapi from "../api/tenantsuperadminapi"
+import { complianceAPI } from "@/api/complianceapi"
 
 export default function TenantAdminLogin() {
   const [showPassword, setShowPassword] = useState(false)

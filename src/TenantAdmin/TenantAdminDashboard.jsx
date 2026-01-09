@@ -18,6 +18,7 @@ import UsersRolesTab from "./StaffRoles/StaffsRolesTab";
 import StaffsRolesTab from "./StaffRoles/StaffsRolesTab";
 import HospitalPatinets from "./Patients/HospitalPatients";
 import RoleManagement from "./RoleManagement/RoleManagement";
+import HospitalConsentManagement from "@/components/compliance/HospitalConsentManagement";
 
 
 export default function TenantAdminDashboard() {
@@ -151,6 +152,7 @@ export default function TenantAdminDashboard() {
             { id: "hospitals", label: "Hospitals" },
             { id: "hospitals-staffs", label: "Hospitals Staffs" },           // New tab: Operational metrics & health stats per hospital
             { id: "roles-access", label: "Roles & Access" },                // New tab: Role-based access control
+            // { id: "patient-consent", label: "Patient Consent" },            // New tab: Hospital consent management
             // { id: "hospital-staff", label: "Hospital Staff" },           // New tab: Manage hospital staff & departments
             // { id: "compliance", label: "Compliance & Documents" },       // New tab: Licensing, certifications, document management
             // { id: "notifications", label: "Notifications & Alerts" },    // New tab: Admin alerts & warnings
@@ -163,8 +165,8 @@ export default function TenantAdminDashboard() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center px-4 py-3 rounded-lg font-medium text-sm transition duration-200 whitespace-nowrap ${isActive
-                    ? "bg-blue-50 text-blue-700 border-b-2 border-blue-700"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  ? "bg-blue-50 text-blue-700 border-b-2 border-blue-700"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   }`}
               >
                 {tab.label}
@@ -283,11 +285,11 @@ export default function TenantAdminDashboard() {
       case "hospitals":
         return <HospitalListTable />;
       case "hospitals-staffs":
-       return <StaffsRolesTab />;
+        return <StaffsRolesTab />;
       case "roles-access":
         return <RoleManagement />;
       case "hospitals-patients":
-        return <HospitalPatinets/>
+        return <HospitalPatinets />
       default:
         return null;
     }

@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ const doctorNavItems = [
   { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "FulfilledRecords", label: "Fulfilled Patient Records", path: "/fulfilled-records", icon: Users, requiredModule: UI_MODULES.PATIENTS },
   { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
-  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles },  { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
+  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles }, { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
 ];
 
 export default function Navbar() {
@@ -47,7 +47,7 @@ export default function Navbar() {
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showCopilotChat, setShowCopilotChat] = useState(false);
-  
+
   // Extract patientId from current route
   const getPatientIdFromRoute = () => {
     const path = location.pathname;
@@ -69,7 +69,7 @@ export default function Navbar() {
     }
     return null;
   };
-  
+
   const currentPatientId = getPatientIdFromRoute();
 
   // Connect to notifications for all users (admins and doctors)
@@ -85,18 +85,18 @@ export default function Navbar() {
   useEffect(() => {
     const currentPath = location.pathname;
     const allNavItems = [...navigationItems, ...doctorNavItems];
-    
+
     // Find active item - check for exact match first, then check if current path starts with item path
     let activeItem = allNavItems.find((item) => item.path === currentPath);
-    
+
     // If no exact match found, check for parent route matches (e.g., /inventory should be active for /inventory/items)
     if (!activeItem) {
-      activeItem = allNavItems.find((item) => 
-        currentPath.startsWith(item.path + '/') || 
+      activeItem = allNavItems.find((item) =>
+        currentPath.startsWith(item.path + '/') ||
         (item.path !== '/' && currentPath.startsWith(item.path))
       );
     }
-    
+
     setActiveTab(activeItem?.id || "");
   }, [location.pathname]);
 
@@ -125,33 +125,33 @@ export default function Navbar() {
   };
 
   // Determine navigation items based on role first, then designation_group
-  const isDoctor = user?.role?.toLowerCase() === "doctor" || 
-                   (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist");
+  const isDoctor = user?.role?.toLowerCase() === "doctor" ||
+    (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist");
   const filteredNavItems = isDoctor ? doctorNavItems : navigationItems;
-  
+
   console.log('User role:', user?.role);
   console.log('User designation_group:', user?.designation_group);
   console.log('Is doctor navigation:', isDoctor);
   console.log('Using nav items:', isDoctor ? 'doctorNavItems' : 'navigationItems');
-  
+
   // Filter navigation items based on user permissions
   const visibleNavItems = filteredNavItems.filter(item => {
     // If no required module specified, show the item
     if (!item.requiredModule) return true;
-    
+
     // If permissions are still loading, don't show items that require permissions
     if (permissionsLoading) return false;
-    
+
     // Check if user has permission for this module
     const hasPermission = hasModule(item.requiredModule);
     console.log(`Navigation item: ${item.label}, Required: ${item.requiredModule}, Has Permission: ${hasPermission}`);
     return hasPermission;
   });
-  
+
   console.log('All filtered nav items:', filteredNavItems.map(item => item.label));
   console.log('Visible nav items:', visibleNavItems.map(item => item.label));
   console.log('Permissions loading:', permissionsLoading);
-  
+
   const unreadCount = unreadIds.length;
 
   const toggleNotifications = () => {
@@ -163,7 +163,7 @@ export default function Navbar() {
     // 1️⃣ Navigation Logic
     // Normalize type checking (handle both uppercase and lowercase)
     const notifType = (notif.notification_type || notif.notificationType || notif.type || '').toUpperCase();
-    
+
     const isLeaveRequest =
       notifType === "LEAVE_REQUEST" ||
       notif.leave_request_id;
@@ -241,7 +241,7 @@ export default function Navbar() {
               <span className="absolute -top-0.5 -right-0.5 text-xs font-semibold bg-gray-400 rounded-full h-3 w-3 flex items-center justify-center" title="No patient selected" />
             )}
           </button>
-          
+
           <div className="relative">
             <button
               className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -391,6 +391,15 @@ export default function Navbar() {
                 <Settings className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium">Settings</span>
               </DropdownMenuItem>
+              {(user?.role === 'Admin' || user?.designation_group === 'Admin') && (
+                <DropdownMenuItem
+                  onClick={() => navigate('/hospital/consent')}
+                  className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
+                >
+                  <Shield className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400" />
+                  <span className="text-sm font-medium">Manage Patient Consent</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator className="my-1" />
               <DropdownMenuItem
                 onClick={handleLogout}
@@ -430,7 +439,7 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-      
+
       {/* Copilot Chat */}
       <CopilotChat
         patientId={currentPatientId}
