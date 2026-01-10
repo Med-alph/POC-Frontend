@@ -97,7 +97,8 @@ export default function Patients() {
                     !searchTerm ||
                     (patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (patient.contact_info?.includes(searchTerm)) ||
-                    (patient.insurance_provider?.toLowerCase().includes(searchTerm.toLowerCase()))
+                    (patient.insurance_provider?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (patient.insurance_number?.toLowerCase().includes(searchTerm.toLowerCase()))
                 ) &&
                 (
                     statusFilter === "all" || patient.status === statusFilter
@@ -375,7 +376,7 @@ export default function Patients() {
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
                                 <Input
                                     type="text"
-                                    placeholder="Search patients..."
+                                    placeholder="Search by name, contact, or insurance #..."
                                     className="pl-9"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}

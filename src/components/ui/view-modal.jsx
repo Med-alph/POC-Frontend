@@ -3,26 +3,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { 
-    Phone, 
-    Mail, 
-    MapPin, 
-    Calendar, 
-    Clock, 
-    User, 
+import {
+    Phone,
+    Mail,
+    MapPin,
+    Calendar,
+    Clock,
+    User,
     Stethoscope,
     Award,
     Activity,
     Edit,
     Trash2,
     Bell,
-    MessageCircle
+    MessageCircle,
+    Lock
 } from "lucide-react"
 
-export default function ViewModal({ 
-    isOpen, 
-    onClose, 
-    data, 
+export default function ViewModal({
+    isOpen,
+    onClose,
+    data,
     type = "patient", // patient, doctor, appointment, reminder
     onEdit,
     onDelete
@@ -67,9 +68,18 @@ export default function ViewModal({
                     <div>
                         <label className="text-sm font-medium text-gray-500">Insurance Provider</label>
                         <Badge className="bg-blue-100 text-blue-600 mt-1">
-                            {data.insurance_provider}
+                            {data.insurance_provider || 'N/A'}
                         </Badge>
                     </div>
+                    {data.insurance_number && (
+                        <div>
+                            <label className="text-sm font-medium text-gray-500 flex items-center gap-1">
+                                Insurance Number
+                                <Lock className="h-3 w-3 text-blue-500" />
+                            </label>
+                            <p className="text-lg font-mono">{data.insurance_number}</p>
+                        </div>
+                    )}
                     <div>
                         <label className="text-sm font-medium text-gray-500">Last Visit</label>
                         <p className="text-lg">
@@ -90,9 +100,9 @@ export default function ViewModal({
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-500">Status</span>
                     <Badge className={
-                        data.status === 'active' ? 'bg-green-100 text-green-600' : 
-                        data.status === 'inactive' ? 'bg-gray-100 text-gray-600' : 
-                        'bg-blue-100 text-blue-600'
+                        data.status === 'active' ? 'bg-green-100 text-green-600' :
+                            data.status === 'inactive' ? 'bg-gray-100 text-gray-600' :
+                                'bg-blue-100 text-blue-600'
                     }>
                         {data.status}
                     </Badge>
@@ -150,8 +160,8 @@ export default function ViewModal({
                             {data.availability ? (
                                 <div className="space-y-1">
                                     {Object.entries(
-                                        typeof data.availability === 'string' 
-                                            ? JSON.parse(data.availability) 
+                                        typeof data.availability === 'string'
+                                            ? JSON.parse(data.availability)
                                             : data.availability
                                     ).map(([day, time]) => (
                                         <div key={day} className="text-sm">
@@ -192,9 +202,9 @@ export default function ViewModal({
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-500">Status</span>
                     <Badge className={
-                        data.status === 'active' ? 'bg-green-100 text-green-600' : 
-                        data.status === 'inactive' ? 'bg-gray-100 text-gray-600' : 
-                        'bg-blue-100 text-blue-600'
+                        data.status === 'active' ? 'bg-green-100 text-green-600' :
+                            data.status === 'inactive' ? 'bg-gray-100 text-gray-600' :
+                                'bg-blue-100 text-blue-600'
                     }>
                         {data.status}
                     </Badge>
@@ -262,10 +272,10 @@ export default function ViewModal({
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-500">Status</span>
                     <Badge className={
-                        data.status === 'scheduled' ? 'bg-blue-100 text-blue-600' : 
-                        data.status === 'completed' ? 'bg-green-100 text-green-600' : 
-                        data.status === 'cancelled' ? 'bg-red-100 text-red-600' : 
-                        'bg-gray-100 text-gray-600'
+                        data.status === 'scheduled' ? 'bg-blue-100 text-blue-600' :
+                            data.status === 'completed' ? 'bg-green-100 text-green-600' :
+                                data.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                                    'bg-gray-100 text-gray-600'
                     }>
                         {data.status}
                     </Badge>
@@ -366,9 +376,9 @@ export default function ViewModal({
                             <label className="text-sm font-medium text-gray-500">Priority</label>
                             <div className="mt-1">
                                 <Badge className={
-                                    data.priority === 'high' ? 'bg-red-100 text-red-600' : 
-                                    data.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' : 
-                                    'bg-green-100 text-green-600'
+                                    data.priority === 'high' ? 'bg-red-100 text-red-600' :
+                                        data.priority === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                                            'bg-green-100 text-green-600'
                                 }>
                                     {data.priority || 'medium'}
                                 </Badge>
@@ -418,10 +428,10 @@ export default function ViewModal({
                     <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-500">Status</span>
                         <Badge className={
-                            data.status === 'pending' ? 'bg-yellow-100 text-yellow-600' : 
-                            data.status === 'done' ? 'bg-green-100 text-green-600' : 
-                            data.status === 'cancelled' ? 'bg-red-100 text-red-600' : 
-                            'bg-gray-100 text-gray-600'
+                            data.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                                data.status === 'done' ? 'bg-green-100 text-green-600' :
+                                    data.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                                        'bg-gray-100 text-gray-600'
                         }>
                             {data.status || 'pending'}
                         </Badge>
