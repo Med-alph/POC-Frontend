@@ -14,7 +14,7 @@ const PatientDetailsForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { patient, phone } = location.state || {};
-    
+
     const [loading, setLoading] = useState(false);
     const [activeSection, setActiveSection] = useState(1);
     const [darkMode, setDarkMode] = useState(() => {
@@ -126,7 +126,7 @@ const PatientDetailsForm = () => {
                 family_history: familyHistory,
                 lifestyle: lifestyle.join(", "),
                 emergency_contact: emergencyContact,
-                hospital_id: "550e8400-e29b-41d4-a716-446655440001",
+                hospital_id: "26146e33-8808-4ed4-b3bf-9de057437e85",
                 user_id: "system_user",
             };
 
@@ -142,12 +142,12 @@ const PatientDetailsForm = () => {
             }
 
             // Navigate to appointment page
-            navigate("/appointment", { 
-                state: { 
-                    phone: contactPhone, 
+            navigate("/appointment", {
+                state: {
+                    phone: contactPhone,
                     isFirstTime: !patient || !patient.id,
-                    patientId: updatedPatient?.id 
-                } 
+                    patientId: updatedPatient?.id
+                }
             });
         } catch (err) {
             console.error(err);
@@ -201,13 +201,12 @@ const PatientDetailsForm = () => {
                     {[1, 2, 3].map((section) => (
                         <div
                             key={section}
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                                activeSection === section
+                            className={`h-2 rounded-full transition-all duration-300 ${activeSection === section
                                     ? "bg-blue-600 w-12"
                                     : activeSection > section
-                                    ? "bg-green-500 w-8"
-                                    : "bg-gray-300 dark:bg-gray-600 w-8"
-                            }`}
+                                        ? "bg-green-500 w-8"
+                                        : "bg-gray-300 dark:bg-gray-600 w-8"
+                                }`}
                         />
                     ))}
                 </div>
@@ -235,10 +234,10 @@ const PatientDetailsForm = () => {
                                             <User className="h-4 w-4 text-blue-600" />
                                             Full Name <span className="text-red-500">*</span>
                                         </Label>
-                                        <Input 
-                                            value={name} 
-                                            onChange={(e) => setName(e.target.value)} 
-                                            placeholder="Enter your full name" 
+                                        <Input
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            placeholder="Enter your full name"
                                             className="h-12"
                                         />
                                     </div>
@@ -247,27 +246,27 @@ const PatientDetailsForm = () => {
                                             <Calendar className="h-4 w-4 text-blue-600" />
                                             Date of Birth <span className="text-red-500">*</span>
                                         </Label>
-                                        <Input 
-                                            type="date" 
-                                            value={dob} 
+                                        <Input
+                                            type="date"
+                                            value={dob}
                                             onChange={(e) => setDob(e.target.value)}
                                             className="h-12"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold">Gender <span className="text-red-500">*</span></Label>
-                                        <Input 
-                                            placeholder="Male / Female / Other" 
-                                            value={gender} 
+                                        <Input
+                                            placeholder="Male / Female / Other"
+                                            value={gender}
                                             onChange={(e) => setGender(e.target.value)}
                                             className="h-12"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold">Blood Group</Label>
-                                        <Input 
-                                            placeholder="A+, O-, etc." 
-                                            value={bloodGroup} 
+                                        <Input
+                                            placeholder="A+, O-, etc."
+                                            value={bloodGroup}
                                             onChange={(e) => setBloodGroup(e.target.value)}
                                             className="h-12"
                                         />
@@ -307,10 +306,10 @@ const PatientDetailsForm = () => {
                                             <Phone className="h-4 w-4 text-blue-600" />
                                             Phone Number <span className="text-red-500">*</span>
                                         </Label>
-                                        <Input 
-                                            type="tel" 
-                                            value={contactPhone} 
-                                            onChange={(e) => setContactPhone(e.target.value)} 
+                                        <Input
+                                            type="tel"
+                                            value={contactPhone}
+                                            onChange={(e) => setContactPhone(e.target.value)}
                                             placeholder="+91 9876543210"
                                             className="h-12"
                                         />
@@ -320,19 +319,19 @@ const PatientDetailsForm = () => {
                                             <Mail className="h-4 w-4 text-blue-600" />
                                             Email
                                         </Label>
-                                        <Input 
-                                            type="email" 
-                                            value={email} 
-                                            onChange={(e) => setEmail(e.target.value)} 
+                                        <Input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
                                             placeholder="example@mail.com"
                                             className="h-12"
                                         />
                                     </div>
                                     <div className="md:col-span-2 space-y-2">
                                         <Label className="text-sm font-semibold">Address</Label>
-                                        <Textarea 
-                                            value={address} 
-                                            onChange={(e) => setAddress(e.target.value)} 
+                                        <Textarea
+                                            value={address}
+                                            onChange={(e) => setAddress(e.target.value)}
                                             placeholder="Enter full address"
                                             rows={3}
                                         />
@@ -342,9 +341,9 @@ const PatientDetailsForm = () => {
                                             <Phone className="h-4 w-4 text-blue-600" />
                                             Emergency Contact <span className="text-red-500">*</span>
                                         </Label>
-                                        <Input 
-                                            placeholder="Name + Phone number" 
-                                            value={emergencyContact} 
+                                        <Input
+                                            placeholder="Name + Phone number"
+                                            value={emergencyContact}
                                             onChange={(e) => setEmergencyContact(e.target.value)}
                                             className="h-12"
                                         />
@@ -387,9 +386,9 @@ const PatientDetailsForm = () => {
                                             <Heart className="h-4 w-4 text-blue-600" />
                                             Past Illnesses
                                         </Label>
-                                        <Textarea 
-                                            value={medicalHistory} 
-                                            onChange={(e) => setMedicalHistory(e.target.value)} 
+                                        <Textarea
+                                            value={medicalHistory}
+                                            onChange={(e) => setMedicalHistory(e.target.value)}
                                             placeholder="Diabetes, Hypertension, etc."
                                             rows={3}
                                         />
@@ -399,36 +398,36 @@ const PatientDetailsForm = () => {
                                             <Pill className="h-4 w-4 text-blue-600" />
                                             Allergies
                                         </Label>
-                                        <Textarea 
-                                            value={allergies} 
-                                            onChange={(e) => setAllergies(e.target.value)} 
+                                        <Textarea
+                                            value={allergies}
+                                            onChange={(e) => setAllergies(e.target.value)}
                                             placeholder="Peanuts, Penicillin, etc."
                                             rows={2}
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold">Current Medications</Label>
-                                        <Textarea 
-                                            value={medications} 
-                                            onChange={(e) => setMedications(e.target.value)} 
+                                        <Textarea
+                                            value={medications}
+                                            onChange={(e) => setMedications(e.target.value)}
                                             placeholder="List current medications"
                                             rows={2}
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold">Past Surgeries / Procedures</Label>
-                                        <Textarea 
-                                            value={surgeries} 
-                                            onChange={(e) => setSurgeries(e.target.value)} 
+                                        <Textarea
+                                            value={surgeries}
+                                            onChange={(e) => setSurgeries(e.target.value)}
                                             placeholder="Appendectomy, Knee surgery, etc."
                                             rows={2}
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold">Family Medical History</Label>
-                                        <Textarea 
-                                            value={familyHistory} 
-                                            onChange={(e) => setFamilyHistory(e.target.value)} 
+                                        <Textarea
+                                            value={familyHistory}
+                                            onChange={(e) => setFamilyHistory(e.target.value)}
                                             placeholder="Diabetes, Heart Disease, etc."
                                             rows={2}
                                         />
@@ -457,8 +456,8 @@ const PatientDetailsForm = () => {
                                     >
                                         ← Back
                                     </Button>
-                                    <Button 
-                                        onClick={handleSubmit} 
+                                    <Button
+                                        onClick={handleSubmit}
                                         disabled={loading}
                                         className="px-8 h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
                                     >

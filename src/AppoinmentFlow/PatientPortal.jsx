@@ -11,7 +11,7 @@ import { toast } from "sonner"
 import VideoCallPreview from "@/Consultation/VideoCallPreview"
 import VideoRoom from "@/Consultation/VideoRoom"
 
-const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001"
+const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85"
 
 export default function PatientPortal() {
   const navigate = useNavigate()
@@ -111,7 +111,7 @@ export default function PatientPortal() {
       cancelled: "bg-red-100 text-red-700",
     }
     const cls = map[s] || "bg-blue-100 text-blue-700"
-    return <Badge className={cls}>{s ? s.charAt(0).toUpperCase()+s.slice(1) : 'Scheduled'}</Badge>
+    return <Badge className={cls}>{s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Scheduled'}</Badge>
   }
 
   const handleJoinCall = async (appointment) => {

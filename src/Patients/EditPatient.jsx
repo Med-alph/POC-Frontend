@@ -15,7 +15,7 @@ import { Lock } from "lucide-react";
 
 export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient }) {
     const [formData, setFormData] = useState({
-        hospital_id: editPatient?.hospital_id || "550e8400-e29b-41d4-a716-446655440001",
+        hospital_id: editPatient?.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85",
         patient_name: editPatient?.patient_name || "",
         dob: editPatient?.dob || "",
         contact_info: editPatient?.contact_info || "",
@@ -40,7 +40,7 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
             };
 
             setFormData({
-                hospital_id: editPatient?.hospital_id || "550e8400-e29b-41d4-a716-446655440001",
+                hospital_id: editPatient?.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85",
                 patient_name: editPatient?.patient_name || "",
                 dob: formatDateForInput(editPatient?.dob),
                 contact_info: editPatient?.contact_info || "",

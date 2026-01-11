@@ -30,7 +30,7 @@ import { generateRoomName } from "@/utils/callUtils";
 
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 // Hardcode hospital_id for patient dashboard since patient flow is incomplete
-const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
+const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85";
 const PAGE_SIZE = 10;
 
 const TABS = [
@@ -62,12 +62,12 @@ const DUMMY_IMAGES = [
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
-  
+
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("appointments");
   const [view, setView] = useState("list");
-  
+
   // Appointments
   const [appointments, setAppointments] = useState([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
@@ -150,7 +150,7 @@ export default function PatientDashboard() {
         const isConnected = socketService.isConnected();
         console.log('Patient Socket.IO connection status:', isConnected);
         if (isConnected) {
-          toast.success('Connected to call service'); 
+          toast.success('Connected to call service');
         } else {
           toast.error('Failed to connect to call service');
         }
@@ -162,12 +162,12 @@ export default function PatientDashboard() {
         console.log('🔔 Call received - Full data:', JSON.stringify(callData, null, 2));
         console.log('🔔 Doctor Name:', callData.doctorName);
         console.log('🔔 Doctor Object:', callData.doctor);
-        
+
         // Try to get doctor name from multiple possible locations
-        let doctorName = callData.doctorName || 
-                         callData.doctor?.staff_name || 
-                         callData.doctor?.name;
-        
+        let doctorName = callData.doctorName ||
+          callData.doctor?.staff_name ||
+          callData.doctor?.name;
+
         // WORKAROUND: If backend sent "Doctor", try to extract from meetingUrl
         if (!doctorName || doctorName === 'Doctor') {
           try {
@@ -180,25 +180,25 @@ export default function PatientDashboard() {
             console.warn('Failed to extract doctor name from URL:', e);
           }
         }
-        
+
         // Final fallback
         if (!doctorName) {
           doctorName = 'Doctor';
         }
-        
+
         console.log('🔔 Using doctor name:', doctorName);
-        
+
         // Log warning if doctorName is missing from all sources
         if (!callData.doctorName && !callData.doctor) {
           console.warn('⚠️ doctorName is missing from call data. Backend should include it.');
         }
-        
+
         setIncomingCall({
           ...callData,
           doctorName: doctorName // Ensure doctorName is set
         });
         setShowCallNotification(true);
-        
+
         try {
           toast.info(`${doctorName} started the call`);
         } catch (error) {
@@ -216,7 +216,7 @@ export default function PatientDashboard() {
         setActiveRoomName(null);
         setShowRejoinBanner(false);
         toast.info('Call ended');
-        
+
         // Refresh call history if on calls tab
         if (activeTab === 'calls') {
           fetchCallHistory();
@@ -280,7 +280,7 @@ export default function PatientDashboard() {
   // Fetch notification count on mount and periodically
   useEffect(() => {
     if (!patient?.id) return;
-    
+
     const fetchNotificationCount = async () => {
       try {
         const counts = await notificationsAPI.getCounts();
@@ -293,7 +293,7 @@ export default function PatientDashboard() {
     fetchNotificationCount();
     // Refresh every 30 seconds
     const interval = setInterval(fetchNotificationCount, 30000);
-    
+
     return () => clearInterval(interval);
   }, [patient?.id]);
 
@@ -316,25 +316,25 @@ export default function PatientDashboard() {
       console.log('Fetching call history for patient:', patient.id, 'page:', page);
       const calls = await videoCallAPI.getPatientCallHistory(patient.id);
       console.log('Call history received:', calls);
-      
+
       if (!calls || !Array.isArray(calls)) {
         console.warn('Invalid call history data:', calls);
         setCallHistory([]);
         setCallsTotalCount(0);
         return;
       }
-      
+
       // Sort by most recent first
       const sortedCalls = calls.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setCallsTotalCount(sortedCalls.length);
       console.log('Total calls:', sortedCalls.length);
-      
+
       // Paginate the results
       const startIndex = (page - 1) * CALLS_PAGE_SIZE;
       const endIndex = startIndex + CALLS_PAGE_SIZE;
       const paginatedCalls = sortedCalls.slice(startIndex, endIndex);
       console.log('Paginated calls for page', page, ':', paginatedCalls.length, 'calls');
-      
+
       setCallHistory(paginatedCalls);
       setCallsCurrentPage(page);
     } catch (error) {
@@ -415,7 +415,7 @@ export default function PatientDashboard() {
   };
 
   const handleUpdateNotes = (sessionId, notes) => {
-    setSessions(prev => prev.map(s => 
+    setSessions(prev => prev.map(s =>
       s.id === sessionId ? { ...s, notes } : s
     ));
   };
@@ -467,8 +467,8 @@ export default function PatientDashboard() {
   };
   const isDateFutureOrToday = (dateStr) => {
     if (!dateStr) return false;
-    const aptDate = new Date(dateStr); aptDate.setHours(0,0,0,0);
-    const today = new Date(); today.setHours(0,0,0,0);
+    const aptDate = new Date(dateStr); aptDate.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     return aptDate >= today;
   };
   const canModifyAppointment = (apt) => apt.status !== "fulfilled" && apt.status !== "cancelled" && isDateFutureOrToday(apt.appointment_date);
@@ -520,15 +520,15 @@ export default function PatientDashboard() {
   const fetchRescheduleSlots = async (staffId, date) => {
     if (!staffId || !date) return;
     setLoadingRescheduleSlots(true);
-    try { 
-      const response = await appointmentsAPI.getAvailableSlots(staffId, date); 
+    try {
+      const response = await appointmentsAPI.getAvailableSlots(staffId, date);
       let slots = response.slots || [];
-      
+
       // If rescheduling for the same date, exclude the current appointment time
       if (appointmentToReschedule && date === appointmentToReschedule.appointment_date) {
         slots = slots.filter(slot => slot.time !== appointmentToReschedule.appointment_time);
       }
-      
+
       setRescheduleSlots(slots);
     }
     catch { setRescheduleSlots([]); } finally { setLoadingRescheduleSlots(false); }
@@ -547,25 +547,25 @@ export default function PatientDashboard() {
     try {
       console.log('Accepting call:', callData);
       setIsJoiningCall(true);
-      
+
       // Emit Socket.IO event to accept call
       await socketService.acceptCall(callData.callId);
-      
+
       // Update call status in backend
       await videoCallAPI.updateCallStatus(callData.callId, 'active');
-      
+
       // Open Jitsi meeting
       setActiveCallId(callData.callId);
       setActiveRoomName(callData.roomName);
       setShowCallNotification(false);
-      
+
       // Small delay to ensure everything is set before showing Jitsi
       setTimeout(() => {
         setShowJitsi(true);
         setIsJoiningCall(false);
         toast.success('Joined the call');
       }, 500);
-      
+
     } catch (error) {
       console.error('Failed to accept call:', error);
       setIsJoiningCall(false);
@@ -577,13 +577,13 @@ export default function PatientDashboard() {
   const handleCallTimeout = async (callId) => {
     try {
       console.log('Call timed out:', callId);
-      
+
       // Update call status to missed
       await videoCallAPI.updateCallStatus(callId, 'missed');
-      
+
       setShowCallNotification(false);
       setIncomingCall(null);
-      
+
       toast.error('Call missed');
     } catch (error) {
       console.error('Failed to handle call timeout:', error);
@@ -599,20 +599,20 @@ export default function PatientDashboard() {
 
     try {
       console.log('Ending call:', callId);
-      
+
       // Emit Socket.IO event to end call
       await socketService.endCall(callId);
-      
+
       // Update call status in backend
       await videoCallAPI.updateCallStatus(callId, 'ended');
-      
+
       setShowJitsi(false);
       setActiveCallId(null);
       setActiveRoomName(null);
       setShowRejoinBanner(false);
-      
+
       toast.success('Call ended');
-      
+
       // Refresh call history if on calls tab
       if (activeTab === 'calls') {
         fetchCallHistory();
@@ -638,7 +638,7 @@ export default function PatientDashboard() {
     if (activeCallId && activeRoomName) {
       setIsJoiningCall(true);
       setShowRejoinBanner(false);
-      
+
       // Small delay for smooth transition
       setTimeout(() => {
         setShowJitsi(true);
@@ -657,8 +657,8 @@ export default function PatientDashboard() {
         <Card>
           <CardHeader className="border-b">
             <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setView("list")}
                 className="flex items-center gap-2"
@@ -670,8 +670,8 @@ export default function PatientDashboard() {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <NewAppointmentFlow 
-              registeredPatient={patient} 
+            <NewAppointmentFlow
+              registeredPatient={patient}
               phone={patient?.phone}
               onSuccess={(appointment) => {
                 // Go back to appointments list and refresh
@@ -699,41 +699,41 @@ export default function PatientDashboard() {
         </CardHeader>
         <CardContent className="p-0">
           {loadingAppointments ? <div className="flex justify-center py-16"><Loader2 className="animate-spin h-8 w-8 text-blue-600" /></div>
-          : appointments.length === 0 ? (
-            <div className="text-center py-16">
-              <CalendarDays className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 mb-4">No appointments found</p>
-              <Button onClick={() => setView("booking")} className="bg-blue-600"><Plus className="w-4 h-4 mr-2" />Book Your First Appointment</Button>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead><tr className="border-b bg-gray-50 dark:bg-gray-800">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Date</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Time</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Doctor</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Type</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Status</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Actions</th>
-                  </tr></thead>
-                  <tbody>
-                    {appointments.map((apt) => (
-                      <tr key={apt.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td className="py-4 px-4 font-medium">{formatDate(apt.appointment_date)}</td>
-                        <td className="py-4 px-4">{formatTime(apt.appointment_time)}</td>
-                        <td className="py-4 px-4"><p className="font-medium">{apt.staff_name || apt.staff?.staff_name || "N/A"}</p><p className="text-xs text-gray-500">{apt.staff?.department || "General"}</p></td>
-                        <td className="py-4 px-4 capitalize">{apt.appointment_type || "Consultation"}</td>
-                        <td className="py-4 px-4">{getStatusBadge(apt.status)}</td>
-                        <td className="py-4 px-4">{canModifyAppointment(apt) ? <div className="flex gap-2"><Button size="sm" variant="outline" className="text-blue-600 border-blue-600" onClick={() => openRescheduleModal(apt)}>Reschedule</Button><Button size="sm" variant="destructive" onClick={() => openCancelModal(apt)}>Cancel</Button></div> : <span className="text-gray-400 text-sm">-</span>}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            : appointments.length === 0 ? (
+              <div className="text-center py-16">
+                <CalendarDays className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 mb-4">No appointments found</p>
+                <Button onClick={() => setView("booking")} className="bg-blue-600"><Plus className="w-4 h-4 mr-2" />Book Your First Appointment</Button>
               </div>
-              {totalPages > 1 && <div className="flex items-center justify-between px-4 py-4 border-t"><p className="text-sm text-gray-500">Page {currentPage} of {totalPages}</p><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ChevronLeft className="w-4 h-4" /></Button><Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><ChevronRight className="w-4 h-4" /></Button></div></div>}
-            </>
-          )}
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr className="border-b bg-gray-50 dark:bg-gray-800">
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Date</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Time</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Doctor</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Type</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Status</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                    </tr></thead>
+                    <tbody>
+                      {appointments.map((apt) => (
+                        <tr key={apt.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="py-4 px-4 font-medium">{formatDate(apt.appointment_date)}</td>
+                          <td className="py-4 px-4">{formatTime(apt.appointment_time)}</td>
+                          <td className="py-4 px-4"><p className="font-medium">{apt.staff_name || apt.staff?.staff_name || "N/A"}</p><p className="text-xs text-gray-500">{apt.staff?.department || "General"}</p></td>
+                          <td className="py-4 px-4 capitalize">{apt.appointment_type || "Consultation"}</td>
+                          <td className="py-4 px-4">{getStatusBadge(apt.status)}</td>
+                          <td className="py-4 px-4">{canModifyAppointment(apt) ? <div className="flex gap-2"><Button size="sm" variant="outline" className="text-blue-600 border-blue-600" onClick={() => openRescheduleModal(apt)}>Reschedule</Button><Button size="sm" variant="destructive" onClick={() => openCancelModal(apt)}>Cancel</Button></div> : <span className="text-gray-400 text-sm">-</span>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {totalPages > 1 && <div className="flex items-center justify-between px-4 py-4 border-t"><p className="text-sm text-gray-500">Page {currentPage} of {totalPages}</p><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ChevronLeft className="w-4 h-4" /></Button><Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><ChevronRight className="w-4 h-4" /></Button></div></div>}
+              </>
+            )}
         </CardContent>
       </Card>
     );
@@ -745,18 +745,18 @@ export default function PatientDashboard() {
         {/* Back Button - Prominent at the top */}
         <Button
           variant="outline"
-          onClick={() => { 
-            if (bookingStep === 1) { 
-              setView("list"); 
-              resetBookingForm(); 
-            } else { 
-              if (bookingStep === 3) setSelectedSlot(""); 
+          onClick={() => {
+            if (bookingStep === 1) {
+              setView("list");
+              resetBookingForm();
+            } else {
+              if (bookingStep === 3) setSelectedSlot("");
               if (bookingStep === 2) {
                 setSelectedDate("");
                 setSlots([]);
                 setSelectedSlot("");
               }
-              setBookingStep(bookingStep - 1); 
+              setBookingStep(bookingStep - 1);
             }
           }}
           className="w-fit flex items-center gap-2"
@@ -764,7 +764,7 @@ export default function PatientDashboard() {
           <ArrowLeft className="w-4 h-4" />
           <span>{bookingStep === 1 ? "Back to Appointments" : "Previous Step"}</span>
         </Button>
-        
+
         {/* Title and Progress Bar */}
         <div>
           <CardTitle className="text-xl font-bold mb-4">Book New Appointment</CardTitle>
@@ -781,12 +781,12 @@ export default function PatientDashboard() {
           <div className="space-y-4">
             <h3 className="font-semibold">Select Doctor</h3>
             {loadingDoctors ? <div className="flex justify-center py-8"><Loader2 className="animate-spin h-8 w-8 text-blue-600" /></div>
-            : doctors.length === 0 ? <p className="text-center py-8 text-gray-500">No doctors available</p>
-            : <div className="space-y-3 max-h-80 overflow-y-auto">{doctors.map((doc) => (
-              <div key={doc.id} className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${selectedDoctor?.id === doc.id ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-blue-400"}`} onClick={() => { setSelectedDoctor(doc); setBookingStep(2); }}>
-                <p className="font-semibold">{doc.staff_name}</p><p className="text-sm text-gray-500">{doc.department || "General Medicine"}</p>
-              </div>
-            ))}</div>}
+              : doctors.length === 0 ? <p className="text-center py-8 text-gray-500">No doctors available</p>
+                : <div className="space-y-3 max-h-80 overflow-y-auto">{doctors.map((doc) => (
+                  <div key={doc.id} className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${selectedDoctor?.id === doc.id ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-blue-400"}`} onClick={() => { setSelectedDoctor(doc); setBookingStep(2); }}>
+                    <p className="font-semibold">{doc.staff_name}</p><p className="text-sm text-gray-500">{doc.department || "General Medicine"}</p>
+                  </div>
+                ))}</div>}
           </div>
         )}
         {bookingStep === 2 && (
@@ -816,22 +816,21 @@ export default function PatientDashboard() {
                   {slots.map((slot, i) => {
                     const isOnLeave = slot.reason === "on_leave";
                     return (
-                      <Button 
-                        key={i} 
-                        variant={selectedSlot === slot.time ? "default" : "outline"} 
-                        size="sm" 
-                        disabled={slot.status === "unavailable"} 
-                        className={`h-auto py-2 flex flex-col gap-1 ${
-                          slot.status === "unavailable" 
-                            ? isOnLeave 
-                              ? "opacity-60 bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800" 
-                              : "opacity-50" 
+                      <Button
+                        key={i}
+                        variant={selectedSlot === slot.time ? "default" : "outline"}
+                        size="sm"
+                        disabled={slot.status === "unavailable"}
+                        className={`h-auto py-2 flex flex-col gap-1 ${slot.status === "unavailable"
+                            ? isOnLeave
+                              ? "opacity-60 bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800"
+                              : "opacity-50"
                             : ""
-                        } ${selectedSlot === slot.time ? "bg-blue-600" : ""}`} 
-                        onClick={() => { 
-                          if (slot.status !== "unavailable") { 
-                            setSelectedSlot(slot.time); 
-                            setBookingStep(3); 
+                          } ${selectedSlot === slot.time ? "bg-blue-600" : ""}`}
+                        onClick={() => {
+                          if (slot.status !== "unavailable") {
+                            setSelectedSlot(slot.time);
+                            setBookingStep(3);
                           }
                         }}
                         title={isOnLeave ? `Doctor on ${slotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : ""}
@@ -886,7 +885,7 @@ export default function PatientDashboard() {
     const formatCallTime = (dateString) => {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
-      
+
       // Format in IST timezone explicitly
       const options = {
         hour: 'numeric',
@@ -894,7 +893,7 @@ export default function PatientDashboard() {
         hour12: true,
         timeZone: 'Asia/Kolkata' // IST timezone
       };
-      
+
       return date.toLocaleTimeString('en-US', options);
     };
 
@@ -926,7 +925,7 @@ export default function PatientDashboard() {
                 const { icon: Icon, color, iconColor } = getCallIcon(call.status);
                 const isActiveCall = call.status === 'active' && call.id === activeCallId;
                 const canRejoin = call.status === 'active' && call.roomName;
-                
+
                 return (
                   <div key={call.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <div className="flex items-center gap-4">
@@ -974,7 +973,7 @@ export default function PatientDashboard() {
               })}
             </div>
           )}
-          
+
           {/* Pagination */}
           {!loadingCallHistory && callHistory.length > 0 && callsTotalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 dark:border-gray-700">
@@ -1019,9 +1018,9 @@ export default function PatientDashboard() {
     const formatDate = (dateString) => {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
@@ -1116,7 +1115,7 @@ export default function PatientDashboard() {
           <Camera className="w-5 h-5" />
           My Images
         </CardTitle>
-        <Button 
+        <Button
           onClick={() => setShowUploadModal(true)}
           className="bg-blue-600 hover:bg-blue-700"
         >
@@ -1378,8 +1377,8 @@ export default function PatientDashboard() {
         <div className="space-y-4">
           <div><label className="block text-sm font-medium mb-2">Select Date</label><Input type="date" value={rescheduleDate} min={new Date().toISOString().split("T")[0]} onChange={(e) => { setRescheduleDate(e.target.value); fetchRescheduleSlots(appointmentToReschedule.staff_id, e.target.value); setRescheduleSlot(""); }} /></div>
           {loadingRescheduleSlots ? <div className="flex justify-center py-4"><Loader2 className="animate-spin h-6 w-6 text-blue-600" /></div>
-          : rescheduleSlots.length > 0 ? <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">{rescheduleSlots.map((slot, i) => <Button key={i} variant={rescheduleSlot === slot.time ? "default" : "outline"} size="sm" disabled={slot.status === "unavailable"} className={rescheduleSlot === slot.time ? "bg-blue-600" : ""} onClick={() => setRescheduleSlot(slot.time)}>{slot.display_time}</Button>)}</div>
-          : rescheduleDate && <p className="text-center text-gray-500">No slots available</p>}
+            : rescheduleSlots.length > 0 ? <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">{rescheduleSlots.map((slot, i) => <Button key={i} variant={rescheduleSlot === slot.time ? "default" : "outline"} size="sm" disabled={slot.status === "unavailable"} className={rescheduleSlot === slot.time ? "bg-blue-600" : ""} onClick={() => setRescheduleSlot(slot.time)}>{slot.display_time}</Button>)}</div>
+              : rescheduleDate && <p className="text-center text-gray-500">No slots available</p>}
         </div>
         <div className="flex justify-end gap-3 mt-6">
           <Button variant="outline" onClick={() => setRescheduleModalOpen(false)}>Close</Button>
@@ -1406,7 +1405,7 @@ export default function PatientDashboard() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Toast Notifications */}
       <Toaster position="top-right" />
-      
+
       {/* Loading Overlay while joining call */}
       {isJoiningCall && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
@@ -1467,13 +1466,13 @@ export default function PatientDashboard() {
         />
       )}
 
-      <PatientNavbar 
-        patientName={patient?.name || patient?.patient_name} 
+      <PatientNavbar
+        patientName={patient?.name || patient?.patient_name}
         patientRole="Patient"
         activeTab={activeTab}
-        onTabChange={(tab) => { 
-          setActiveTab(tab); 
-          if (tab !== "appointments") setView("list"); 
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          if (tab !== "appointments") setView("list");
         }}
         patientId={patient?.id}
       />

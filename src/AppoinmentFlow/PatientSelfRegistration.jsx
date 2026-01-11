@@ -9,7 +9,7 @@ import { patientsAPI } from "@/api/patientsapi";
 import PatientSelfConsent from "@/components/compliance/PatientSelfConsent";
 import toast from 'react-hot-toast';
 
-const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001"; // Default hospital ID
+const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85"; // Default hospital ID
 
 export default function PatientSelfRegistration() {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export default function PatientSelfRegistration() {
 
   const handleBasicInfoSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!patientData.patient_name.trim() || !patientData.contact_info.trim()) {
       toast.error("Please fill in required fields (Name and Phone)");
@@ -58,11 +58,11 @@ export default function PatientSelfRegistration() {
       // Create patient record (without consent yet)
       const createdPatient = await patientsAPI.create(patientPayload);
       setCreatedPatientId(createdPatient.id);
-      
+
       // Move to consent step
       setStep(2);
       toast.success("Basic information saved. Please provide your consent to complete registration.");
-      
+
     } catch (error) {
       console.error('Error creating patient:', error);
       toast.error("Failed to save patient information. Please try again.");
@@ -74,11 +74,11 @@ export default function PatientSelfRegistration() {
   const handleConsentCompleted = (consentData) => {
     toast.success("Registration completed successfully!");
     // Navigate to patient dashboard or login
-    navigate("/patient-details", { 
-      state: { 
-        phone: patientData.contact_info, 
-        patientId: createdPatientId 
-      } 
+    navigate("/patient-details", {
+      state: {
+        phone: patientData.contact_info,
+        patientId: createdPatientId
+      }
     });
   };
 
@@ -181,8 +181,8 @@ export default function PatientSelfRegistration() {
               </div>
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold"
                 disabled={isSubmitting}
               >

@@ -13,9 +13,9 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Search, FileText, Calendar, Plus, Filter, Bell, Clock, 
-  CheckCircle, Edit, Trash2, MoreHorizontal, Eye
+import {
+    Search, FileText, Calendar, Plus, Filter, Bell, Clock,
+    CheckCircle, Edit, Trash2, MoreHorizontal, Eye
 } from "lucide-react"
 
 import ViewModal from "@/components/ui/view-modal"
@@ -49,14 +49,14 @@ export default function Reminders() {
         if (userJson) {
             try {
                 const user = JSON.parse(userJson);
-                const id = user.hospital_id || "550e8400-e29b-41d4-a716-446655440001";
+                const id = user.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85";
                 setHospitalId(id);
             } catch (e) {
                 console.error("Failed to parse user JSON:", e);
-                setHospitalId("550e8400-e29b-41d4-a716-446655440001");
+                setHospitalId("26146e33-8808-4ed4-b3bf-9de057437e85");
             }
         } else {
-            setHospitalId("550e8400-e29b-41d4-a716-446655440001");
+            setHospitalId("26146e33-8808-4ed4-b3bf-9de057437e85");
         }
     }, []);
 
@@ -152,15 +152,15 @@ export default function Reminders() {
         const patientInitials = patientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
         const assignedToName = reminder.assigned_to?.name || reminder.assigned_to?.staff_name || "Not assigned";
         const assignedInitials = assignedToName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-        
-        const dueDate = reminder.due_date 
+
+        const dueDate = reminder.due_date
             ? new Date(reminder.due_date).toLocaleDateString()
             : "N/A";
         const dueTime = reminder.due_date
             ? new Date(reminder.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : reminder.reminder_time
-            ? new Date(reminder.reminder_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : "";
+                ? new Date(reminder.reminder_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : "";
 
         const priorityColors = {
             high: "bg-red-100 text-red-700",
@@ -203,7 +203,7 @@ export default function Reminders() {
                     </p>
                 </div>
 
-                <Button 
+                <Button
                     className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2 mb-6"
                     onClick={() => setAddModalOpen(true)}
                 >
@@ -396,7 +396,7 @@ export default function Reminders() {
                                                             <Clock className="h-4 w-4 mr-2" />
                                                             Reschedule
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem 
+                                                        <DropdownMenuItem
                                                             className="text-red-600"
                                                             onClick={() => handleDeleteReminder(reminder)}
                                                         >

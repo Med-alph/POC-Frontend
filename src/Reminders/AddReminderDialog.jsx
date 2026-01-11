@@ -52,36 +52,36 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
             if (userJson) {
                 try {
                     const user = JSON.parse(userJson);
-                    const id = user.hospital_id || "550e8400-e29b-41d4-a716-446655440001";
+                    const id = user.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85";
                     setHospitalId(id);
                     setFormData(prev => ({ ...prev, hospital_id: id }));
                     // Only fetch admins on open, patients will be fetched when user starts typing
                     fetchAdmins(id);
                 } catch (e) {
                     console.error("Failed to parse user JSON:", e);
-                    const defaultId = "550e8400-e29b-41d4-a716-446655440001";
+                    const defaultId = "26146e33-8808-4ed4-b3bf-9de057437e85";
                     setHospitalId(defaultId);
                     setFormData(prev => ({ ...prev, hospital_id: defaultId }));
                 }
             } else {
                 // Fallback if no user in localStorage
-                const defaultId = "550e8400-e29b-41d4-a716-446655440001";
+                const defaultId = "26146e33-8808-4ed4-b3bf-9de057437e85";
                 setHospitalId(defaultId);
                 setFormData(prev => ({ ...prev, hospital_id: defaultId }));
             }
 
             // If editing, populate form
             if (editReminder) {
-                const dueDate = editReminder.due_date 
+                const dueDate = editReminder.due_date
                     ? new Date(editReminder.due_date).toISOString().split('T')[0]
                     : "";
                 const reminderTime = editReminder.reminder_time
                     ? new Date(editReminder.reminder_time).toISOString().slice(0, 16)
                     : "";
-                
+
                 const patientId = editReminder.patient_id || "";
                 const patient = patients.find(p => p.id === patientId);
-                
+
                 setFormData({
                     hospital_id: editReminder.hospital_id || "",
                     patient_id: patientId,
@@ -96,7 +96,7 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
                     email_address: editReminder.email_address || "",
                     phone_number: editReminder.phone_number || "",
                 });
-                
+
                 if (patient) {
                     setSelectedPatient(patient);
                     setPatientSearch(patient.patient_name);
@@ -126,9 +126,9 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
     const fetchPatients = async (hospitalId, searchTerm = "") => {
         setLoadingPatients(true);
         try {
-            const params = { 
-                hospital_id: hospitalId, 
-                limit: 50 
+            const params = {
+                hospital_id: hospitalId,
+                limit: 50
             };
             if (searchTerm && searchTerm.trim().length > 0) {
                 params.search = searchTerm.trim();
@@ -174,7 +174,7 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
     const filteredPatients = useMemo(() => {
         if (!patientSearch || patientSearch.trim().length < 2) return [];
         const searchLower = patientSearch.toLowerCase();
-        return patients.filter(patient => 
+        return patients.filter(patient =>
             patient.patient_name?.toLowerCase().includes(searchLower) ||
             patient.contact_info?.includes(searchLower) ||
             patient.email?.toLowerCase().includes(searchLower)
@@ -257,17 +257,17 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
                     console.error("Failed to parse user JSON:", e);
                 }
             }
-            
+
             // Fallback to state or formData
-            finalHospitalId = finalHospitalId || hospitalId || formData.hospital_id || "550e8400-e29b-41d4-a716-446655440001";
-            
+            finalHospitalId = finalHospitalId || hospitalId || formData.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85";
+
             // Build reminder data, only including valid fields
             const reminderData = {
                 hospital_id: finalHospitalId,
                 patient_id: formData.patient_id,
                 reminder_type: formData.reminder_type,
                 due_date: new Date(formData.due_date).toISOString(),
-                reminder_time: formData.reminder_time 
+                reminder_time: formData.reminder_time
                     ? new Date(formData.reminder_time).toISOString()
                     : new Date(formData.due_date).toISOString(),
                 priority: formData.priority || "medium",

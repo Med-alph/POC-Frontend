@@ -6,13 +6,13 @@ import { toast } from "sonner";
 import { Stethoscope, User, Calendar, Phone, Mail, FileText, Edit, PlusCircle, Moon, Sun } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
 
-const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
+const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85";
 
 const PatientDetails = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { phone, patientId } = location.state || {};
-    
+
     const [patient, setPatient] = useState(null);
     const [loading, setLoading] = useState(true);
     const [darkMode, setDarkMode] = useState(() => {
@@ -51,7 +51,7 @@ const PatientDetails = () => {
                 } else {
                     p = await patientsAPI.getByPhoneAndHospital(phone, HOSPITAL_ID);
                 }
-                
+
                 if (!p || !p.id) {
                     // If patient not found, navigate to appointment flow
                     navigate("/appointment", { state: { phone, isFirstTime: true } });

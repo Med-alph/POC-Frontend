@@ -10,12 +10,12 @@ import toast from "react-hot-toast";
 
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 // Hardcode hospital_id for patient dashboard since patient flow is incomplete
-const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
+const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85";
 
 export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  
+
   // Form states
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
@@ -25,7 +25,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [appointmentType, setAppointmentType] = useState("consultation");
   const [reason, setReason] = useState("");
-  
+
   // Loading states
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
@@ -34,22 +34,22 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
   // Fetch available time slots for selected date
   const fetchTimeSlots = async () => {
     if (!selectedDate) return;
-    
+
     try {
       setLoadingSlots(true);
-      
+
       // Generate standard time slots (this is a simplified approach)
       // In a real implementation, you'd call an API to get available slots across all doctors
       const generateTimeSlots = () => {
         const slots = [];
         const startHour = 9; // 9 AM
         const endHour = 17; // 5 PM
-        
+
         for (let hour = startHour; hour < endHour; hour++) {
           for (let minute = 0; minute < 60; minute += 30) {
             const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
             const displayTime = `${hour > 12 ? hour - 12 : hour === 0 ? 12 : hour}:${minute.toString().padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
-            
+
             slots.push({
               time: time,
               display_time: displayTime,
@@ -59,10 +59,10 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
         }
         return slots;
       };
-      
+
       const generatedSlots = generateTimeSlots();
       setSlots(generatedSlots);
-      
+
     } catch (error) {
       console.error("Error fetching slots:", error);
       toast.error("Failed to fetch available slots");
@@ -75,22 +75,22 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
   // Fetch available doctors for selected date/time
   const fetchAvailableDoctors = async () => {
     if (!selectedDate || !selectedSlot) return;
-    
+
     try {
       setLoadingDoctors(true);
-      
+
       // Get available doctors from the API (backend now handles filtering)
       const response = await appointmentsAPI.getAvailableDoctors(
         selectedDate,
         selectedSlot,
         HOSPITAL_ID
       );
-      
+
       console.log("Available doctors response:", response);
-      
+
       // Handle both array format and object format
       const doctors = Array.isArray(response) ? response : (response.doctors || []);
-      
+
       // Map the response to match expected format
       const mappedDoctors = doctors.map(doctor => ({
         id: doctor.doctorId || doctor.id,
@@ -98,14 +98,14 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
         department: doctor.department,
         staff_code: doctor.specialty || doctor.staff_code,
       }));
-      
+
       console.log("Final mapped doctors:", mappedDoctors);
       setAvailableDoctors(mappedDoctors);
-      
+
       if (mappedDoctors.length === 0) {
         toast.info("No doctors available for this time slot");
       }
-      
+
     } catch (error) {
       console.error("Error fetching available doctors:", error);
       toast.error("Failed to fetch available doctors");
@@ -160,7 +160,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
 
       const created = await appointmentsAPI.bookAnyAvailable(appointmentData);
       toast.success("Appointment booked successfully!");
-      
+
       // Call onSuccess callback if provided, otherwise navigate
       if (onSuccess) {
         onSuccess(created);
@@ -199,7 +199,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
 
       const created = await appointmentsAPI.create(appointmentData);
       toast.success("Appointment booked successfully!");
-      
+
       // Call onSuccess callback if provided, otherwise navigate
       if (onSuccess) {
         onSuccess(created);
@@ -248,7 +248,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Select Date & Time</h3>
               <p className="text-gray-600 dark:text-gray-400">Choose your preferred appointment date and time</p>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Select Date</label>
@@ -260,7 +260,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                   className="h-12 text-base"
                 />
               </div>
-              
+
               {selectedDate && (
                 <Button
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base font-medium"
@@ -277,7 +277,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                   )}
                 </Button>
               )}
-              
+
               {slots.length > 0 && (
                 <div className="space-y-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Available Time Slots</label>
@@ -288,13 +288,12 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                       return (
                         <button
                           key={idx}
-                          className={`p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 ${
-                            isSelected
+                          className={`p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 ${isSelected
                               ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md"
                               : disabled
-                              ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : "border-gray-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:shadow-sm"
-                          }`}
+                                ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : "border-gray-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:shadow-sm"
+                            }`}
                           onClick={() => !disabled && setSelectedSlot(slot.time)}
                           disabled={disabled}
                         >
@@ -306,7 +305,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                       );
                     })}
                   </div>
-                  
+
                   {selectedSlot && (
                     <Button
                       className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base font-medium"
@@ -328,7 +327,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Doctor Preference</h3>
               <p className="text-gray-600 dark:text-gray-400">Would you like to choose a specific doctor?</p>
             </div>
-            
+
             <Card className="border-2 border-gray-200 dark:border-gray-700">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg text-center">Do you have a preferred doctor?</CardTitle>
@@ -349,7 +348,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                       <p className="text-sm text-gray-600 dark:text-gray-400">Select from available doctors for your time slot</p>
                     </div>
                   </label>
-                  
+
                   <label className="flex items-center space-x-3 cursor-pointer p-4 rounded-lg border-2 border-gray-200 hover:border-green-300 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all">
                     <input
                       type="radio"
@@ -367,7 +366,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                 </div>
               </CardContent>
             </Card>
-            
+
             <div className="flex gap-3 pt-4">
               <Button
                 variant="outline"
@@ -401,7 +400,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Select Doctor</h3>
               <p className="text-gray-600 dark:text-gray-400">Choose your preferred doctor from available options</p>
             </div>
-            
+
             {loadingDoctors ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
@@ -410,7 +409,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
             ) : availableDoctors.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
                 <p className="text-gray-500 dark:text-gray-400 mb-4">No doctors available for this time slot</p>
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => setStep(1)}
                 >
@@ -422,11 +421,10 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                 {availableDoctors.map((doctor) => (
                   <div
                     key={doctor.id}
-                    className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${
-                      selectedDoctor?.id === doctor.id
+                    className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${selectedDoctor?.id === doctor.id
                         ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-lg transform scale-[1.02]"
                         : "border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
-                    }`}
+                      }`}
                     onClick={() => setSelectedDoctor(doctor)}
                   >
                     <div className="flex items-center justify-between">
@@ -447,7 +445,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                     </div>
                   </div>
                 ))}
-                
+
                 <div className="flex gap-3 pt-4">
                   <Button
                     variant="outline"
@@ -477,7 +475,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Appointment Details</h3>
               <p className="text-gray-600 dark:text-gray-400">Provide details about your visit</p>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Appointment Type</label>
@@ -491,7 +489,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                   <option value="emergency">Emergency</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Reason for Visit</label>
                 <Textarea
@@ -501,7 +499,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                   className="min-h-[100px] text-base resize-none"
                 />
               </div>
-              
+
               <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg text-blue-900 dark:text-blue-100">Appointment Summary</CardTitle>
@@ -528,7 +526,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                 </CardContent>
               </Card>
             </div>
-            
+
             <div className="flex gap-3 pt-4">
               <Button
                 variant="outline"
@@ -571,28 +569,27 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
             <div className="grid grid-cols-4 gap-2 relative mb-2">
               {[1, 2, 3, 4].map((stepNum, index) => (
                 <div key={stepNum} className="flex justify-center relative z-10">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                    step >= stepNum 
-                      ? 'bg-blue-600 text-white shadow-lg' 
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step >= stepNum
+                      ? 'bg-blue-600 text-white shadow-lg'
                       : 'bg-gray-200 text-gray-500'
-                  }`}>
+                    }`}>
                     {stepNum}
                   </div>
                 </div>
               ))}
-              
+
               {/* Connecting line background */}
               <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 -translate-y-1/2 z-0" />
-              
+
               {/* Progress line */}
-              <div 
+              <div
                 className="absolute top-1/2 left-0 h-1 bg-blue-600 -translate-y-1/2 z-0 transition-all duration-300"
-                style={{ 
+                style={{
                   width: step > 1 ? `${((step - 1) / 3) * 100}%` : '0%'
                 }}
               />
             </div>
-            
+
             {/* Labels row */}
             <div className="grid grid-cols-4 gap-2 text-xs font-medium">
               <div className={`text-center ${step === 1 ? 'text-blue-600' : 'text-gray-500'}`}>
@@ -611,7 +608,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
           </div>
         </div>
       </div>
-      
+
       {renderStep()}
     </div>
   );
