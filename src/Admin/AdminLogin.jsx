@@ -42,11 +42,8 @@ export default function AdminLogin() {
           throw new Error("Access denied. Admin privileges required.")
         }
         
-        // Store token and user data in Redux
-        dispatch(setCredentials({
-          access_token: response.access_token,
-          user: response.user
-        }))
+        // Store complete response in Redux (including uiModules)
+        dispatch(setCredentials(response))
         
         toast({
           title: "Admin Login Successful 🎉",

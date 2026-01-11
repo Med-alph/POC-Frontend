@@ -7,8 +7,6 @@ import imagesAPI from '@/api/imagesapi';
 import DermImageComparison from './PatientGallery';
 import toast from 'react-hot-toast';
 
-const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
-
 export default function DynamicPatientGallery() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -21,6 +19,17 @@ export default function DynamicPatientGallery() {
   const [loading, setLoading] = useState(false);
   const [loadingPatients, setLoadingPatients] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Get hospital_id from localStorage user
+  const getHospitalId = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user.hospital_id;
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      return null;
+    }
+  };
 
   // Fetch all patients on mount
   useEffect(() => {
@@ -39,8 +48,15 @@ export default function DynamicPatientGallery() {
   const fetchAllPatients = async () => {
     try {
       setLoadingPatients(true);
+      const hospitalId = getHospitalId();
+      
+      if (!hospitalId) {
+        toast.error('Hospital ID not found. Please log in again.');
+        return;
+      }
+
       const response = await patientsAPI.getAll({
-        hospital_id: HOSPITAL_ID,
+        hospital_id: hospitalId,
         limit: 1000,
         offset: 0
       });

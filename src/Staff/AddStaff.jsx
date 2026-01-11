@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import { Clock, AlertCircle } from "lucide-react";
 import designationapi from "@/api/designationapi";
 import staffApi from "@/api/staffapi";
+import { rolesAPI } from "@/api/rolesapi";
+import RoleAssignmentDropdown from "../TenantAdmin/RoleManagement/RoleAssignmentDropdown";
 
 const WEEKDAYS = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
@@ -44,6 +46,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     password: "",
     experience: "",
     designation: "",
+    role_id: "", // Add role assignment
     availability: {},
     is_archived: false,
     status: "Active",
@@ -81,6 +84,12 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         }
       }
 
+      // Get the first role ID if roles exist
+      let roleId = "none";
+      if (editStaff.roles && editStaff.roles.length > 0) {
+        roleId = editStaff.roles[0].id.toString();
+      }
+
       setFormData({
         staff_name: editStaff.staff_name || "",
         department: editStaff.department || "",
@@ -89,6 +98,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         password: "",
         experience: editStaff.experience != null ? editStaff.experience.toString() : "",
         designation: editStaff.designation_id ? editStaff.designation_id.toString() : "",
+        role_id: roleId,
         availability: availabilityObj,
         is_archived: editStaff.is_archived || false,
         status:
@@ -108,6 +118,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         password: "",
         experience: "",
         designation: "",
+        role_id: "none",
         availability: {},
         is_archived: false,
         status: "Active",
@@ -203,6 +214,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     if (!formData.staff_name.trim()) errors.push("Staff name is required");
     if (!formData.department) errors.push("Department is required");
     if (!formData.designation) errors.push("Designation is required");
+    // Role assignment is now optional - only validate if provided
     if (!formData.contact_info.trim()) errors.push("Contact information is required");
     if (formData.email && !isValidEmail(formData.email)) errors.push("Invalid email format");
     if (!editStaff && (!formData.password || formData.password.length < 6))
@@ -247,6 +259,8 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
           availabilityObject[day] = ensureTimeIn24HourFormat(slot);
         }
       });
+      
+      // Prepare payload without role_id for staff API
       const payload = {
         hospital_id: hospitalId,
         staff_name: formData.staff_name.trim(),
@@ -261,26 +275,74 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         status: formData.status?.toLowerCase() || "active",
       };
       console.log("Payload: \n", payload);
+      console.log("Role ID for assignment:", formData.role_id);
+      console.log("Role ID is valid:", formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none");
+      
       let saved;
+      let roleAssignmentSuccess = true;
+      
       if (editStaff) {
+        // Update staff basic info
         saved = await staffApi.update(editStaff.id, payload);
-        toast.success(`Staff updated successfully!`);
+        
+        // Separately assign role if role_id is provided and valid (not "none")
+        if (formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none") {
+          try {
+            console.log('Attempting role assignment with role_id:', formData.role_id);
+            console.log('Staff ID:', editStaff.id);
+            await rolesAPI.assignRoleToStaff(editStaff.id, formData.role_id); // Send as string, not number
+            console.log('Role assigned successfully');
+          } catch (roleError) {
+            console.error('Failed to assign role:', roleError);
+            roleAssignmentSuccess = false;
+          }
+        }
+        
+        if (roleAssignmentSuccess || !formData.role_id || formData.role_id === "none") {
+          toast.success(`Staff updated successfully!`);
+        } else {
+          toast.error('Staff updated but role assignment failed. Please assign role manually.');
+        }
       } else {
+        // Create new staff
         saved = await staffApi.create(payload);
-        toast.success(`Staff created successfully!`);
+        
+        // Assign role to newly created staff if role_id is provided and valid (not "none")
+        if (formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none" && saved.id) {
+          try {
+            console.log('Attempting role assignment for new staff with role_id:', formData.role_id);
+            console.log('New staff ID:', saved.id);
+            await rolesAPI.assignRoleToStaff(saved.id, formData.role_id); // Send as string, not number
+            console.log('Role assigned to new staff');
+          } catch (roleError) {
+            console.error('Failed to assign role to new staff:', roleError);
+            roleAssignmentSuccess = false;
+          }
+        }
+        
+        if (roleAssignmentSuccess || !formData.role_id || formData.role_id === "none") {
+          toast.success(`Staff created successfully!`);
+        } else {
+          toast.error('Staff created but role assignment failed. Please assign role manually.');
+        }
       }
+      
       onAdd(saved);
       setOpen(false);
     } catch (error) {
+      console.error('Staff operation error:', error);
       toast.error(`Failed to ${editStaff ? "update" : "create"} staff: ${error.message || "Unknown error"}`);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-[700px] h-[90vh] flex flex-col" aria-describedby="staff-form-dialog-description">
+      <DialogContent className="max-w-[700px] h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl font-semibold">{editStaff ? "Edit Staff" : "Create New Staff"}</DialogTitle>
+          <DialogDescription id="staff-form-dialog-description">
+            {editStaff ? "Update staff member information and role assignment." : "Create a new staff member with role assignment."}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto mt-4 pr-2 space-y-1">
           <form id="staff-form" onSubmit={handleSubmit} className="space-y-4" aria-describedby="staff-form-dialog-description">
@@ -340,6 +402,18 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                 <label className="text-sm font-medium text-gray-600 mb-1 block">Email</label>
                 <Input type="email" name="email" placeholder="email@example.com" value={formData.email} onChange={handleChange} />
               </div>
+              
+              {/* Role Assignment */}
+              <div>
+                <RoleAssignmentDropdown
+                  value={formData.role_id}
+                  onChange={(roleId) => setFormData(prev => ({ ...prev, role_id: roleId }))}
+                  required={false}
+                  label="Assign Role (Optional)"
+                  placeholder="Select a role for this staff member"
+                />
+              </div>
+              
               <div>
                 <label className="text-sm font-medium text-gray-600 mb-1 block">
                   Password{editStaff ? "" : <span className="text-red-500">*</span>}

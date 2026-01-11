@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import Dashboard from "./Dashboard/Dashboard";
 import Patients from "./Patients/Patients";
 import Login from "./Login/Login";
-import Signup from "./Login/Signup";
+// import Signup from "./Login/Signup"; // Commented out - not needed for now
 import Doctors from "./Doctors/Doctors";
 import Appointments from "./Appointments/Appointments";
 import Reminders from "./Reminders/Reminders";
@@ -64,12 +64,24 @@ import ItemsPage from "./Inventory/ItemsPage";
 import CategoriesPage from "./Inventory/CategoriesPage";
 import TransactionsPage from "./Inventory/TransactionsPage";
 
+// Permissions Context
+import { PermissionsProvider } from "./contexts/PermissionsContext";
+
+// Compliance Components
+import PrivacyPolicyPage from "./components/compliance/PrivacyPolicyPage";
+import TermsOfServicePage from "./components/compliance/TermsOfServicePage";
+import TermsGuard from "./components/compliance/TermsGuard";
+import HospitalConsentManagement from "./components/compliance/HospitalConsentManagement";
+
+// Footer Component
+import Footer from "./components/Footer";
+
 function AppContent() {
   const location = useLocation();
 
   // Routes that should NOT show the navbar
   const authRoutes = [
-    "/", "/signup", "/forgotpassword", "/admin/login", "/tenantadmin/dashboard", "/tenantadmin/login", "/app-admin/login"
+    "/", "/forgotpassword", "/admin/login", "/tenantadmin/dashboard", "/tenantadmin/login", "/app-admin/login"
   ];
 
   const adminRoutes = [
@@ -81,121 +93,149 @@ function AppContent() {
     "/landing", "/otp-verification", "/appointment", "/confirmation", "/patient-details", "/patient-details-form"
   ];
 
-  // Remove '/patient-dashboard' from exclusion arrays to show navbar on patient dashboard
-  // e.g. do NOT include '/patient-dashboard' here !!!
-
+  // Compliance pages should not show navbar or be wrapped by TermsGuard
+  const complianceRoutes = [
+    "/privacy-policy", "/terms-of-service"
+  ];
 
   const shouldHideMainNavbar = [
     "/patient-dashboard",
   ];
-
 
   const shouldShowNavbar =
     !authRoutes.includes(location.pathname) &&
     !adminRoutes.includes(location.pathname) &&
     !location.pathname.startsWith('/app-admin') && // Hide navbar for all app-admin routes
     !patientRoutes.includes(location.pathname) &&
-    !shouldHideMainNavbar.includes(location.pathname);
+    !shouldHideMainNavbar.includes(location.pathname) &&
+    !complianceRoutes.includes(location.pathname); // Hide navbar on compliance pages
+
+  const shouldShowFooter = shouldShowNavbar; // Show footer wherever navbar is shown
+
+  // Check if current route should be wrapped by TermsGuard
+  const shouldUseTermsGuard =
+    !authRoutes.includes(location.pathname) &&
+    !complianceRoutes.includes(location.pathname) &&
+    !location.pathname.startsWith('/app-admin');
+
   return (
     <div className="min-h-svh flex flex-col">
       {shouldShowNavbar && <Navbar />}
-      <Routes>
-        {/* Auth Routes */}
-        <Route path="/" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgotpassword" element={<ForgotPassword />} />
+      <div className="flex-1">
+        {shouldUseTermsGuard ? (
+          <TermsGuard>
+            <Routes>
+              {/* App Routes - Protected by TermsGuard */}
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/patients" element={<Patients />} />
+              <Route path="/doctors" element={<Doctors />} />
+              <Route path="/appointments" element={<Appointments />} />
+              <Route path="/leave-management" element={<LeaveManagement />} />
+              <Route path="/reminders" element={<Reminders />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
+              <Route path="/TenantListPage" element={<TenantListPage />} />
+              <Route path="/Staffs" element={<StaffListPage />} />
+              <Route
+                path="/hospital/consent"
+                element={
+                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                    <HospitalConsentManagement />
+                  </ProtectedRoute>
+                }
+              />
 
-        {/* App Routes */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/patients" element={<Patients />} />
-        <Route path="/doctors" element={<Doctors />} />
-        <Route path="/appointments" element={<Appointments />} />
-        <Route path="/leave-management" element={<LeaveManagement />} />
-        <Route path="/reminders" element={<Reminders />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
-        <Route path="/TenantListPage" element={<TenantListPage />} />
-        <Route path="/Staffs" element={<StaffListPage />} />
+              {/* Inventory Management Routes */}
+              <Route path="/inventory" element={<InventoryLayout />}>
+                <Route index element={<InventoryDashboard />} />
+                <Route path="dashboard" element={<InventoryDashboard />} />
+                <Route path="items" element={<ItemsPage />} />
+                <Route path="categories" element={<CategoriesPage />} />
+                <Route path="transactions" element={<TransactionsPage />} />
+              </Route>
 
-        {/* Inventory Management Routes */}
-        <Route path="/inventory" element={<InventoryLayout />}>
-          <Route index element={<InventoryDashboard />} />
-          <Route path="dashboard" element={<InventoryDashboard />} />
-          <Route path="items" element={<ItemsPage />} />
-          <Route path="categories" element={<CategoriesPage />} />
-          <Route path="transactions" element={<TransactionsPage />} />
-        </Route>
+              {/* Doctor view routes */}
+              <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+              <Route path="/doctor-attendance" element={<DoctorAttendance />} />
+              <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
+              <Route path="/fulfilled-records" element={<FulfilledRecords />} />
+              <Route path="/patient-gallery" element={<DynamicPatientGallery />} />
+              <Route path="/patient-images/:patientId" element={<PatientImagesPage />} />
+              <Route path="/copilot" element={<CopilotPage />} />
 
-        {/* Doctor view routes */}
-        <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-        <Route path="/doctor-attendance" element={<DoctorAttendance />} />
-        <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
-        <Route path="/fulfilled-records" element={<FulfilledRecords />} />
-        <Route path="/patient-gallery" element={<DynamicPatientGallery />} />
-        <Route path="/patient-images/:patientId" element={<PatientImagesPage />} />
-        <Route path="/copilot" element={<CopilotPage />} />
+              <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
 
-        <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
+              {/* Admin routes */}
 
-        {/* Admin routes */}
-        {/* <Route path="/admin/login" element={<AdminLogin />} /> */}
-        <Route path="/tenantadmin/login" element={<TenantAdminLogin />} />
-        <Route path="/tenantadmin/dashboard" element={<TenantAdminDashboard />} />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/roles"
-          element={
-            <ProtectedRoute requireSuperAdmin={true}>
-              <RolesManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/permissions"
-          element={
-            <ProtectedRoute requireSuperAdmin={true}>
-              <PermissionsManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staffs"
-          element={
-            <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
-              <StaffRoleAssignment />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/admin/attendance" element={<AdminAttendanceManagement />} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/roles"
+                element={
+                  <ProtectedRoute requireSuperAdmin={true}>
+                    <RolesManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/permissions"
+                element={
+                  <ProtectedRoute requireSuperAdmin={true}>
+                    <PermissionsManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/staffs"
+                element={
+                  <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
+                    <StaffRoleAssignment />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/admin/attendance" element={<AdminAttendanceManagement />} />
 
-        {/* Appointment Flow Routes */}
-        <Route path="/landing" element={<LandingPage />} />
-        <Route path="/patient-details" element={<PatientDetails />} />
-        <Route path="/otp-verification" element={<OTPVerification />} />
-        <Route path="/appointment" element={<AppointmentPage />} />
-        <Route path="/confirmation" element={<ConfirmationPage />} />
-        <Route path="/patient-details-form" element={<PatientDetailsForm />} />
-        <Route path="/patient-dashboard" element={<PatientDashboard />} /> {/* navbar will show here */}
-        <Route path="/auth-callback" element={<AuthCallback />} />
+              {/* Appointment Flow Routes */}
+              <Route path="/landing" element={<LandingPage />} />
+              <Route path="/patient-details" element={<PatientDetails />} />
+              <Route path="/otp-verification" element={<OTPVerification />} />
+              <Route path="/appointment" element={<AppointmentPage />} />
+              <Route path="/confirmation" element={<ConfirmationPage />} />
+              <Route path="/patient-details-form" element={<PatientDetailsForm />} />
+              <Route path="/patient-dashboard" element={<PatientDashboard />} />
+              <Route path="/auth-callback" element={<AuthCallback />} />
 
-        {/* Billing  */}
-        <Route path="/billing/:appoinmentid" element={<BillingPage />} />
+              {/* Billing */}
+              <Route path="/billing/:appoinmentid" element={<BillingPage />} />
+            </Routes>
+          </TermsGuard>
+        ) : (
+          <Routes>
+            {/* Auth Routes - No TermsGuard */}
+            <Route path="/" element={<Login />} />
+            <Route path="/forgotpassword" element={<ForgotPassword />} />
+            <Route path="/tenantadmin/login" element={<TenantAdminLogin />} />
+            <Route path="/tenantadmin/dashboard" element={<TenantAdminDashboard />} />
+            <Route path="/app-admin/login" element={<AppAdminLogin />} />
+            <Route path="/app-admin/*" element={
+              <AppAdminProtectedRoute>
+                <AppAdminDashboard />
+              </AppAdminProtectedRoute>
+            } />
 
-        {/* App Admin Routes */}
-        <Route path="/app-admin/login" element={<AppAdminLogin />} />
-        <Route path="/app-admin/*" element={
-          <AppAdminProtectedRoute>
-            <AppAdminDashboard />
-          </AppAdminProtectedRoute>
-        } />
-      </Routes>
+            {/* Compliance Routes - No TermsGuard, No Navbar */}
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+          </Routes>
+        )}
+      </div>
+      {shouldShowFooter && <Footer />}
     </div>
   );
 }
@@ -203,10 +243,12 @@ function AppContent() {
 function App() {
   return (
     <AppAdminAuthProvider>
-      <Router>
-        <AppContent />
-        <Toaster position="top-right" />
-      </Router>
+      <PermissionsProvider>
+        <Router>
+          <AppContent />
+          <Toaster position="top-right" />
+        </Router>
+      </PermissionsProvider>
     </AppAdminAuthProvider>
   );
 }

@@ -73,6 +73,7 @@ export default function StaffListPage() {
           <tr>
             <th className="border p-2">Name</th>
             <th className="border p-2">Department</th>
+            <th className="border p-2">Role</th>
             <th className="border p-2">Email</th>
             <th className="border p-2">Phone</th>
             <th className="border p-2">Experience</th>
@@ -83,6 +84,11 @@ export default function StaffListPage() {
             <tr key={staff.id || idx} className="text-sm">
               <td className="border p-2">{staff.staff_name}</td>
               <td className="border p-2">{staff.department || (staff.designation?.department || staff.designation?.group_name)}</td>
+              <td className="border p-2">
+                {staff.role?.name || staff.role?.role_name || (
+                  <span className="text-gray-400 italic">No role assigned</span>
+                )}
+              </td>
               <td className="border p-2">{staff.email}</td>
               <td className="border p-2">{staff.contact_info}</td>
               <td className="border p-2">{staff.experience}</td>

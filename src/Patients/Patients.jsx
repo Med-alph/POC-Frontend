@@ -40,6 +40,9 @@ import {
 import ViewModal from "@/components/ui/view-modal"
 import AddPatientDialog from "./AddPatient"
 import EditPatientDialog from "./EditPatient"
+import ConsentStatusIndicator from "@/components/compliance/ConsentStatusIndicator"
+import { complianceAPI } from "@/api/complianceapi"
+import ComplianceFooter from "@/components/compliance/ComplianceFooter"
 
 export default function Patients() {
     const [patients, setPatients] = useState([])
@@ -55,13 +58,16 @@ export default function Patients() {
     const [viewModalOpen, setViewModalOpen] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState(null)
     const [openDialog, setOpenDialog] = useState(false)
-    
+    const [openEditDialog, setOpenEditDialog] = useState(false)
+    const [editPatient, setEditPatient] = useState(null)
+
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
     const [totalCount, setTotalCount] = useState(0)
     const PAGE_SIZE = 10
-    const [openEditDialog, setOpenEditDialog] = useState(false)
-    const [editPatient, setEditPatient] = useState(null)
+
+    // Consent status cache
+    const [consentStatuses, setConsentStatuses] = useState({})
 
     // Defensive patient validity check
     const isValidPatient = (patient) => {
@@ -91,7 +97,8 @@ export default function Patients() {
                     !searchTerm ||
                     (patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (patient.contact_info?.includes(searchTerm)) ||
-                    (patient.insurance_provider?.toLowerCase().includes(searchTerm.toLowerCase()))
+                    (patient.insurance_provider?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (patient.insurance_number?.toLowerCase().includes(searchTerm.toLowerCase()))
                 ) &&
                 (
                     statusFilter === "all" || patient.status === statusFilter
@@ -145,9 +152,10 @@ export default function Patients() {
     const fetchPatients = async () => {
         try {
             setLoading(true)
-            const hospitalId = "550e8400-e29b-41d4-a716-446655440001"
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const hospitalId = user.hospital_id;
             const offset = (currentPage - 1) * PAGE_SIZE
-            const params = { 
+            const params = {
                 hospital_id: hospitalId,
                 limit: PAGE_SIZE,
                 offset: offset
@@ -160,6 +168,9 @@ export default function Patients() {
             const cleanPatients = rawPatients.filter(isValidPatient)
             setPatients(cleanPatients)
             setTotalCount(result?.total || 0)
+
+            // Load consent statuses for all patients
+            await loadConsentStatuses(cleanPatients, hospitalId)
         } catch (err) {
             console.error("Error fetching patients:", err)
             toast.error("Failed to load patients. Please try again.")
@@ -168,6 +179,25 @@ export default function Patients() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const loadConsentStatuses = async (patientList, hospitalId) => {
+        const statusPromises = patientList.map(async (patient) => {
+            try {
+                const consentStatus = await complianceAPI.getConsentStatus(patient.id, hospitalId)
+                return { patientId: patient.id, status: consentStatus }
+            } catch (error) {
+                console.warn(`Failed to load consent status for patient ${patient.id}:`, error)
+                return { patientId: patient.id, status: null }
+            }
+        })
+
+        const results = await Promise.all(statusPromises)
+        const statusMap = {}
+        results.forEach(({ patientId, status }) => {
+            statusMap[patientId] = status
+        })
+        setConsentStatuses(statusMap)
     }
 
     useEffect(() => {
@@ -227,7 +257,10 @@ export default function Patients() {
     const handleAddPatient = async (newPatient) => {
         try {
             const response = await patientsAPI.create(newPatient)
-            const createdPatient = response?.data ?? response  // <-- key fix here
+            console.log("API Response:", response)
+
+            // Handle the response structure - API returns { patient: {...}, token: "..." }
+            const createdPatient = response?.patient ?? response?.data ?? response
 
             console.log("Created patient object:", createdPatient)
 
@@ -235,12 +268,17 @@ export default function Patients() {
                 throw new Error("Created patient data invalid")
             }
 
+            // Add the new patient to the list and refresh the table
             setPatients(prev => [...prev.filter(p => p.id !== createdPatient.id), createdPatient])
-            toast.success(`Patient "${createdPatient.patient_name}" added!`)
-            setOpenDialog(false)
+            toast.success(`Patient "${createdPatient.patient_name}" added successfully!`)
+
+            // Refresh the patient list to ensure we have the latest data
+            fetchPatients()
+            return createdPatient
         } catch (error) {
             console.error("Add patient error:", error)
             toast.error("Failed to add patient, please try again.")
+            throw error // Re-throw so AddPatient component knows it failed
         }
     }
 
@@ -338,7 +376,7 @@ export default function Patients() {
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
                                 <Input
                                     type="text"
-                                    placeholder="Search patients..."
+                                    placeholder="Search by name, contact, or insurance #..."
                                     className="pl-9"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -431,6 +469,7 @@ export default function Patients() {
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">DOB / Age</TableHead>
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">Contact Info</TableHead>
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">Insurance Provider</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 dark:text-white">Consent Status</TableHead>
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">Last Visit</TableHead>
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">Next Appointment</TableHead>
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">Status</TableHead>
@@ -440,7 +479,7 @@ export default function Patients() {
                                 <TableBody>
                                     {filteredAndSortedPatients.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="text-center py-12">
+                                            <TableCell colSpan={9} className="text-center py-12">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <Users className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
                                                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -460,154 +499,160 @@ export default function Patients() {
                                             </TableCell>
                                         </TableRow>
                                     ) : filteredAndSortedPatients.map(patient => {
-                                    const initials = patient.patient_name
-                                        ?.split(' ')
-                                        .map(name => name.charAt(0))
-                                        .join('')
-                                        .toUpperCase() || 'P'
+                                        const initials = patient.patient_name
+                                            ?.split(' ')
+                                            .map(name => name.charAt(0))
+                                            .join('')
+                                            .toUpperCase() || 'P'
 
-                                    const formatDate = (dateString) => {
-                                        if (!dateString) return 'N/A'
-                                        const date = new Date(dateString)
-                                        return date.toLocaleDateString('en-US', {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric'
-                                        })
-                                    }
-
-                                    const getStatusColor = (status) => {
-                                        if (!status) return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
-                                        switch (status) {
-                                            case 'active': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800'
-                                            case 'inactive': return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
-                                            case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800'
-                                            default: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                                        const formatDate = (dateString) => {
+                                            if (!dateString) return 'N/A'
+                                            const date = new Date(dateString)
+                                            return date.toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric'
+                                            })
                                         }
-                                    }
 
-                                    return (
-                                        <TableRow 
-                                            key={patient.id}
-                                            className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
-                                        >
-                                            <TableCell className="py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar className="h-10 w-10 border-2 border-gray-200 dark:border-gray-700">
-                                                        <AvatarFallback className="text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                                                            {initials}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-medium text-gray-900 dark:text-white">{patient.patient_name}</p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">{patient.patient_code || patient.id.slice(0, 8) + '...'}</p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm text-gray-900 dark:text-white font-medium">{formatDate(patient.dob)}</span>
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">{patient.age || 'N/A'} years old</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <div className="flex flex-col space-y-1.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <Phone className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
-                                                        <span className="text-sm text-gray-900 dark:text-white">{patient.contact_info || 'N/A'}</span>
-                                                    </div>
-                                                    {patient.email && (
-                                                        <div className="flex items-center gap-2">
-                                                            <Mail className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
-                                                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{patient.email}</span>
+                                        const getStatusColor = (status) => {
+                                            if (!status) return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+                                            switch (status) {
+                                                case 'active': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800'
+                                                case 'inactive': return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+                                                case 'pending': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800'
+                                                default: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                                            }
+                                        }
+
+                                        return (
+                                            <TableRow
+                                                key={patient.id}
+                                                className="hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
+                                            >
+                                                <TableCell className="py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="h-10 w-10 border-2 border-gray-200 dark:border-gray-700">
+                                                            <AvatarFallback className="text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                                                                {initials}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-medium text-gray-900 dark:text-white">{patient.patient_name}</p>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">{patient.patient_code || patient.id.slice(0, 8) + '...'}</p>
                                                         </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm text-gray-900 dark:text-white font-medium">{formatDate(patient.dob)}</span>
+                                                        <span className="text-xs text-gray-500 dark:text-gray-400">{patient.age || 'N/A'} years old</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-4">
+                                                    <div className="flex flex-col space-y-1.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <Phone className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                                                            <span className="text-sm text-gray-900 dark:text-white">{patient.contact_info || 'N/A'}</span>
+                                                        </div>
+                                                        {patient.email && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Mail className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                                                                <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{patient.email}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-4">
+                                                    {patient.insurance_provider ? (
+                                                        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-medium">
+                                                            {patient.insurance_provider}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-sm text-gray-400 dark:text-gray-500">N/A</span>
                                                     )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                {patient.insurance_provider ? (
-                                                    <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-medium">
-                                                        {patient.insurance_provider}
-                                                    </Badge>
-                                                ) : (
-                                                    <span className="text-sm text-gray-400 dark:text-gray-500">N/A</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <span className="text-sm text-gray-900 dark:text-white">
-                                                    {patient.last_visit ? formatDate(patient.last_visit) : <span className="text-gray-400 dark:text-gray-500">No visits yet</span>}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <div className="flex flex-col">
+                                                </TableCell>
+                                                <TableCell className="py-4">
+                                                    <ConsentStatusIndicator
+                                                        consentStatus={consentStatuses[patient.id]}
+                                                        showDetails={true}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="py-4">
                                                     <span className="text-sm text-gray-900 dark:text-white">
-                                                        {patient.next_appointment ? formatDate(patient.next_appointment) : <span className="text-gray-400 dark:text-gray-500">No upcoming</span>}
+                                                        {patient.last_visit ? formatDate(patient.last_visit) : <span className="text-gray-400 dark:text-gray-500">No visits yet</span>}
                                                     </span>
-                                                    {patient.next_appointment && (
-                                                        <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Scheduled</span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <Badge className={`${getStatusColor(patient.status)} font-medium capitalize`}>
-                                                    {patient.status || 'N/A'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="py-4">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                                        onClick={() => handleViewPatient(patient)}
-                                                        title="View patient details"
-                                                    >
-                                                        <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                        onClick={() => handleEditPatient(patient)}
-                                                        title="Edit patient"
-                                                    >
-                                                        <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                                    </Button>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm" 
-                                                                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                                title="More options"
-                                                            >
-                                                                <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="w-48">
-                                                            <DropdownMenuItem className="cursor-pointer">
-                                                                <Phone className="h-4 w-4 mr-2" />
-                                                                Call Patient
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem className="cursor-pointer">
-                                                                <Mail className="h-4 w-4 mr-2" />
-                                                                Send Message
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem className="cursor-pointer">
-                                                                <Calendar className="h-4 w-4 mr-2" />
-                                                                Schedule Appointment
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
-                                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                                Archive Patient
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })}
+                                                </TableCell>
+                                                <TableCell className="py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm text-gray-900 dark:text-white">
+                                                            {patient.next_appointment ? formatDate(patient.next_appointment) : <span className="text-gray-400 dark:text-gray-500">No upcoming</span>}
+                                                        </span>
+                                                        {patient.next_appointment && (
+                                                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Scheduled</span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-4">
+                                                    <Badge className={`${getStatusColor(patient.status)} font-medium capitalize`}>
+                                                        {patient.status || 'N/A'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="py-4">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                            onClick={() => handleViewPatient(patient)}
+                                                            title="View patient details"
+                                                        >
+                                                            <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                            onClick={() => handleEditPatient(patient)}
+                                                            title="Edit patient"
+                                                        >
+                                                            <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                                        </Button>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                                    title="More options"
+                                                                >
+                                                                    <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-48">
+                                                                <DropdownMenuItem className="cursor-pointer">
+                                                                    <Phone className="h-4 w-4 mr-2" />
+                                                                    Call Patient
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem className="cursor-pointer">
+                                                                    <Mail className="h-4 w-4 mr-2" />
+                                                                    Send Message
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem className="cursor-pointer">
+                                                                    <Calendar className="h-4 w-4 mr-2" />
+                                                                    Schedule Appointment
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
+                                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                                    Archive Patient
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>
@@ -624,9 +669,9 @@ export default function Patients() {
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             >
@@ -635,9 +680,9 @@ export default function Patients() {
                             <span className="text-sm text-gray-600">
                                 Page {currentPage} of {Math.ceil(totalCount / PAGE_SIZE) || 1}
                             </span>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
                                 onClick={() => setCurrentPage(p => p + 1)}
                             >
@@ -652,6 +697,7 @@ export default function Patients() {
                     open={openDialog}
                     setOpen={setOpenDialog}
                     onAdd={handleAddPatient}
+                    onComplete={fetchPatients}
                 />
 
                 {/* Edit Patient Dialog */}
@@ -669,6 +715,9 @@ export default function Patients() {
                     data={selectedPatient}
                     type="patient"
                 />
+
+                {/* Compliance Footer */}
+                <ComplianceFooter showWarning={true} />
             </main>
         </div>
     )

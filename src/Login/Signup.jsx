@@ -5,10 +5,47 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Eye, EyeOff, Mail, User } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import TermsAcceptanceCheckbox from "@/components/compliance/TermsAcceptanceCheckbox"
+import toast from 'react-hot-toast'
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
+  })
   const navigate = useNavigate()
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSignup = () => {
+    // Basic validation
+    if (!formData.username.trim() || !formData.email.trim() || !formData.password.trim()) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match")
+      return
+    }
+
+    if (!termsAccepted) {
+      toast.error("Please accept the Terms of Service and Privacy Policy to continue")
+      return
+    }
+
+    // TODO: Implement actual signup logic with terms acceptance
+    console.log("Signup data:", { ...formData, termsAccepted })
+    toast.success("Account created successfully!")
+    navigate("/dashboard")
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -23,8 +60,12 @@ export default function Signup() {
             <User className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
             <Input
               type="text"
+              name="username"
               placeholder="Username"
               className="pl-9 py-2"
+              value={formData.username}
+              onChange={handleInputChange}
+              required
             />
           </div>
 
@@ -33,8 +74,12 @@ export default function Signup() {
             <Mail className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
             <Input
               type="email"
+              name="email"
               placeholder="Email"
               className="pl-9 py-2"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
             />
           </div>
 
@@ -42,8 +87,12 @@ export default function Signup() {
           <div className="relative">
             <Input
               type={showPassword ? "text" : "password"}
+              name="password"
               placeholder="Password"
               className="pr-10 py-2"
+              value={formData.password}
+              onChange={handleInputChange}
+              required
             />
             <button
               type="button"
@@ -58,8 +107,12 @@ export default function Signup() {
           <div className="relative">
             <Input
               type={showPassword ? "text" : "password"}
+              name="confirmPassword"
               placeholder="Confirm Password"
               className="pr-10 py-2"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              required
             />
             <button
               type="button"
@@ -70,10 +123,19 @@ export default function Signup() {
             </button>
           </div>
 
+          {/* Terms Acceptance */}
+          <TermsAcceptanceCheckbox
+            checked={termsAccepted}
+            onCheckedChange={setTermsAccepted}
+            required={true}
+            className="py-2"
+          />
+
           {/* Sign Up Button */}
           <Button
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2"
-            onClick={() => navigate("/dashboard")}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSignup}
+            disabled={!termsAccepted}
           >
             Sign Up
           </Button>

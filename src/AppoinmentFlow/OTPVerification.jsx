@@ -65,11 +65,12 @@ const OTPVerification = () => {
       console.log("OTP verification API response:", res);
       if (res.success && res.token) {
         toast.success("OTP verified successfully");
+        localStorage.setItem("auth_token", res.token);
+
         if (res.isNewPatient) {
           setUserId(res.patient?.id || null);
           setShowAddPatientDialog(true);
         } else {
-          localStorage.setItem("auth_token", res.token);
           localStorage.setItem("isAuthenticated", "true");
           navigate("/patient-dashboard", { replace: true });
         }
@@ -99,31 +100,39 @@ const OTPVerification = () => {
     }
   };
 
-const handleAddPatient = async (patientData) => {
-  console.log("handleAddPatient called with data:", patientData);
-  try {
-    setLoading(true);
-    const newPatient = await patientsAPI.create({
-      ...patientData,
-      user_id: userId,
-      hospital_id: HOSPITAL_ID,
-      contact_info: phone,
-    });
-    console.log("New patient creation API response:", newPatient);
-    setShowAddPatientDialog(false);
-    toast.success("Patient registered successfully!");
+  const handleAddPatient = async (patientData) => {
+    console.log("handleAddPatient called with data:", patientData);
+    try {
+      setLoading(true);
+      const newPatient = await patientsAPI.create({
+        ...patientData,
+        user_id: userId,
+        hospital_id: HOSPITAL_ID,
+        contact_info: phone,
+      });
+      console.log("New patient creation API response:", newPatient);
+      // Do not close dialog or navigate here. Return patient for consent flow.
+      return newPatient;
+    } catch (error) {
+      console.error("Error creating new patient:", error);
+      toast.error("Failed to register patient");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // After creation, handle login/navigation as you planned
-    localStorage.setItem("auth_token", newPatient.token); // or fetch token from SDK
-    localStorage.setItem("isAuthenticated", "true");
-    navigate("/patient-dashboard", { replace: true });
-  } catch (error) {
-    console.error("Error creating new patient:", error);
-    toast.error("Failed to register patient");
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleRegistrationComplete = (patient) => {
+    // After creation AND consent, handle login/navigation
+    if (patient?.token) {
+      localStorage.setItem("auth_token", patient.token);
+      localStorage.setItem("isAuthenticated", "true");
+      navigate("/patient-dashboard", { replace: true });
+      toast.success("Registration complete!");
+    } else {
+      navigate("/landing");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center px-4 transition-colors duration-300">
@@ -233,6 +242,9 @@ const handleAddPatient = async (patientData) => {
         open={showAddPatientDialog}
         setOpen={setShowAddPatientDialog}
         onAdd={handleAddPatient}
+        hospitalId={HOSPITAL_ID}
+        isSelfRegistration={true}
+        onComplete={handleRegistrationComplete}
       />
     </div>
   );

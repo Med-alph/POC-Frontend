@@ -179,6 +179,7 @@ const StaffsRolesTab = () => {
                           <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Staff Name</th>
                           <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Department</th>
                           <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Designation</th>
+                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Assigned Role</th>
                           <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Contact Info</th>
                           <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Email</th>
                           <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Experience (years)</th>
@@ -194,6 +195,22 @@ const StaffsRolesTab = () => {
                             <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800">{staff.staff_name}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.department || "-"}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.designation?.name || "-"}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                              {staff.roles && staff.roles.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {staff.roles.map((role, index) => (
+                                    <span 
+                                      key={role.id || index}
+                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                    >
+                                      {role.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 italic">No role assigned</span>
+                              )}
+                            </td>
                             <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.contact_info || "-"}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.email || "-"}</td>
                             <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.experience != null ? staff.experience : "-"}</td>

@@ -18,53 +18,23 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Edit, Trash2, Save, X } from "lucide-react"
+import { Plus, Edit, Trash2, Save, X, Users } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
+import { rbacAPI } from "../api/rbacapi"
+import { UI_MODULES, UI_MODULE_LABELS, PLAN_FEATURE_TO_MODULES } from "../constants/Constant"
 
-// Mock data for demonstration
-const mockRoles = [
-  {
-    id: 1,
-    name: "Admin",
-    description: "Full system access",
-    permissions: ["appointments:view", "appointments:create", "appointments:update", "appointments:delete", "patients:view", "patients:create", "patients:update", "patients:delete", "staff:view", "staff:create", "staff:update", "staff:delete", "roles:manage"]
-  },
-  {
-    id: 2,
-    name: "Doctor",
-    description: "Medical staff with patient access",
-    permissions: ["appointments:view", "appointments:create", "appointments:update", "patients:view", "patients:create", "patients:update"]
-  },
-  {
-    id: 3,
-    name: "Nurse",
-    description: "Nursing staff with limited access",
-    permissions: ["appointments:view", "patients:view", "patients:update"]
-  },
-  {
-    id: 4,
-    name: "Receptionist",
-    description: "Front desk staff",
-    permissions: ["appointments:view", "appointments:create", "appointments:update", "patients:view", "patients:create"]
-  }
-]
-
-const allPermissions = [
-  "appointments:view", "appointments:create", "appointments:update", "appointments:delete",
-  "patients:view", "patients:create", "patients:update", "patients:delete",
-  "staff:view", "staff:create", "staff:update", "staff:delete",
-  "hospitals:view", "hospitals:create", "hospitals:update", "hospitals:delete",
-  "transcriptions:view", "transcriptions:create", "transcriptions:update", "transcriptions:delete",
-  "reminders:view", "reminders:create", "reminders:update", "reminders:delete",
-  "audit-logs:view", "roles:manage", "permissions:manage"
-]
+// Available modules for role assignment
+const availableModules = Object.values(UI_MODULES)
+const availableFeatures = Object.keys(PLAN_FEATURE_TO_MODULES)
 
 export default function RolesManagement() {
   const { user } = useSelector((state) => state.auth)
-  const [roles, setRoles] = useState(mockRoles)
+  const [roles, setRoles] = useState([])
+  const [loading, setLoading] = useState(true)
   const [editingRole, setEditingRole] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
-  const [newRole, setNewRole] = useState({ name: "", description: "", permissions: [] })
+  const [newRole, setNewRole] = useState({ name: "", description: "", feature_ids: [] })
+  const [staffCounts, setStaffCounts] = useState({})
   const { addToast: toast } = useToast()
 
   // Check if user has super admin permissions
@@ -77,10 +47,50 @@ export default function RolesManagement() {
         description: "You don't have permission to manage roles.",
         variant: "destructive",
       })
+      return
     }
+    
+    fetchRoles()
+    fetchStaffCounts()
   }, [isSuperAdmin, toast])
 
-  const handleCreateRole = () => {
+  const fetchRoles = async () => {
+    try {
+      setLoading(true)
+      const response = await rbacAPI.getRoles()
+      console.log('Roles API response:', response)
+      setRoles(response.data || response || [])
+    } catch (error) {
+      console.error('Error fetching roles:', error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch roles.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchStaffCounts = async () => {
+    try {
+      const response = await rbacAPI.getStaff()
+      const staff = response.data || response || []
+      
+      // Count staff by role
+      const counts = {}
+      staff.forEach(member => {
+        if (member.role_id) {
+          counts[member.role_id] = (counts[member.role_id] || 0) + 1
+        }
+      })
+      setStaffCounts(counts)
+    } catch (error) {
+      console.error('Error fetching staff counts:', error)
+    }
+  }
+
+  const handleCreateRole = async () => {
     if (!newRole.name.trim()) {
       toast({
         title: "Error",
@@ -90,54 +100,112 @@ export default function RolesManagement() {
       return
     }
 
-    const role = {
-      id: Date.now(),
-      ...newRole,
-      name: newRole.name.trim()
-    }
-    
-    setRoles([...roles, role])
-    setNewRole({ name: "", description: "", permissions: [] })
-    setIsCreating(false)
-    
-    toast({
-      title: "Success",
-      description: "Role created successfully.",
-    })
-  }
-
-  const handleEditRole = (role) => {
-    setEditingRole(role)
-  }
-
-  const handleSaveRole = (roleId, updatedRole) => {
-    setRoles(roles.map(role => 
-      role.id === roleId ? { ...role, ...updatedRole } : role
-    ))
-    setEditingRole(null)
-    
-    toast({
-      title: "Success",
-      description: "Role updated successfully.",
-    })
-  }
-
-  const handleDeleteRole = (roleId) => {
-    if (window.confirm("Are you sure you want to delete this role?")) {
-      setRoles(roles.filter(role => role.id !== roleId))
+    try {
+      const roleData = {
+        name: newRole.name.trim(),
+        description: newRole.description.trim() || null,
+        feature_ids: newRole.feature_ids
+      }
+      
+      const response = await rbacAPI.createRole(roleData)
+      console.log('Create role response:', response)
+      
+      // Add the new role to the list
+      setRoles([...roles, response])
+      setNewRole({ name: "", description: "", feature_ids: [] })
+      setIsCreating(false)
+      
       toast({
         title: "Success",
-        description: "Role deleted successfully.",
+        description: "Role created successfully.",
+      })
+    } catch (error) {
+      console.error('Error creating role:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create role.",
+        variant: "destructive",
       })
     }
   }
 
-  const togglePermission = (permission, rolePermissions) => {
-    if (rolePermissions.includes(permission)) {
-      return rolePermissions.filter(p => p !== permission)
-    } else {
-      return [...rolePermissions, permission]
+  const handleEditRole = (role) => {
+    setEditingRole({
+      ...role,
+      feature_ids: role.feature_ids || []
+    })
+  }
+
+  const handleSaveRole = async (roleId, updatedRole) => {
+    try {
+      const roleData = {
+        name: updatedRole.name.trim(),
+        description: updatedRole.description?.trim() || null,
+        feature_ids: updatedRole.feature_ids || []
+      }
+      
+      const response = await rbacAPI.updateRole(roleId, roleData)
+      console.log('Update role response:', response)
+      
+      // Update the role in the list
+      setRoles(roles.map(role => 
+        role.id === roleId ? { ...role, ...response } : role
+      ))
+      setEditingRole(null)
+      
+      toast({
+        title: "Success",
+        description: "Role updated successfully.",
+      })
+    } catch (error) {
+      console.error('Error updating role:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update role.",
+        variant: "destructive",
+      })
     }
+  }
+
+  const handleDeleteRole = async (roleId) => {
+    if (window.confirm("Are you sure you want to delete this role?")) {
+      try {
+        await rbacAPI.deleteRole(roleId)
+        setRoles(roles.filter(role => role.id !== roleId))
+        toast({
+          title: "Success",
+          description: "Role deleted successfully.",
+        })
+      } catch (error) {
+        console.error('Error deleting role:', error)
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete role.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const toggleFeature = (feature, roleFeatures) => {
+    if (roleFeatures.includes(feature)) {
+      return roleFeatures.filter(f => f !== feature)
+    } else {
+      return [...roleFeatures, feature]
+    }
+  }
+
+  const getModulesForFeatures = (featureIds) => {
+    const modules = new Set()
+    featureIds.forEach(featureId => {
+      const featureModules = PLAN_FEATURE_TO_MODULES[featureId] || []
+      featureModules.forEach(module => modules.add(module))
+    })
+    return Array.from(modules)
+  }
+
+  const getFeatureLabel = (featureId) => {
+    return featureId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
   if (!isSuperAdmin) {
@@ -146,6 +214,16 @@ export default function RolesManagement() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
           <p className="text-gray-600">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">
+          <p className="text-gray-600">Loading roles...</p>
         </div>
       </div>
     )
@@ -196,21 +274,33 @@ export default function RolesManagement() {
             </div>
             
             <div>
-              <Label>Permissions</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-2">
-                {allPermissions.map(permission => (
-                  <label key={permission} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={newRole.permissions.includes(permission)}
-                      onChange={() => setNewRole({
-                        ...newRole,
-                        permissions: togglePermission(permission, newRole.permissions)
-                      })}
-                      className="rounded"
-                    />
-                    <span className="text-sm">{permission}</span>
-                  </label>
+              <Label>Features & Modules</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                {availableFeatures.map(feature => (
+                  <div key={feature} className="border rounded-lg p-3">
+                    <label className="flex items-center space-x-2 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={newRole.feature_ids.includes(feature)}
+                        onChange={() => setNewRole({
+                          ...newRole,
+                          feature_ids: toggleFeature(feature, newRole.feature_ids)
+                        })}
+                        className="rounded"
+                      />
+                      <span className="font-medium text-sm">{getFeatureLabel(feature)}</span>
+                    </label>
+                    <div className="ml-6 text-xs text-gray-600">
+                      <p className="mb-1">Includes modules:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {(PLAN_FEATURE_TO_MODULES[feature] || []).map(module => (
+                          <Badge key={module} variant="outline" className="text-xs">
+                            {UI_MODULE_LABELS[module] || module}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -224,7 +314,7 @@ export default function RolesManagement() {
                 variant="outline" 
                 onClick={() => {
                   setIsCreating(false)
-                  setNewRole({ name: "", description: "", permissions: [] })
+                  setNewRole({ name: "", description: "", feature_ids: [] })
                 }}
               >
                 <X className="w-4 h-4 mr-2" />
@@ -246,7 +336,8 @@ export default function RolesManagement() {
               <TableRow>
                 <TableHead>Role Name</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Permissions</TableHead>
+                <TableHead>Features & Modules</TableHead>
+                <TableHead>Staff Count</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -267,46 +358,78 @@ export default function RolesManagement() {
                   <TableCell>
                     {editingRole?.id === role.id ? (
                       <Input
-                        value={editingRole.description}
+                        value={editingRole.description || ''}
                         onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
                         className="w-full"
+                        placeholder="Enter description"
                       />
                     ) : (
-                      role.description
+                      role.description || 'No description'
                     )}
                   </TableCell>
                   <TableCell>
                     {editingRole?.id === role.id ? (
-                      <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
-                        {allPermissions.map(permission => (
-                          <label key={permission} className="flex items-center space-x-1 text-xs">
-                            <input
-                              type="checkbox"
-                              checked={editingRole.permissions.includes(permission)}
-                              onChange={() => setEditingRole({
-                                ...editingRole,
-                                permissions: togglePermission(permission, editingRole.permissions)
-                              })}
-                              className="rounded"
-                            />
-                            <span>{permission}</span>
-                          </label>
+                      <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                        {availableFeatures.map(feature => (
+                          <div key={feature} className="border rounded p-2">
+                            <label className="flex items-center space-x-2 mb-1">
+                              <input
+                                type="checkbox"
+                                checked={editingRole.feature_ids.includes(feature)}
+                                onChange={() => setEditingRole({
+                                  ...editingRole,
+                                  feature_ids: toggleFeature(feature, editingRole.feature_ids)
+                                })}
+                                className="rounded"
+                              />
+                              <span className="text-xs font-medium">{getFeatureLabel(feature)}</span>
+                            </label>
+                            <div className="ml-6 flex flex-wrap gap-1">
+                              {(PLAN_FEATURE_TO_MODULES[feature] || []).map(module => (
+                                <Badge key={module} variant="outline" className="text-xs">
+                                  {UI_MODULE_LABELS[module] || module}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {role.permissions.slice(0, 3).map(permission => (
-                          <Badge key={permission} variant="secondary" className="text-xs">
-                            {permission}
-                          </Badge>
-                        ))}
-                        {role.permissions.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{role.permissions.length - 3} more
-                          </Badge>
-                        )}
+                      <div className="space-y-2">
+                        {/* Show Features */}
+                        <div className="flex flex-wrap gap-1">
+                          {(role.feature_ids || []).slice(0, 2).map(feature => (
+                            <Badge key={feature} variant="secondary" className="text-xs">
+                              {getFeatureLabel(feature)}
+                            </Badge>
+                          ))}
+                          {(role.feature_ids || []).length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{(role.feature_ids || []).length - 2} more
+                            </Badge>
+                          )}
+                        </div>
+                        {/* Show Modules */}
+                        <div className="flex flex-wrap gap-1">
+                          {getModulesForFeatures(role.feature_ids || []).slice(0, 3).map(module => (
+                            <Badge key={module} variant="outline" className="text-xs">
+                              {UI_MODULE_LABELS[module] || module}
+                            </Badge>
+                          ))}
+                          {getModulesForFeatures(role.feature_ids || []).length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{getModulesForFeatures(role.feature_ids || []).length - 3} modules
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-1">
+                      <Users className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{staffCounts[role.id] || 0}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {editingRole?.id === role.id ? (

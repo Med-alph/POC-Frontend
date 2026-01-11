@@ -11,6 +11,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import toast from 'react-hot-toast';
+import { Lock } from "lucide-react";
 
 export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient }) {
     const [formData, setFormData] = useState({
@@ -79,8 +80,12 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
                 ? Math.floor((new Date() - new Date(formData.dob)) / (365.25 * 24 * 60 * 60 * 1000))
                 : editPatient?.age || null;
 
+            // Normalize insurance number for Blind Indexing (trim and uppercase)
+            const normalizedInsuranceNumber = formData.insurance_number?.trim().toUpperCase() || "";
+
             const patientData = {
                 ...formData,
+                insurance_number: normalizedInsuranceNumber,
                 age,
                 updated_at: new Date().toISOString(),
             };
@@ -182,7 +187,7 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
                             <h3 className="text-lg font-semibold text-gray-900">Insurance Information</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <Label htmlFor="insurance_provider">Insurance Provider</Label>
+                                    <Label htmlFor="insurance_provider" className="flex items-center h-5 mb-1.5">Insurance Provider</Label>
                                     <Select
                                         value={formData.insurance_provider}
                                         onValueChange={(value) => handleSelectChange('insurance_provider', value)}
@@ -202,7 +207,10 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
                                     </Select>
                                 </div>
                                 <div>
-                                    <Label htmlFor="insurance_number">Insurance Number</Label>
+                                    <Label htmlFor="insurance_number" className="flex items-center gap-1 h-5 mb-1.5">
+                                        Insurance Number
+                                        <Lock className="h-3 w-3 text-blue-500" title="This field is encrypted at the application level" />
+                                    </Label>
                                     <Input
                                         id="insurance_number"
                                         name="insurance_number"

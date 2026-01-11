@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { setCredentials } from "../features/auth/authSlice"
 import { authAPI } from "../api/authapi"
+import { complianceAPI } from "@/api/complianceapi"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,8 +13,9 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
-import { Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Shield } from "lucide-react"
 import { useToast } from "@/components/ui/toast"; // ✅ shadcn 
+import { Link } from "react-router-dom" 
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
@@ -33,11 +35,8 @@ export default function Login() {
       const response = await authAPI.login({ email, password })
 
       if (response.access_token && response.user) {
-        // Store token and user data in Redux
-        dispatch(setCredentials({
-          access_token: response.access_token,
-          user: response.user
-        }))
+        // Store complete response in Redux (including uiModules)
+        dispatch(setCredentials(response))
 
         toast({
           title: "Login Successful 🎉",
@@ -76,6 +75,25 @@ export default function Login() {
           <CardDescription className="text-center text-gray-600">
             Login to continue to your account
           </CardDescription>
+          
+          {/* Compliance Notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
+            <div className="flex items-start gap-2">
+              <Shield className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-blue-800">
+                  This system contains confidential medical information. By logging in, you agree to our{" "}
+                  <Link to="/privacy-policy" className="underline hover:text-blue-900">
+                    Privacy Policy
+                  </Link>{" "}
+                  and{" "}
+                  <Link to="/terms-of-service" className="underline hover:text-blue-900">
+                    Terms of Service
+                  </Link>.
+                </p>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Email Input */}
@@ -144,7 +162,7 @@ export default function Login() {
 
           {/* Footer Links */}
           <div className="text-center text-sm text-gray-600 pt-2 space-y-2">
-            <p>
+            {/* <p>
               Don't have an account?{" "}
               <a
                 href="/signup"
@@ -152,7 +170,7 @@ export default function Login() {
               >
                 Sign up
               </a>
-            </p>
+            </p> */}
             <p>
               <a
                 href="/tenantadmin/login"
