@@ -19,7 +19,7 @@ const OTPVerification = () => {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("darkMode") === "true");
   const [showAddPatientDialog, setShowAddPatientDialog] = useState(false);
   const [userId, setUserId] = useState(null); // To store patient id if needed for adding patient
-  const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001"
+  const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85"
 
   // Toggle dark mode
   const toggleDarkMode = () => {

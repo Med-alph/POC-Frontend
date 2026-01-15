@@ -14,13 +14,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { uiModulesAPI } from '../../api/uiModulesApi';
 import { rolesAPI } from '../../api/rolesapi';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import { UI_MODULES, UI_MODULE_LABELS, convertPlanFeaturesToModules } from '../../constants/Constant';
+import { UI_MODULES, UI_MODULE_LABELS, convertPlanFeaturesToModules, convertModulesToPlanFeatures } from '../../constants/Constant';
 
-const CreateRoleModal = ({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
-  editingRole 
+const CreateRoleModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  editingRole
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -41,15 +41,15 @@ const CreateRoleModal = ({
   const fetchTenantModules = async () => {
     try {
       setLoadingModules(true);
-      
+
       // Get tenant's allowed UI modules (what the plan allows)
       const tenantModules = await uiModulesAPI.getTenantUIModules();
-      
+
       console.log('Tenant allowed modules:', tenantModules);
-      
+
       const allowedKeys = tenantModules.allowedModules || [];
       setTenantAllowedModules(allowedKeys);
-      
+
     } catch (err) {
       console.error('Error fetching tenant modules:', err);
       setError('Failed to load available modules');
@@ -61,10 +61,10 @@ const CreateRoleModal = ({
   useEffect(() => {
     if (editingRole) {
       console.log('Editing role:', editingRole);
-      
+
       // Handle both old and new role data formats
       let existingModules = [];
-      
+
       if (editingRole.allowed_ui_modules && editingRole.allowed_ui_modules.length > 0) {
         // New format - direct UI modules
         existingModules = editingRole.allowed_ui_modules;
@@ -72,7 +72,7 @@ const CreateRoleModal = ({
         // Old format - convert feature IDs to UI modules
         existingModules = convertPlanFeaturesToModules(editingRole.feature_ids);
       }
-      
+
       setFormData({
         name: editingRole.name || editingRole.role_name,
         allowed_ui_modules: existingModules || []
@@ -88,13 +88,13 @@ const CreateRoleModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.name.trim()) {
       setError('Role name is required');
       return;
     }
-    
+
     if (formData.allowed_ui_modules.length === 0) {
       setError('At least one module must be selected');
       return;
@@ -112,27 +112,33 @@ const CreateRoleModal = ({
     try {
       setLoading(true);
       setError(null);
-      
+
+      const feature_ids = convertModulesToPlanFeatures(formData.allowed_ui_modules);
+
       if (editingRole) {
         // For editing, use the new UI modules endpoint
         await rolesAPI.updateRoleUIModules(editingRole.id, formData.allowed_ui_modules);
-        // Also update the basic role info if needed
-        await rolesAPI.updateRole(editingRole.id, { name: formData.name });
+        // Also update the basic role info and features
+        await rolesAPI.updateRole(editingRole.id, {
+          name: formData.name,
+          feature_ids: feature_ids
+        });
       } else {
-        // For creating, include UI modules in the creation payload
+        // For creating, include UI modules and feature_ids in the creation payload
         const payload = {
           name: formData.name,
-          allowed_ui_modules: formData.allowed_ui_modules
+          allowed_ui_modules: formData.allowed_ui_modules,
+          feature_ids: feature_ids
         };
         await onSubmit(payload);
       }
-      
+
       // Close modal and refresh parent
       onClose();
-      
+
       // Refresh permissions if this was the current user's role
       await refreshPermissions();
-      
+
     } catch (err) {
       setError(err.message);
       console.error('Role submission error:', err);
@@ -144,7 +150,7 @@ const CreateRoleModal = ({
   const handleModuleToggle = (moduleId, checked) => {
     setFormData(prev => ({
       ...prev,
-      allowed_ui_modules: checked 
+      allowed_ui_modules: checked
         ? [...prev.allowed_ui_modules, moduleId]
         : prev.allowed_ui_modules.filter(id => id !== moduleId)
     }));
@@ -213,7 +219,7 @@ const CreateRoleModal = ({
               <Label className="text-base font-semibold">Module Access *</Label>
               <Info className="h-4 w-4 text-gray-400" />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
               {allUIModules.map((module) => {
                 const isAvailable = module.available;
@@ -228,7 +234,7 @@ const CreateRoleModal = ({
                       disabled={!isAvailable || loading}
                     />
                     <div className="flex-1">
-                      <Label 
+                      <Label
                         htmlFor={module.key}
                         className={`cursor-pointer ${!isAvailable ? 'text-gray-400' : ''}`}
                       >
@@ -250,7 +256,7 @@ const CreateRoleModal = ({
                 Select at least one module for this role
               </p>
             )}
-            
+
             {tenantAllowedModules.length === 0 && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
@@ -259,7 +265,7 @@ const CreateRoleModal = ({
                 </AlertDescription>
               </Alert>
             )}
-            
+
             {tenantAllowedModules.length > 0 && (
               <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
                 <div className="flex items-center space-x-2">
@@ -267,7 +273,7 @@ const CreateRoleModal = ({
                   <span className="font-medium">Plan Information:</span>
                 </div>
                 <p className="mt-1">
-                  {tenantAllowedModules.length} modules available in your current plan. 
+                  {tenantAllowedModules.length} modules available in your current plan.
                   Disabled modules require a plan upgrade.
                 </p>
               </div>

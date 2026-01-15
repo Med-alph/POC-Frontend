@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 export default function Appointments() {
   const user = useSelector((state) => state.auth.user)
-  const HOSPITAL_ID = user?.hospital_id || "550e8400-e29b-41d4-a716-446655440001"
+  const HOSPITAL_ID = user?.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85"
 
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(false)
@@ -456,12 +456,12 @@ export default function Appointments() {
                       disabled={disabled}
                       onClick={() => setEditSelectedSlot(slot.time)}
                       className={`rounded-md py-2 px-2 text-sm border ${disabled
-                          ? isOnLeave
-                            ? "bg-amber-50 text-amber-700 border-amber-300 cursor-not-allowed"
-                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                          : selected
-                            ? "bg-blue-600 text-white border-blue-700"
-                            : "bg-white text-gray-900 hover:bg-blue-50"
+                        ? isOnLeave
+                          ? "bg-amber-50 text-amber-700 border-amber-300 cursor-not-allowed"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : selected
+                          ? "bg-blue-600 text-white border-blue-700"
+                          : "bg-white text-gray-900 hover:bg-blue-50"
                         }`}
                       title={isOnLeave ? `Doctor on ${editSlotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time passed" : ""}
                     >
@@ -661,10 +661,10 @@ export default function Appointments() {
                         key={idx}
                         variant={selectedSlot === slot.time ? "default" : "outline"}
                         className={`flex justify-between items-center ${slot.status === "unavailable"
-                            ? isOnLeave
-                              ? "cursor-not-allowed opacity-60 bg-amber-50 border-amber-300"
-                              : "cursor-not-allowed opacity-50 bg-red-50 border-red-300"
-                            : "hover:bg-green-50 hover:border-green-300"
+                          ? isOnLeave
+                            ? "cursor-not-allowed opacity-60 bg-amber-50 border-amber-300"
+                            : "cursor-not-allowed opacity-50 bg-red-50 border-red-300"
+                          : "hover:bg-green-50 hover:border-green-300"
                           }`}
                         onClick={() => slot.status !== "unavailable" && setSelectedSlot(slot.time)}
                         disabled={slot.status === "unavailable"}

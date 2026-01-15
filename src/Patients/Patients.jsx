@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { patientsAPI } from "../api/patientsapi"
+import { appointmentsAPI } from "../api/appointmentsapi"
 import toast, { Toaster } from 'react-hot-toast'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -60,6 +61,12 @@ export default function Patients() {
     const [openDialog, setOpenDialog] = useState(false)
     const [openEditDialog, setOpenEditDialog] = useState(false)
     const [editPatient, setEditPatient] = useState(null)
+    const [stats, setStats] = useState({
+        total: 0,
+        active: 0,
+        inactive: 0,
+        withAppointments: 0
+    })
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
@@ -141,13 +148,7 @@ export default function Patients() {
         return filtered
     }, [patients, searchTerm, statusFilter, appointmentTypeFilter, sortBy, sortOrder])
 
-    const stats = useMemo(() => {
-        const total = patients.length
-        const active = patients.filter(p => p.status === 'active').length
-        const inactive = patients.filter(p => p.status === 'inactive').length
-        const withAppointments = patients.filter(p => p.next_appointment).length
-        return { total, active, inactive, withAppointments }
-    }, [patients])
+    // Stats are now fetched from API instead of being derived from paginated data
 
     const fetchPatients = async () => {
         try {
@@ -167,7 +168,44 @@ export default function Patients() {
             const rawPatients = Array.isArray(result?.data) ? result.data : []
             const cleanPatients = rawPatients.filter(isValidPatient)
             setPatients(cleanPatients)
-            setTotalCount(result?.total || 0)
+            // Fetch global stats
+            const statsResult = await patientsAPI.getStats({ hospital_id: hospitalId })
+            console.log('Patient Stats Result:', statsResult)
+
+            // Fetch pending appointments count to populate the "With Appointments" stat
+            let pendingAptCount = 0
+            try {
+                const appointmentsResult = await appointmentsAPI.getAll({
+                    hospital_id: hospitalId,
+                    status: 'pending',
+                    limit: 1
+                })
+                pendingAptCount = appointmentsResult?.total || 0
+            } catch (aptErr) {
+                console.error("Error fetching pending appointments count:", aptErr)
+            }
+
+            const total = statsResult?.total || result?.total || 0
+            setTotalCount(total)
+
+            if (statsResult) {
+                setStats({
+                    total: total,
+                    active: statsResult.active || 0,
+                    inactive: statsResult.inactive || 0,
+                    withAppointments: pendingAptCount ||
+                        statsResult.withAppointments ||
+                        statsResult.with_appointments ||
+                        statsResult.patientsWithAppointments ||
+                        statsResult.scheduled || 0
+                })
+            } else {
+                setStats(prev => ({
+                    ...prev,
+                    total: total,
+                    withAppointments: pendingAptCount
+                }))
+            }
 
             // Load consent statuses for all patients
             await loadConsentStatuses(cleanPatients, hospitalId)
@@ -586,9 +624,9 @@ export default function Patients() {
                                                 <TableCell className="py-4">
                                                     <div className="flex flex-col">
                                                         <span className="text-sm text-gray-900 dark:text-white">
-                                                            {patient.next_appointment ? formatDate(patient.next_appointment) : <span className="text-gray-400 dark:text-gray-500">No upcoming</span>}
+                                                            {(patient.next_appointment || patient.nextAppointment) ? formatDate(patient.next_appointment || patient.nextAppointment) : <span className="text-gray-400 dark:text-gray-500">No upcoming</span>}
                                                         </span>
-                                                        {patient.next_appointment && (
+                                                        {(patient.next_appointment || patient.nextAppointment) && (
                                                             <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Scheduled</span>
                                                         )}
                                                     </div>

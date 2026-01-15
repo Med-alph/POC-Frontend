@@ -13,7 +13,7 @@ export default function SimpleAppointmentPage() {
   const location = useLocation();
   const { phone } = location.state || {};
 
-  const HOSPITAL_ID = "550e8400-e29b-41d4-a716-446655440001";
+  const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85";
 
   // Patient states
   const [showAddPatientDialog, setShowAddPatientDialog] = useState(false);
@@ -126,24 +126,24 @@ export default function SimpleAppointmentPage() {
           <Moon className="h-5 w-5 text-gray-700" />
         )}
       </button>
-      
+
       <div className="w-full max-w-lg">
         <div className="inline-flex items-center gap-3 bg-blue-600 text-white px-4 py-2.5 rounded-xl shadow-lg mb-4">
           <Stethoscope className="h-6 w-6" />
           <span className="text-sm font-semibold">MedPortal — Patient Access</span>
         </div>
-        
+
         <Card className="w-full shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700">
           <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-700 dark:to-blue-600 text-white">
             <CardTitle className="text-xl">Book an Appointment</CardTitle>
           </CardHeader>
-          
+
           <CardContent className="p-6">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Patient Information</h2>
               </div>
-              
+
               {checkingPatient ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Loader2 className="animate-spin text-blue-600 h-10 w-10 mb-4" />
@@ -196,15 +196,15 @@ export default function SimpleAppointmentPage() {
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
                     No patient record found. Please register to continue.
                   </p>
-                  <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all" 
+                  <Button
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
                     onClick={() => setShowAddPatientDialog(true)}
                   >
                     Register New Patient
                   </Button>
                 </div>
               )}
-              
+
               <AddPatientDialog
                 open={showAddPatientDialog}
                 setOpen={setShowAddPatientDialog}

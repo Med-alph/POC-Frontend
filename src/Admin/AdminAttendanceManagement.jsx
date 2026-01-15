@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  CheckCircle, XCircle, Clock, Calendar, User, ChevronDown, 
-  RefreshCw, TrendingUp, AlertCircle, FileText, AlertTriangle 
+import {
+  CheckCircle, XCircle, Clock, Calendar, User, ChevronDown,
+  RefreshCw, TrendingUp, AlertCircle, FileText, AlertTriangle
 } from "lucide-react";
 import AdminAttendanceCalendar from "./AdminAttendanceCalendar";
 import attendanceAPI from "../api/attendanceapi";
@@ -23,9 +23,9 @@ export default function AdminAttendanceManagement() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
-  
+
   const user = useSelector((state) => state.auth.user);
-  const HOSPITAL_ID = user?.hospital_id || "550e8400-e29b-41d4-a716-446655440001";
+  const HOSPITAL_ID = user?.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85";
 
   // Fetch all doctors
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function AdminAttendanceManagement() {
           (doc) => doc.status?.toLowerCase() === "active" && !doc.is_archived
         );
         setDoctors(activeDoctors);
-        
+
         // Auto-select first doctor
         if (activeDoctors.length > 0 && !selectedDoctor) {
           setSelectedDoctor(activeDoctors[0]);
@@ -49,54 +49,54 @@ export default function AdminAttendanceManagement() {
         setLoadingDoctors(false);
       }
     };
-    
+
     fetchDoctors();
   }, [HOSPITAL_ID]);
 
   // Fetch attendance data for selected doctor
   const fetchAttendanceData = async () => {
     if (!selectedDoctor?.id) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Fetch history
       const historyResponse = await attendanceAPI.getHistory(
-        selectedDoctor.id, 
+        selectedDoctor.id,
         { month: selectedMonth, year: selectedYear }
       );
-      
+
       if (historyResponse.success) {
         setAttendanceHistory(historyResponse.data || []);
       }
-      
+
       // Fetch monthly summary
       const summaryResponse = await attendanceAPI.getMonthlySummary(
         selectedDoctor.id,
         selectedMonth,
         selectedYear
       );
-      
+
       if (summaryResponse.success) {
         setMonthlySummary(summaryResponse.data);
       }
-      
+
       // Fetch leave data for the doctor (all approved leaves)
       const leaveResponse = await attendanceAPI.getLeaveList(
         selectedDoctor.id,
         { status: 'approved', limit: 100 }
       );
-      
+
       if (leaveResponse.success) {
         setLeaves(leaveResponse.data || []);
       }
-      
+
       // Fetch leave balance
       const balanceResponse = await attendanceAPI.getLeaveBalance(
         selectedDoctor.id,
         selectedYear
       );
-      
+
       if (balanceResponse.success) {
         setLeaveBalance(balanceResponse.data);
       }
@@ -210,7 +210,7 @@ export default function AdminAttendanceManagement() {
                   </div>
                   <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${showDoctorDropdown ? 'rotate-180' : ''}`} />
                 </button>
-                
+
                 {showDoctorDropdown && (
                   <div className="absolute z-10 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
                     {doctors.map((doctor) => (
@@ -220,9 +220,8 @@ export default function AdminAttendanceManagement() {
                           setSelectedDoctor(doctor);
                           setShowDoctorDropdown(false);
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
-                          selectedDoctor?.id === doctor.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                        }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${selectedDoctor?.id === doctor.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                          }`}
                       >
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-md">
                           <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -345,7 +344,7 @@ export default function AdminAttendanceManagement() {
             )}
 
             {/* Calendar View with Day Details */}
-            <AdminAttendanceCalendar 
+            <AdminAttendanceCalendar
               attendanceHistory={attendanceHistory}
               loading={loading}
               leaves={leaves}
@@ -420,45 +419,45 @@ export default function AdminAttendanceManagement() {
                               label: '🔴 Very Late'
                             }
                           };
-                          
+
                           const badge = statusBadges[record.attendance_status] || {
                             bg: 'bg-gray-100 dark:bg-gray-800',
                             text: 'text-gray-700 dark:text-gray-400',
                             border: 'border-gray-200 dark:border-gray-700',
                             label: '-'
                           };
-                          
+
                           return (
                             <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                {new Date(record.date).toLocaleDateString('en-US', { 
-                                  month: 'short', 
+                                {new Date(record.date).toLocaleDateString('en-US', {
+                                  month: 'short',
                                   day: 'numeric',
                                   year: 'numeric'
                                 })}
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                {record.scheduled_start_time && record.scheduled_end_time 
+                                {record.scheduled_start_time && record.scheduled_end_time
                                   ? `${record.scheduled_start_time} - ${record.scheduled_end_time}`
                                   : '-'
                                 }
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                {record.check_in_time 
-                                  ? new Date(record.check_in_time).toLocaleTimeString('en-US', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
+                                {record.check_in_time
+                                  ? new Date(record.check_in_time).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
                                   })
                                   : '-'
                                 }
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                {record.check_out_time 
-                                  ? new Date(record.check_out_time).toLocaleTimeString('en-US', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
+                                {record.check_out_time
+                                  ? new Date(record.check_out_time).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
                                   })
-                                  : record.status === 'checked_in' 
+                                  : record.status === 'checked_in'
                                     ? <span className="text-green-600 dark:text-green-400">Active</span>
                                     : '-'
                                 }
