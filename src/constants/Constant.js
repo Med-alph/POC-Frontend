@@ -77,7 +77,8 @@ export const UI_MODULES = {
   VIDEO_CONSULTATIONS: 'VIDEO_CONSULTATIONS',
   AI_ANALYSIS: 'AI_ANALYSIS',
   REPORTS: 'REPORTS',
-  CANCELLATION_REQUESTS: 'CANCELLATION_REQUESTS'
+  CANCELLATION_REQUESTS: 'CANCELLATION_REQUESTS',
+  EMAIL_TEMPLATES: 'EMAIL_TEMPLATES'
 };
 
 export const UI_MODULE_LABELS = {
@@ -96,7 +97,8 @@ export const UI_MODULE_LABELS = {
   VIDEO_CONSULTATIONS: 'Video Consultations',
   AI_ANALYSIS: 'AI Medical Analysis',
   REPORTS: 'Reports & Analytics',
-  CANCELLATION_REQUESTS: 'Cancellation Requests'
+  CANCELLATION_REQUESTS: 'Cancellation Requests',
+  EMAIL_TEMPLATES: 'Email Notifications'
 };
 
 // Plan Feature → UI Modules Mapping
@@ -121,15 +123,15 @@ export const PLAN_FEATURE_TO_MODULES = {
   'hospital_limit': [
     // Tenant-level feature, not user-level
   ],
-  
+
   // Premium Features
   'inventory_management': [UI_MODULES.INVENTORY],
   'video_calls': [UI_MODULES.VIDEO_CONSULTATIONS],
   'whatsapp_integration': [UI_MODULES.NOTIFICATIONS],
-  
+
   // Enterprise Features
   'ai_analysis': [UI_MODULES.AI_ANALYSIS],
-  
+
   // Future features (to be added to backend)
   'billing_management': [UI_MODULES.BILLING],
   'reports_analytics': [UI_MODULES.REPORTS]
@@ -150,6 +152,7 @@ export const MODULE_TO_PLAN_FEATURES = {
   [UI_MODULES.INVENTORY]: ['inventory_management'],
   [UI_MODULES.VIDEO_CONSULTATIONS]: ['video_calls'],
   [UI_MODULES.NOTIFICATIONS]: ['whatsapp_integration'],
+  [UI_MODULES.EMAIL_TEMPLATES]: ['whatsapp_integration'],
   [UI_MODULES.AI_ANALYSIS]: ['ai_analysis'],
   [UI_MODULES.BILLING]: ['billing_management'], // Future
   [UI_MODULES.REPORTS]: ['reports_analytics'] // Future
@@ -158,24 +161,24 @@ export const MODULE_TO_PLAN_FEATURES = {
 // Helper function to convert UI modules to plan features
 export const convertModulesToPlanFeatures = (modules) => {
   const planFeatures = new Set();
-  
+
   modules.forEach(module => {
     const features = MODULE_TO_PLAN_FEATURES[module] || [];
     features.forEach(feature => planFeatures.add(feature));
   });
-  
+
   return Array.from(planFeatures);
 };
 
 // Helper function to convert plan features to UI modules
 export const convertPlanFeaturesToModules = (features) => {
   const uiModules = new Set();
-  
+
   features.forEach(feature => {
     const modules = PLAN_FEATURE_TO_MODULES[feature] || [];
     modules.forEach(module => uiModules.add(module));
   });
-  
+
   return Array.from(uiModules);
 };
 // ============================================

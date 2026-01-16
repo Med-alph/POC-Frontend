@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -392,13 +392,22 @@ export default function Navbar() {
                 <span className="text-sm font-medium">Settings</span>
               </DropdownMenuItem>
               {(user?.role === 'Admin' || user?.designation_group === 'Admin') && (
-                <DropdownMenuItem
-                  onClick={() => navigate('/hospital/consent')}
-                  className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
-                >
-                  <Shield className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400" />
-                  <span className="text-sm font-medium">Manage Patient Consent</span>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem
+                    onClick={() => navigate('/hospital/consent')}
+                    className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
+                  >
+                    <Shield className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400" />
+                    <span className="text-sm font-medium">Manage Patient Consent</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate('/hospital/email-notifications')}
+                    className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
+                  >
+                    <Mail className="h-4 w-4 mr-2 text-purple-500 dark:text-purple-400" />
+                    <span className="text-sm font-medium">Email Notifications</span>
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuSeparator className="my-1" />
               <DropdownMenuItem

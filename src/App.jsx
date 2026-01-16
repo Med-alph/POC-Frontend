@@ -72,6 +72,7 @@ import PrivacyPolicyPage from "./components/compliance/PrivacyPolicyPage";
 import TermsOfServicePage from "./components/compliance/TermsOfServicePage";
 import TermsGuard from "./components/compliance/TermsGuard";
 import HospitalConsentManagement from "./components/compliance/HospitalConsentManagement";
+import EmailTemplateManagement from "./components/email-templates/EmailTemplateManagement";
 
 // Footer Component
 import Footer from "./components/Footer";
@@ -141,6 +142,14 @@ function AppContent() {
                 element={
                   <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
                     <HospitalConsentManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hospital/email-notifications"
+                element={
+                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                    <EmailTemplateManagement />
                   </ProtectedRoute>
                 }
               />
