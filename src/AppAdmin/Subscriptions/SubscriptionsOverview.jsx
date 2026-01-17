@@ -23,7 +23,7 @@ const SubscriptionsOverview = () => {
       setLoading(true);
       const response = await subscriptionsApi.getAllSubscriptions();
       setSubscriptions(response);
-      
+
       // Calculate stats
       const stats = response.reduce((acc, sub) => {
         acc.total++;
@@ -33,7 +33,7 @@ const SubscriptionsOverview = () => {
         }
         return acc;
       }, { total: 0, active: 0, expired: 0, cancelled: 0, totalRevenue: 0 });
-      
+
       setStats(stats);
     } catch (error) {
       console.error('Failed to load subscriptions:', error);
@@ -62,7 +62,7 @@ const SubscriptionsOverview = () => {
           </p>
         </div>
         <Link
-          to="/app-admin/subscriptions/list"
+          to="/subscriptions/list"
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           View All Subscriptions
@@ -158,14 +158,14 @@ const SubscriptionsOverview = () => {
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Recent Subscriptions</h2>
             <Link
-              to="/app-admin/subscriptions/list"
+              to="/subscriptions/list"
               className="text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
               View All →
             </Link>
           </div>
         </div>
-        
+
         <div className="overflow-hidden">
           {subscriptions.length === 0 ? (
             <div className="text-center py-12">
@@ -215,13 +215,12 @@ const SubscriptionsOverview = () => {
                         <div className="text-sm text-gray-500">{subscription.plan?.tier}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          subscription.status === 'active' 
-                            ? 'bg-green-100 text-green-800'
-                            : subscription.status === 'expired'
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${subscription.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : subscription.status === 'expired'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-gray-100 text-gray-800'
-                        }`}>
+                          }`}>
                           {subscription.status}
                         </span>
                       </td>

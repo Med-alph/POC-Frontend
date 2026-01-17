@@ -96,7 +96,7 @@ const PlansOverview = () => {
           </p>
         </div>
         <Link
-          to="/app-admin/plans/new"
+          to="/plans/new"
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +178,7 @@ const PlansOverview = () => {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
-            to="/app-admin/plans/new"
+            to="/plans/new"
             className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
@@ -193,7 +193,7 @@ const PlansOverview = () => {
           </Link>
 
           <Link
-            to="/app-admin/plans/list"
+            to="/plans/list"
             className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
@@ -208,7 +208,7 @@ const PlansOverview = () => {
           </Link>
 
           <Link
-            to="/app-admin/subscriptions"
+            to="/subscriptions"
             className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
@@ -230,7 +230,7 @@ const PlansOverview = () => {
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Recent Plans</h2>
             <Link
-              to="/app-admin/plans/list"
+              to="/plans/list"
               className="text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
               View All Plans →
@@ -247,7 +247,7 @@ const PlansOverview = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-2">No plans yet</h3>
               <p className="text-gray-500 mb-4">Get started by creating your first subscription plan</p>
               <Link
-                to="/app-admin/plans/new"
+                to="/plans/new"
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
                 Create Your First Plan

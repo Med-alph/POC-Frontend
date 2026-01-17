@@ -156,7 +156,7 @@ export default function TenantOnboardingOverview() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link to="/app-admin/tenant-onboarding/list">
+          <Link to="/tenant-onboarding/list">
             <Button variant="outline" className="flex items-center gap-2">
               View All Tenants <ArrowRight size={16} />
             </Button>
@@ -201,7 +201,7 @@ export default function TenantOnboardingOverview() {
       <Card className="shadow-sm border border-gray-200">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h3 className="text-lg font-semibold text-gray-900">Recent Tenants</h3>
-          <Link to="/app-admin/tenant-onboarding/list">
+          <Link to="/tenant-onboarding/list">
             <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
               View All <ArrowRight size={14} className="ml-1" />
             </Button>
@@ -249,16 +249,16 @@ export default function TenantOnboardingOverview() {
                       {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'}
                     </TableCell>
                     <TableCell className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => { setSelectedTenant(tenant); setInfoOpen(true); }}
                       >
                         <Info size={16} />
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => { setSelectedTenant(tenant); setEditOpen(true); }}
                       >
                         <Edit2 size={16} />
