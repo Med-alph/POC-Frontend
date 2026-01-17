@@ -16,7 +16,7 @@ const AppAdminLogin = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/app-admin/dashboard');
+      navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
 
@@ -26,7 +26,7 @@ const AppAdminLogin = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -57,14 +57,14 @@ const AppAdminLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     try {
       await login(formData.email, formData.password);
-      navigate('/app-admin/dashboard');
+      navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
     }
@@ -106,11 +106,10 @@ const AppAdminLogin = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.email 
-                        ? 'border-red-300 bg-red-50 focus:ring-red-500' 
+                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.email
+                        ? 'border-red-300 bg-red-50 focus:ring-red-500'
                         : 'border-gray-200 bg-gray-50 focus:bg-white hover:border-gray-300'
-                    }`}
+                      }`}
                     placeholder="admin@example.com"
                     disabled={loading}
                   />
@@ -142,11 +141,10 @@ const AppAdminLogin = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.password 
-                        ? 'border-red-300 bg-red-50 focus:ring-red-500' 
+                    className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password
+                        ? 'border-red-300 bg-red-50 focus:ring-red-500'
                         : 'border-gray-200 bg-gray-50 focus:bg-white hover:border-gray-300'
-                    }`}
+                      }`}
                     placeholder="Enter your password"
                     disabled={loading}
                   />
@@ -202,21 +200,6 @@ const AppAdminLogin = () => {
                 )}
               </button>
             </form>
-          </div>
-
-          {/* Footer */}
-          <div className="px-8 py-6 bg-gray-50 border-t border-gray-100">
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Need help?{' '}
-                <a 
-                  href="mailto:support@medalph.com" 
-                  className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
-                >
-                  Contact Support
-                </a>
-              </p>
-            </div>
           </div>
         </div>
 
