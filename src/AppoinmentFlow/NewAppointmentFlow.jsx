@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useHospital } from "@/contexts/HospitalContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +9,11 @@ import { ArrowLeft, Loader2, CheckCircleIcon, XCircleIcon } from "lucide-react";
 import appointmentsAPI from "../api/appointmentsapi";
 import toast from "react-hot-toast";
 
-const user = JSON.parse(localStorage.getItem('user') || '{}');
-// Hardcode hospital_id for patient dashboard since patient flow is incomplete
-const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85";
+
 
 export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess }) {
+  const { hospitalInfo } = useHospital();
+  const HOSPITAL_ID = hospitalInfo?.hospital_id;
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
@@ -289,10 +290,10 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                         <button
                           key={idx}
                           className={`p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 ${isSelected
-                              ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md"
-                              : disabled
-                                ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "border-gray-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:shadow-sm"
+                            ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 shadow-md"
+                            : disabled
+                              ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : "border-gray-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:shadow-sm"
                             }`}
                           onClick={() => !disabled && setSelectedSlot(slot.time)}
                           disabled={disabled}
@@ -422,8 +423,8 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                   <div
                     key={doctor.id}
                     className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${selectedDoctor?.id === doctor.id
-                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-lg transform scale-[1.02]"
-                        : "border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
+                      ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-lg transform scale-[1.02]"
+                      : "border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-800"
                       }`}
                     onClick={() => setSelectedDoctor(doctor)}
                   >
@@ -570,8 +571,8 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
               {[1, 2, 3, 4].map((stepNum, index) => (
                 <div key={stepNum} className="flex justify-center relative z-10">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step >= stepNum
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-gray-200 text-gray-500'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-gray-200 text-gray-500'
                     }`}>
                     {stepNum}
                   </div>

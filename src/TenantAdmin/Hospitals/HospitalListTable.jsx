@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Copy, Link as LinkIcon, ExternalLink, AlertTriangle } from "lucide-react";
 import hospitalsapi from "../../api/hospitalsapi";
 import toast from "react-hot-toast";
 import AddHospitalDialog from "./AddHospitalDialog";
@@ -102,10 +102,10 @@ export default function HospitalListTable() {
   };
 
   const handleAddHospital = async (newHospitalResponse) => {
-  toast.success("Hospital added successfully");
-  await fetchHospitals();
-  setPage(1);
-};
+    toast.success("Hospital added successfully");
+    await fetchHospitals();
+    setPage(1);
+  };
 
 
 
@@ -143,6 +143,31 @@ export default function HospitalListTable() {
     }
   };
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast.success("URL copied to clipboard!");
+  };
+
+  const getFullUrl = (subdomain) => {
+    const hostname = window.location.hostname;
+    const port = window.location.port;
+    const protocol = window.location.protocol; // http: or https:
+
+    let baseDomain = hostname;
+    const parts = hostname.split('.');
+
+    // If we are on a subdomain (like admin.localhost or admin.medalph.com), 
+    // we need to strip the 'admin' part to get the base domain for hospitals.
+    if (hostname.endsWith('.localhost') && parts.length >= 2) {
+      baseDomain = parts.slice(1).join('.'); // returns 'localhost'
+    } else if (parts.length >= 3) {
+      baseDomain = parts.slice(1).join('.'); // returns 'frontend-emr.medalph.com'
+    }
+
+    const portSuffix = port ? `:${port}` : '';
+    return `${protocol}//${subdomain}.${baseDomain}${portSuffix}`;
+  };
+
   // Edit Modal JSX
   const EditModal = () => {
     const [formData, setFormData] = useState({
@@ -150,6 +175,7 @@ export default function HospitalListTable() {
       email: editHospital.email || "",
       contact_number: editHospital.contact_number || "",
       address: editHospital.address || "",
+      subdomain: editHospital.subdomain || "",
     });
 
     const onChange = (e) => {
@@ -200,6 +226,28 @@ export default function HospitalListTable() {
                 onChange={onChange}
                 className="w-full border px-3 py-2 rounded"
               />
+            </div>
+            <div>
+              <label className="block mb-1 font-medium flex items-center gap-2">
+                Subdomain
+                <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <AlertTriangle size={10} /> Advanced
+                </span>
+              </label>
+              <input
+                name="subdomain"
+                value={formData.subdomain}
+                onChange={onChange}
+                className="w-full border px-3 py-2 rounded bg-gray-50 border-amber-200 focus:border-amber-500 focus:ring-amber-500"
+                placeholder="school-name"
+              />
+              <p className="text-[11px] text-amber-600 mt-1 flex items-start gap-1">
+                <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                Changing this will break all existing links, QR codes, and bookmarks for this hospital.
+              </p>
+              <p className="text-[11px] text-gray-500 mt-1 italic">
+                Live URL: {formData.subdomain ? getFullUrl(formData.subdomain) : "N/A"}
+              </p>
             </div>
             <div>
               <label className="block mb-1 font-medium">Address</label>
@@ -322,6 +370,9 @@ export default function HospitalListTable() {
               <TableHead className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">
                 Address
               </TableHead>
+              <TableHead className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">
+                Live URL
+              </TableHead>
               <TableHead className="px-6 py-3 text-center text-sm font-medium text-gray-700 uppercase tracking-wider">
                 Actions
               </TableHead>
@@ -372,6 +423,33 @@ export default function HospitalListTable() {
                   </TableCell>
                   <TableCell className="px-6 py-4 max-w-xs truncate text-sm text-gray-600">
                     {hospital.address || "-"}
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm">
+                    <div className="flex items-center gap-2">
+                      <code className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-mono border border-blue-100">
+                        {hospital.subdomain || "N/A"}
+                      </code>
+                      {hospital.subdomain && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => copyToClipboard(getFullUrl(hospital.subdomain))}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="Copy Live URL"
+                          >
+                            <Copy size={14} />
+                          </button>
+                          <a
+                            href={getFullUrl(hospital.subdomain)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                            title="Open Site"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="px-6 py-4 text-center space-x-2">
                     <Button

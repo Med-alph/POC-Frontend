@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useHospital } from "@/contexts/HospitalContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +10,10 @@ import { patientsAPI } from "@/api/patientsapi";
 import PatientSelfConsent from "@/components/compliance/PatientSelfConsent";
 import toast from 'react-hot-toast';
 
-const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85"; // Default hospital ID
-
 export default function PatientSelfRegistration() {
   const navigate = useNavigate();
+  const { hospitalInfo } = useHospital();
+  const HOSPITAL_ID = hospitalInfo?.hospital_id;
   const [step, setStep] = useState(1); // 1: Basic Info, 2: Consent
   const [patientData, setPatientData] = useState({
     patient_name: "",

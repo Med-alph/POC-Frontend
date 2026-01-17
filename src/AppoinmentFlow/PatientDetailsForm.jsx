@@ -6,12 +6,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useHospital } from "@/contexts/HospitalContext";
 import { toast } from "sonner";
 import { Stethoscope, ArrowLeft, Moon, Sun, User, Calendar, Phone, Mail, FileText, Heart, Pill } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
 //this is a comment
 const PatientDetailsForm = () => {
     const navigate = useNavigate();
+    const { hospitalInfo } = useHospital();
+    const HOSPITAL_ID = hospitalInfo?.hospital_id;
     const location = useLocation();
     const { patient, phone } = location.state || {};
 
@@ -126,7 +129,7 @@ const PatientDetailsForm = () => {
                 family_history: familyHistory,
                 lifestyle: lifestyle.join(", "),
                 emergency_contact: emergencyContact,
-                hospital_id: "26146e33-8808-4ed4-b3bf-9de057437e85",
+                hospital_id: HOSPITAL_ID,
                 user_id: "system_user",
             };
 
@@ -185,8 +188,12 @@ const PatientDetailsForm = () => {
                         Back
                     </Button>
                     <div className="inline-flex items-center gap-3 bg-blue-600 text-white px-4 py-2.5 rounded-xl shadow-lg mb-4">
-                        <Stethoscope className="h-6 w-6" />
-                        <span className="text-sm font-semibold">MedPortal — Patient Access</span>
+                        {hospitalInfo?.logo ? (
+                            <img src={hospitalInfo.logo} alt={hospitalInfo.name} className="h-6 w-6 object-contain" />
+                        ) : (
+                            <Stethoscope className="h-6 w-6" />
+                        )}
+                        <span className="text-sm font-semibold">{hospitalInfo?.name || "MedPortal"} — Patient Access</span>
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
                         {patient && patient.id ? "Edit Patient Details" : "Complete Your Profile"}
@@ -202,10 +209,10 @@ const PatientDetailsForm = () => {
                         <div
                             key={section}
                             className={`h-2 rounded-full transition-all duration-300 ${activeSection === section
-                                    ? "bg-blue-600 w-12"
-                                    : activeSection > section
-                                        ? "bg-green-500 w-8"
-                                        : "bg-gray-300 dark:bg-gray-600 w-8"
+                                ? "bg-blue-600 w-12"
+                                : activeSection > section
+                                    ? "bg-green-500 w-8"
+                                    : "bg-gray-300 dark:bg-gray-600 w-8"
                                 }`}
                         />
                     ))}

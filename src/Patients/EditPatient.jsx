@@ -12,10 +12,12 @@ import {
 } from "@/components/ui/select";
 import toast from 'react-hot-toast';
 import { Lock } from "lucide-react";
+import { useHospital } from "@/contexts/HospitalContext";
 
 export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient }) {
+    const { hospitalInfo } = useHospital();
     const [formData, setFormData] = useState({
-        hospital_id: editPatient?.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85",
+        hospital_id: editPatient?.hospital_id || hospitalInfo?.hospital_id,
         patient_name: editPatient?.patient_name || "",
         dob: editPatient?.dob || "",
         contact_info: editPatient?.contact_info || "",
@@ -40,7 +42,7 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
             };
 
             setFormData({
-                hospital_id: editPatient?.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85",
+                hospital_id: editPatient?.hospital_id || hospitalInfo?.hospital_id,
                 patient_name: editPatient?.patient_name || "",
                 dob: formatDateForInput(editPatient?.dob),
                 contact_info: editPatient?.contact_info || "",

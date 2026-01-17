@@ -12,9 +12,9 @@ const isLocal = false;   // Local development environment
 // API CONFIGURATION
 // ============================================
 export const baseUrl = isProd
-  ? "https://backend-emr.medalph.com"
+  ? "https://backend-emr.medalph.com/api"
   : isLocal
-    ? "http://localhost:9009"
+    ? "http://localhost:9009/api"
     : "";
 
 // Socket.IO URL (usually same as API base URL)

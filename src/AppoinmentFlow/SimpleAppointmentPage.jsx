@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useHospital } from "@/contexts/HospitalContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Stethoscope, Sun, Moon } from "lucide-react";
@@ -13,7 +14,8 @@ export default function SimpleAppointmentPage() {
   const location = useLocation();
   const { phone } = location.state || {};
 
-  const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85";
+  const { hospitalInfo } = useHospital();
+  const HOSPITAL_ID = hospitalInfo?.hospital_id;
 
   // Patient states
   const [showAddPatientDialog, setShowAddPatientDialog] = useState(false);
@@ -129,8 +131,12 @@ export default function SimpleAppointmentPage() {
 
       <div className="w-full max-w-lg">
         <div className="inline-flex items-center gap-3 bg-blue-600 text-white px-4 py-2.5 rounded-xl shadow-lg mb-4">
-          <Stethoscope className="h-6 w-6" />
-          <span className="text-sm font-semibold">MedPortal — Patient Access</span>
+          {hospitalInfo?.logo ? (
+            <img src={hospitalInfo.logo} alt={hospitalInfo.name} className="h-6 w-6 object-contain" />
+          ) : (
+            <Stethoscope className="h-6 w-6" />
+          )}
+          <span className="text-sm font-semibold">{hospitalInfo?.name || "MedPortal"} — Patient Access</span>
         </div>
 
         <Card className="w-full shadow-2xl border-0 rounded-2xl dark:bg-gray-800 dark:border-gray-700">

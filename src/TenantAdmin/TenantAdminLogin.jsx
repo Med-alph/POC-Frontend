@@ -61,9 +61,9 @@ export default function TenantAdminLogin() {
 
         const userPermissions = response.user.permissions || []
         const isSuperAdmin =
-  userPermissions.includes("roles:manage") || response.user.role === "superadmin"
-const isAdmin =
-  userPermissions.includes("staff:assign_roles") || response.user.role === "admin"
+          userPermissions.includes("roles:manage") || response.user.role === "superadmin"
+        const isAdmin =
+          userPermissions.includes("staff:assign_roles") || response.user.role === "admin"
 
 
         if (!isSuperAdmin && !isAdmin) {
@@ -80,9 +80,10 @@ const isAdmin =
 
         setTimeout(() => {
           if (isSuperAdmin) {
-            navigate("/tenantadmin/dashboard")
+            navigate("/dashboard")
           } else {
-            navigate("/admin/staffs")
+            // Non-tenant admin staff shouldn't really be here, but just in case
+            navigate("/dashboard")
           }
         }, 1500)
       } else {

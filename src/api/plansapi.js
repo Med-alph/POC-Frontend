@@ -1,7 +1,7 @@
 import { baseUrl } from '../constants/Constant';
 import appAdminAuthService from '../AppAdmin/services/appAdminAuthService';
 
-const API_BASE = `${baseUrl}/api`;
+const API_BASE = `${baseUrl}`;
 
 class PlansApiService {
   // Get authorization headers

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Stethoscope, ShieldCheck, Clock, Smartphone, Moon, Sun } from "lucide-react";
+import { Stethoscope, ShieldCheck, Clock, Smartphone, Moon, Sun, Hospital } from "lucide-react";
+import { useHospital } from "@/contexts/HospitalContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ const countries = [
 ];
 
 const LandingPage = () => {
+  const { hospitalInfo } = useHospital();
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
   const [loading, setLoading] = useState(false);
@@ -93,11 +95,15 @@ const LandingPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="space-y-6">
             <div className="inline-flex items-center gap-3 bg-blue-600 text-white px-4 py-2.5 rounded-xl shadow-lg">
-              <Stethoscope className="h-6 w-6" />
-              <span className="text-sm font-semibold">MedPortal — Patient Access</span>
+              {hospitalInfo?.logo ? (
+                <img src={hospitalInfo.logo} alt={hospitalInfo.name} className="h-6 w-6 object-contain" />
+              ) : (
+                <Stethoscope className="h-6 w-6" />
+              )}
+              <span className="text-sm font-semibold">{hospitalInfo?.name || "MedPortal"} — Patient Access</span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white leading-tight">
-              Book your appointment in minutes
+              Book your appointment at {hospitalInfo?.name || "MedPortal"}
             </h1>
             <p className="text-lg text-gray-600 dark:text-gray-300">
               Simple, secure, and fast way to see your doctor. No downloads required.
@@ -170,9 +176,9 @@ const LandingPage = () => {
                   />
                 </div>
               </div>
-              <Button 
-                onClick={handleSendOTP} 
-                className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white h-12 text-base font-semibold rounded-xl transition-all duration-200 hover:shadow-lg" 
+              <Button
+                onClick={handleSendOTP}
+                className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white h-12 text-base font-semibold rounded-xl transition-all duration-200 hover:shadow-lg"
                 disabled={loading}
               >
                 {loading ? (

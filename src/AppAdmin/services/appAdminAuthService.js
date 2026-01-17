@@ -1,6 +1,6 @@
 import { baseUrl } from '../../constants/Constant';
 
-const API_BASE = `${baseUrl}/api/app-admin`;
+const API_BASE = `${baseUrl}/app-admin`;
 
 class AppAdminAuthService {
   constructor() {

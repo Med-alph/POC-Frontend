@@ -216,9 +216,8 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     if (!formData.designation) errors.push("Designation is required");
     // Role assignment is now optional - only validate if provided
     if (!formData.contact_info.trim()) errors.push("Contact information is required");
+    if (!formData.email || !formData.email.trim()) errors.push("Email is required");
     if (formData.email && !isValidEmail(formData.email)) errors.push("Invalid email format");
-    if (!editStaff && (!formData.password || formData.password.length < 6))
-      errors.push("Password must be at least 6 characters");
     if (formData.experience && isNaN(Number(formData.experience))) errors.push("Experience must be a number");
 
     let hasAvailability = false;
@@ -259,7 +258,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
           availabilityObject[day] = ensureTimeIn24HourFormat(slot);
         }
       });
-      
+
       // Prepare payload without role_id for staff API
       const payload = {
         hospital_id: hospitalId,
@@ -277,14 +276,14 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
       console.log("Payload: \n", payload);
       console.log("Role ID for assignment:", formData.role_id);
       console.log("Role ID is valid:", formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none");
-      
+
       let saved;
       let roleAssignmentSuccess = true;
-      
+
       if (editStaff) {
         // Update staff basic info
         saved = await staffApi.update(editStaff.id, payload);
-        
+
         // Separately assign role if role_id is provided and valid (not "none")
         if (formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none") {
           try {
@@ -297,7 +296,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
             roleAssignmentSuccess = false;
           }
         }
-        
+
         if (roleAssignmentSuccess || !formData.role_id || formData.role_id === "none") {
           toast.success(`Staff updated successfully!`);
         } else {
@@ -306,7 +305,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
       } else {
         // Create new staff
         saved = await staffApi.create(payload);
-        
+
         // Assign role to newly created staff if role_id is provided and valid (not "none")
         if (formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none" && saved.id) {
           try {
@@ -319,14 +318,14 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
             roleAssignmentSuccess = false;
           }
         }
-        
+
         if (roleAssignmentSuccess || !formData.role_id || formData.role_id === "none") {
           toast.success(`Staff created successfully!`);
         } else {
           toast.error('Staff created but role assignment failed. Please assign role manually.');
         }
       }
-      
+
       onAdd(saved);
       setOpen(false);
     } catch (error) {
@@ -399,10 +398,12 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                 <Input name="contact_info" placeholder="+91 1234567890" value={formData.contact_info} onChange={handleChange} required />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-600 mb-1 block">Email</label>
-                <Input type="email" name="email" placeholder="email@example.com" value={formData.email} onChange={handleChange} />
+                <label className="text-sm font-medium text-gray-600 mb-1 block">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <Input type="email" name="email" placeholder="email@example.com" value={formData.email} onChange={handleChange} required />
               </div>
-              
+
               {/* Role Assignment */}
               <div>
                 <RoleAssignmentDropdown
@@ -413,20 +414,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                   placeholder="Select a role for this staff member"
                 />
               </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-600 mb-1 block">
-                  Password{editStaff ? "" : <span className="text-red-500">*</span>}
-                </label>
-                <Input
-                  type="password"
-                  name="password"
-                  placeholder={editStaff ? "Set to change, leave blank to keep" : "Minimum 6 characters"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  required={!editStaff}
-                />
-              </div>
+
               <div>
                 <label className="text-sm font-medium text-gray-600 mb-1 block">Experience (Years)</label>
                 <Input
@@ -543,21 +531,21 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
               {Object.keys(formData.availability).some((day) =>
                 formData.availability[day]?.trim()
               ) && (
-                <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                  <p className="text-xs font-medium text-gray-700 mb-2">Availability Preview:</p>
-                  <pre className="text-xs text-gray-600 overflow-x-auto">
-                    {JSON.stringify(
-                      Object.fromEntries(
-                        Object.entries(formData.availability)
-                          .filter(([_, value]) => value?.trim())
-                          .map(([day, value]) => [day, value.trim()])
-                      ),
-                      null,
-                      2
-                    )}
-                  </pre>
-                </div>
-              )}
+                  <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Availability Preview:</p>
+                    <pre className="text-xs text-gray-600 overflow-x-auto">
+                      {JSON.stringify(
+                        Object.fromEntries(
+                          Object.entries(formData.availability)
+                            .filter(([_, value]) => value?.trim())
+                            .map(([day, value]) => [day, value.trim()])
+                        ),
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                )}
             </div>
           </form>
         </div>
