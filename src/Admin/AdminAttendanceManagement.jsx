@@ -9,6 +9,7 @@ import {
 import AdminAttendanceCalendar from "./AdminAttendanceCalendar";
 import attendanceAPI from "../api/attendanceapi";
 import staffApi from "../api/staffapi";
+import { useHospital } from "../contexts/HospitalContext";
 import toast from 'react-hot-toast';
 
 export default function AdminAttendanceManagement() {
@@ -24,8 +25,9 @@ export default function AdminAttendanceManagement() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
 
+  const { hospitalInfo } = useHospital();
   const user = useSelector((state) => state.auth.user);
-  const HOSPITAL_ID = user?.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85";
+  const HOSPITAL_ID = user?.hospital_id || hospitalInfo?.hospital_id;
 
   // Fetch all doctors
   useEffect(() => {

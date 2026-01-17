@@ -1,6 +1,8 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import React, { Suspense } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { getSubdomain, isTenantAdmin, isHospitalSubdomain } from "./utils/subdomain";
+import { HospitalProvider, useHospital } from "./contexts/HospitalContext";
 
 import Dashboard from "./Dashboard/Dashboard";
 import Patients from "./Patients/Patients";
@@ -10,6 +12,7 @@ import Doctors from "./Doctors/Doctors";
 import Appointments from "./Appointments/Appointments";
 import Reminders from "./Reminders/Reminders";
 import ForgotPassword from "./Login/ForgotPassword";
+import ChangePassword from "./Login/ChangePassword";
 
 import TenantListPage from "./Owner/TenantList/TenantList";
 import Navbar from "./Dashboard/Navbar";
@@ -76,13 +79,14 @@ import EmailTemplateManagement from "./components/email-templates/EmailTemplateM
 
 // Footer Component
 import Footer from "./components/Footer";
+import TenantAdminApp from "./TenantAdmin/TenantAdminApp";
 
-function AppContent() {
+function HospitalApp() {
   const location = useLocation();
 
-  // Routes that should NOT show the navbar
+  // Routes that should NOT show the navbar (auth-related)
   const authRoutes = [
-    "/", "/forgotpassword", "/admin/login", "/tenantadmin/dashboard", "/tenantadmin/login", "/app-admin/login"
+    "/", "/forgotpassword", "/admin/login", "/app-admin/login"
   ];
 
   const adminRoutes = [
@@ -118,6 +122,27 @@ function AppContent() {
     !authRoutes.includes(location.pathname) &&
     !complianceRoutes.includes(location.pathname) &&
     !location.pathname.startsWith('/app-admin');
+
+  const { hospitalInfo, loading } = useHospital();
+  const subdomain = getSubdomain();
+
+  if (loading && isHospitalSubdomain()) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // If a hospital subdomain is used but not found in the database
+  if (!loading && isHospitalSubdomain() && !hospitalInfo) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        <h1 className="text-4xl font-bold text-gray-800 mb-4">404 - Hospital Not Found</h1>
+        <p className="text-gray-600">The hospital you are looking for does not exist or has been disabled.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-svh flex flex-col">
@@ -222,6 +247,9 @@ function AppContent() {
 
               {/* Billing */}
               <Route path="/billing/:appoinmentid" element={<BillingPage />} />
+
+              {/* Redirect to dashboard for any unknown route within hospital context */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </TermsGuard>
         ) : (
@@ -229,8 +257,7 @@ function AppContent() {
             {/* Auth Routes - No TermsGuard */}
             <Route path="/" element={<Login />} />
             <Route path="/forgotpassword" element={<ForgotPassword />} />
-            <Route path="/tenantadmin/login" element={<TenantAdminLogin />} />
-            <Route path="/tenantadmin/dashboard" element={<TenantAdminDashboard />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/app-admin/login" element={<AppAdminLogin />} />
             <Route path="/app-admin/*" element={
               <AppAdminProtectedRoute>
@@ -241,6 +268,9 @@ function AppContent() {
             {/* Compliance Routes - No TermsGuard, No Navbar */}
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+
+            {/* Redirect to root if route doesn't match */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         )}
       </div>
@@ -250,11 +280,19 @@ function AppContent() {
 }
 
 function App() {
+  const isTenantAdminMode = isTenantAdmin();
+
   return (
     <AppAdminAuthProvider>
       <PermissionsProvider>
         <Router>
-          <AppContent />
+          {isTenantAdminMode ? (
+            <TenantAdminApp />
+          ) : (
+            <HospitalProvider>
+              <HospitalApp />
+            </HospitalProvider>
+          )}
           <Toaster position="top-right" />
         </Router>
       </PermissionsProvider>

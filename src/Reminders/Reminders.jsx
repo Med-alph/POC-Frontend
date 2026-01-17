@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import toast, { Toaster } from 'react-hot-toast'
+import { useHospital } from "../contexts/HospitalContext";
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -41,6 +42,7 @@ export default function Reminders() {
     const [editModalOpen, setEditModalOpen] = useState(false)
     const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false)
     const [selectedReminder, setSelectedReminder] = useState(null)
+    const { hospitalInfo } = useHospital();
     const [hospitalId, setHospitalId] = useState("")
 
     useEffect(() => {
@@ -49,14 +51,14 @@ export default function Reminders() {
         if (userJson) {
             try {
                 const user = JSON.parse(userJson);
-                const id = user.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85";
+                const id = user.hospital_id || hospitalInfo?.hospital_id;
                 setHospitalId(id);
             } catch (e) {
                 console.error("Failed to parse user JSON:", e);
-                setHospitalId("26146e33-8808-4ed4-b3bf-9de057437e85");
+                setHospitalId(hospitalInfo?.hospital_id);
             }
         } else {
-            setHospitalId("26146e33-8808-4ed4-b3bf-9de057437e85");
+            setHospitalId(hospitalInfo?.hospital_id);
         }
     }, []);
 

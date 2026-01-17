@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useHospital } from "@/contexts/HospitalContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,8 @@ const OTPVerification = () => {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("darkMode") === "true");
   const [showAddPatientDialog, setShowAddPatientDialog] = useState(false);
   const [userId, setUserId] = useState(null); // To store patient id if needed for adding patient
-  const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85"
+  const { hospitalInfo } = useHospital();
+  const HOSPITAL_ID = hospitalInfo?.hospital_id;
 
   // Toggle dark mode
   const toggleDarkMode = () => {

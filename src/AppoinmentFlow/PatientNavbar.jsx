@@ -25,10 +25,11 @@ import { useNotifications } from "../hooks/useNotifications";
 import toast from "react-hot-toast";
 import notificationsAPI from "../api/notifications";
 import socketService from "../services/socketService";
+import { useHospital } from "@/contexts/HospitalContext";
 
 const patientNavItems = [
   { id: "patientDashboard", label: "Dashboard", path: "/patient-dashboard", icon: Home },
-//   { id: "profile", label: "Profile", path: "/patient-details-form", icon: UserCircle2 },
+  //   { id: "profile", label: "Profile", path: "/patient-details-form", icon: UserCircle2 },
 ];
 
 // Tabs for patient flow
@@ -44,9 +45,10 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
+  const { hospitalInfo } = useHospital();
   const [activeNavTab, setActiveNavTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  
+
   // Use the new notifications hook - pass patientId if available
   const { notifications, counts, markAsRead, dismissAll, loading: notificationsLoading, refresh: refreshNotifications } = useNotifications({
     autoFetch: true,
@@ -88,7 +90,7 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
     if (notifSocket) {
       const handleNewNotification = (data) => {
         console.log("📩 Patient received new notification via socket:", data);
-        
+
         // Show toast for image upload and session review notifications
         if (data.type === "IMAGE_UPLOADED") {
           toast.info(data.message, {
@@ -125,26 +127,26 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
   }, []);
 
   // Effect to update unreadIds only when notifications change meaningfully
-//   useEffect(() => {
-//     const unread = notifications
-//       .filter((n) => n.status !== "read")
-//       .map((n) => n.notificationId);
+  //   useEffect(() => {
+  //     const unread = notifications
+  //       .filter((n) => n.status !== "read")
+  //       .map((n) => n.notificationId);
 
-//     // Only update if values actually changed to avoid infinite loops
-//     setUnreadIds((prevUnread) => {
-//       if (
-//         prevUnread.length === unread.length &&
-//         prevUnread.every((id) => unread.includes(id))
-//       ) {
-//         return prevUnread; // no change
-//       }
-//       return unread;
-//     });
-//   }, [notifications]);
+  //     // Only update if values actually changed to avoid infinite loops
+  //     setUnreadIds((prevUnread) => {
+  //       if (
+  //         prevUnread.length === unread.length &&
+  //         prevUnread.every((id) => unread.includes(id))
+  //       ) {
+  //         return prevUnread; // no change
+  //       }
+  //       return unread;
+  //     });
+  //   }, [notifications]);
 
   const handleLogout = () => {
     dispatch(clearCredentials());
-    navigate("/");
+    navigate("/landing");
   };
 
   const handleTabClick = (path) => {
@@ -160,7 +162,7 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
 
   const handleNotificationClick = async (notif) => {
     setShowNotifDropdown(false);
-    
+
     // Mark as read if unread
     if (notif.status !== "read" && notif.id) {
       try {
@@ -189,12 +191,20 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
       <div className="w-full fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <nav className="w-full flex items-center justify-between px-6 lg:px-8 h-16 bg-white dark:bg-gray-900">
           <div onClick={() => navigate("/patient-dashboard")} className="flex items-center gap-3 cursor-pointer">
-            <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
-              <UserCircle2 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {hospitalInfo?.logo ? (
+                <img src={hospitalInfo.logo} alt={hospitalInfo.name} className="h-full w-full object-contain p-1" />
+              ) : (
+                <UserCircle2 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              )}
             </div>
             <div className="flex flex-col">
-              <span className="text-base font-semibold text-gray-900 dark:text-white">Patient Portal</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Manage Your Health</span>
+              <span className="text-base font-semibold text-gray-900 dark:text-white leading-tight">
+                {hospitalInfo?.name || "Patient Portal"}
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {hospitalInfo?.name ? "Patient Portal" : "Manage Your Health"}
+              </span>
             </div>
           </div>
 
@@ -260,24 +270,21 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
                             return (
                               <li
                                 key={notif.id || idx}
-                                className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
-                                  isUnread ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
-                                }`}
+                                className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${isUnread ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
+                                  }`}
                                 onClick={() => handleNotificationClick(notif)}
                               >
                                 <div className="flex items-start gap-3">
                                   <div
-                                    className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 ${
-                                      isUnread ? "bg-blue-600" : "bg-transparent"
-                                    }`}
+                                    className={`flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 ${isUnread ? "bg-blue-600" : "bg-transparent"
+                                      }`}
                                   />
                                   <div className="flex-1 min-w-0">
                                     <div
-                                      className={`text-sm font-medium mb-1 ${
-                                        isUnread
-                                          ? "text-gray-900 dark:text-white"
-                                          : "text-gray-700 dark:text-gray-300"
-                                      }`}
+                                      className={`text-sm font-medium mb-1 ${isUnread
+                                        ? "text-gray-900 dark:text-white"
+                                        : "text-gray-700 dark:text-gray-300"
+                                        }`}
                                     >
                                       {notif.title || "Notification"}
                                     </div>
@@ -383,11 +390,10 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
                   <button
                     key={tab.key}
                     onClick={() => onTabChange(tab.key)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-md font-bold text-sm transition-colors whitespace-nowrap ${
-                      isActive
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-md font-bold text-sm transition-colors whitespace-nowrap ${isActive
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
                   >
                     <IconComponent className={`h-4 w-4 ${isActive ? "text-white" : "text-gray-500 dark:text-gray-400"}`} />
                     <span>{tab.label}</span>

@@ -1,6 +1,6 @@
 import { baseUrl } from '../constants/Constant';
 
-const API_BASE = `${baseUrl}/api`;
+const API_BASE = `${baseUrl}`;
 
 class SubscriptionsApiService {
   // Get authorization headers

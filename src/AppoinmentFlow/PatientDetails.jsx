@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useHospital } from "@/contexts/HospitalContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Stethoscope, User, Calendar, Phone, Mail, FileText, Edit, PlusCircle, Moon, Sun } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
 
-const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85";
-
 const PatientDetails = () => {
     const navigate = useNavigate();
+    const { hospitalInfo } = useHospital();
+    const HOSPITAL_ID = hospitalInfo?.hospital_id;
     const location = useLocation();
     const { phone, patientId } = location.state || {};
 
@@ -120,8 +121,12 @@ const PatientDetails = () => {
                 {/* Header */}
                 <div className="mb-8">
                     <div className="inline-flex items-center gap-3 bg-blue-600 text-white px-4 py-2.5 rounded-xl shadow-lg mb-4">
-                        <Stethoscope className="h-6 w-6" />
-                        <span className="text-sm font-semibold">MedPortal — Patient Access</span>
+                        {hospitalInfo?.logo ? (
+                            <img src={hospitalInfo.logo} alt={hospitalInfo.name} className="h-6 w-6 object-contain" />
+                        ) : (
+                            <Stethoscope className="h-6 w-6" />
+                        )}
+                        <span className="text-sm font-semibold">{hospitalInfo?.name || "MedPortal"} — Patient Access</span>
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
                         Patient Information

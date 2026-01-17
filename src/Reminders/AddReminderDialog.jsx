@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { remindersAPI } from "@/api/remindersapi";
 import { patientsAPI } from "@/api/patientsapi";
 import { staffApi } from "@/api/staffapi";
+import { useHospital } from "@/contexts/HospitalContext";
 
 export default function AddReminderDialog({ open, setOpen, onSuccess, editReminder = null }) {
     const [formData, setFormData] = useState({
@@ -42,6 +43,7 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
     const [patientSearch, setPatientSearch] = useState("");
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+    const { hospitalInfo } = useHospital();
     const [hospitalId, setHospitalId] = useState("");
     const patientDropdownRef = useRef(null);
 
@@ -52,22 +54,23 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
             if (userJson) {
                 try {
                     const user = JSON.parse(userJson);
-                    const id = user.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85";
+                    const id = user.hospital_id || hospitalInfo?.hospital_id;
                     setHospitalId(id);
                     setFormData(prev => ({ ...prev, hospital_id: id }));
                     // Only fetch admins on open, patients will be fetched when user starts typing
-                    fetchAdmins(id);
+                    if (id) fetchAdmins(id);
                 } catch (e) {
                     console.error("Failed to parse user JSON:", e);
-                    const defaultId = "26146e33-8808-4ed4-b3bf-9de057437e85";
+                    const defaultId = hospitalInfo?.hospital_id;
                     setHospitalId(defaultId);
                     setFormData(prev => ({ ...prev, hospital_id: defaultId }));
                 }
             } else {
                 // Fallback if no user in localStorage
-                const defaultId = "26146e33-8808-4ed4-b3bf-9de057437e85";
+                const defaultId = hospitalInfo?.hospital_id;
                 setHospitalId(defaultId);
                 setFormData(prev => ({ ...prev, hospital_id: defaultId }));
+                if (defaultId) fetchAdmins(defaultId);
             }
 
             // If editing, populate form
@@ -259,7 +262,7 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
             }
 
             // Fallback to state or formData
-            finalHospitalId = finalHospitalId || hospitalId || formData.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85";
+            finalHospitalId = finalHospitalId || hospitalId || formData.hospital_id || hospitalInfo?.hospital_id;
 
             // Build reminder data, only including valid fields
             const reminderData = {

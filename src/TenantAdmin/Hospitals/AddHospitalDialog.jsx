@@ -12,14 +12,34 @@ export default function AddHospitalDialog({ onAdd, children }) {
 
   const [formData, setFormData] = useState({
     name: "",
+    subdomain: "",
     address: "",
     contact_number: "",
     email: "",
+    logo: "",
   });
+
+  const generateSubdomain = (name) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "-") // replace non-alphanumeric with hyphen
+      .replace(/-+/g, "-") // replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ""); // remove leading/trailing hyphens
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "name" && !formData.subdomainManual) {
+      const subdomain = generateSubdomain(value);
+      setFormData((prev) => ({ ...prev, [name]: value, subdomain }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSubdomainChange = (e) => {
+    const value = generateSubdomain(e.target.value);
+    setFormData((prev) => ({ ...prev, subdomain: value, subdomainManual: true }));
   };
 
   const handleSubmit = async (e) => {
@@ -32,9 +52,12 @@ export default function AddHospitalDialog({ onAdd, children }) {
       setOpen(false);
       setFormData({
         name: "",
+        subdomain: "",
+        subdomainManual: false,
         address: "",
         contact_number: "",
         email: "",
+        logo: "",
       });
     } catch (err) {
       toast.error(err.message || "Failed to create hospital");
@@ -53,13 +76,29 @@ export default function AddHospitalDialog({ onAdd, children }) {
           <DialogTitle>Add Hospital</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <Input
-            name="name"
-            placeholder="Hospital Name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
+          <div className="space-y-1">
+            <Input
+              name="name"
+              placeholder="Hospital Name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <Input
+              name="subdomain"
+              placeholder="Hospital Subdomain"
+              value={formData.subdomain}
+              onChange={handleSubdomainChange}
+              required
+            />
+            {formData.subdomain && (
+              <p className="text-xs text-gray-500 pl-1 italic">
+                Hospital URL: <span className="text-blue-600 font-medium">{formData.subdomain}.frontend-emr.medalph.com</span>
+              </p>
+            )}
+          </div>
           <Input
             name="address"
             placeholder="Address"
@@ -78,6 +117,12 @@ export default function AddHospitalDialog({ onAdd, children }) {
             value={formData.email}
             onChange={handleChange}
             type="email"
+          />
+          <Input
+            name="logo"
+            placeholder="Hospital Logo URL"
+            value={formData.logo}
+            onChange={handleChange}
           />
           <div className="flex justify-end">
             <Button onClick={() => setOpen(false)} type="button" variant="outline" className="mr-2">

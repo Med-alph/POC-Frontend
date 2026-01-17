@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useHospital } from "@/contexts/HospitalContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +30,6 @@ import { videoCallAPI } from "@/api/videocallapi";
 import { generateRoomName } from "@/utils/callUtils";
 
 const user = JSON.parse(localStorage.getItem('user') || '{}');
-// Hardcode hospital_id for patient dashboard since patient flow is incomplete
-const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85";
 const PAGE_SIZE = 10;
 
 const TABS = [
@@ -62,6 +61,8 @@ const DUMMY_IMAGES = [
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
+  const { hospitalInfo } = useHospital();
+  const HOSPITAL_ID = hospitalInfo?.hospital_id;
 
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -822,10 +823,10 @@ export default function PatientDashboard() {
                         size="sm"
                         disabled={slot.status === "unavailable"}
                         className={`h-auto py-2 flex flex-col gap-1 ${slot.status === "unavailable"
-                            ? isOnLeave
-                              ? "opacity-60 bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800"
-                              : "opacity-50"
-                            : ""
+                          ? isOnLeave
+                            ? "opacity-60 bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800"
+                            : "opacity-50"
+                          : ""
                           } ${selectedSlot === slot.time ? "bg-blue-600" : ""}`}
                         onClick={() => {
                           if (slot.status !== "unavailable") {

@@ -14,10 +14,12 @@ import { patientsAPI } from "../api/patientsapi"
 import { staffApi } from "../api/staffapi"
 import AddPatientDialog from "../Patients/AddPatient"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useHospital } from "@/contexts/HospitalContext"
 
 export default function Appointments() {
+  const { hospitalInfo } = useHospital()
   const user = useSelector((state) => state.auth.user)
-  const HOSPITAL_ID = user?.hospital_id || "26146e33-8808-4ed4-b3bf-9de057437e85"
+  const HOSPITAL_ID = user?.hospital_id || hospitalInfo?.hospital_id
 
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(false)

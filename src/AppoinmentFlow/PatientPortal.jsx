@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
+import { useHospital } from "@/contexts/HospitalContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,10 +12,10 @@ import { toast } from "sonner"
 import VideoCallPreview from "@/Consultation/VideoCallPreview"
 import VideoRoom from "@/Consultation/VideoRoom"
 
-const HOSPITAL_ID = "26146e33-8808-4ed4-b3bf-9de057437e85"
-
 export default function PatientPortal() {
   const navigate = useNavigate()
+  const { hospitalInfo } = useHospital()
+  const HOSPITAL_ID = hospitalInfo?.hospital_id
   const location = useLocation()
   const { phone, patientId } = location.state || {}
 
@@ -152,11 +153,15 @@ export default function PatientPortal() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <Stethoscope className="h-6 w-6 text-white" />
-              </div>
+              {hospitalInfo?.logo ? (
+                <img src={hospitalInfo.logo} alt={hospitalInfo.name} className="h-6 w-6 object-contain" />
+              ) : (
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <Stethoscope className="h-6 w-6 text-white" />
+                </div>
+              )}
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Patient Portal</h1>
+                <h1 className="text-xl font-semibold text-gray-900">{hospitalInfo?.name || "Patient Portal"}</h1>
                 <p className="text-sm text-gray-600">Welcome {patient?.patient_name || 'Patient'}</p>
               </div>
             </div>

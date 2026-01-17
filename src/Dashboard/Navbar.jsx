@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import CopilotChat from "../components/CopilotChat";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
+import { useHospital } from "../contexts/HospitalContext";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home, requiredModule: UI_MODULES.DASHBOARD },
@@ -43,6 +44,7 @@ export default function Navbar() {
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
+  const { hospitalInfo } = useHospital();
   const { hasModule, loading: permissionsLoading } = usePermissions();
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -220,12 +222,20 @@ export default function Navbar() {
     <div className="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
       <nav className="w-full flex items-center justify-between px-6 lg:px-8 h-16 bg-white dark:bg-gray-900">
         <div onClick={() => navigate("/dashboard")} className="flex items-center gap-3 cursor-pointer">
-          <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
-            <Stethoscope className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {hospitalInfo?.logo ? (
+              <img src={hospitalInfo.logo} alt={hospitalInfo.name} className="h-full w-full object-contain" />
+            ) : (
+              <Stethoscope className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            )}
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-semibold text-gray-900 dark:text-white">MedAssist</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Healthcare Management</span>
+            <span className="text-base font-semibold text-gray-900 dark:text-white">
+              {hospitalInfo?.name || "MedAssist"}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {hospitalInfo?.name ? "Healthcare Management" : "Healthcare Management"}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-4">
