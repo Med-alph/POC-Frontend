@@ -31,7 +31,7 @@ const PlanCard = ({ plan, features, onToggleStatus, onDelete, showActions = fals
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             {showActions && (
               <>
@@ -44,9 +44,9 @@ const PlanCard = ({ plan, features, onToggleStatus, onDelete, showActions = fals
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
                   </svg>
                 </button>
-                
+
                 <Link
-                  to={`/app-admin/plans/edit/${plan.id}`}
+                  to={`/plans/edit/${plan.id}`}
                   className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-md hover:bg-blue-50"
                   title="Edit plan"
                 >
@@ -54,7 +54,7 @@ const PlanCard = ({ plan, features, onToggleStatus, onDelete, showActions = fals
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </Link>
-                
+
                 <button
                   onClick={() => onDelete(plan.id, plan.name)}
                   className="p-2 text-gray-400 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
@@ -126,7 +126,7 @@ const PlanCard = ({ plan, features, onToggleStatus, onDelete, showActions = fals
           <div className="flex justify-between items-center text-sm text-gray-500">
             <span>Created {new Date(plan.created_at).toLocaleDateString()}</span>
             <Link
-              to={`/app-admin/plans/edit/${plan.id}`}
+              to={`/plans/edit/${plan.id}`}
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
               Edit Plan →
