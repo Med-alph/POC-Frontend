@@ -30,9 +30,14 @@ export const isTenantAdmin = () => {
     return subdomain === 'admin';
 };
 
+export const isAppAdmin = () => {
+    const subdomain = getSubdomain();
+    return subdomain === 'superadmin';
+};
+
 export const isHospitalSubdomain = () => {
     const subdomain = getSubdomain();
-    return subdomain !== null && subdomain !== 'admin' && subdomain !== 'www';
+    return subdomain !== null && subdomain !== 'admin' && subdomain !== 'superadmin' && subdomain !== 'www';
 };
 
 export const getHospitalSubdomain = () => {

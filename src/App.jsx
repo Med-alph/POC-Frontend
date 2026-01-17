@@ -1,8 +1,9 @@
 import React, { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { getSubdomain, isTenantAdmin, isHospitalSubdomain } from "./utils/subdomain";
+import { getSubdomain, isTenantAdmin, isAppAdmin, isHospitalSubdomain } from "./utils/subdomain";
 import { HospitalProvider, useHospital } from "./contexts/HospitalContext";
+import AppAdminApp from "./AppAdmin/AppAdminApp";
 
 import Dashboard from "./Dashboard/Dashboard";
 import Patients from "./Patients/Patients";
@@ -86,7 +87,7 @@ function HospitalApp() {
 
   // Routes that should NOT show the navbar (auth-related)
   const authRoutes = [
-    "/", "/forgotpassword", "/admin/login", "/app-admin/login"
+    "/", "/forgotpassword", "/admin/login"
   ];
 
   const adminRoutes = [
@@ -110,7 +111,7 @@ function HospitalApp() {
   const shouldShowNavbar =
     !authRoutes.includes(location.pathname) &&
     !adminRoutes.includes(location.pathname) &&
-    !location.pathname.startsWith('/app-admin') && // Hide navbar for all app-admin routes
+    // !location.pathname.startsWith('/app-admin') && // Removed as handled by subdomain
     !patientRoutes.includes(location.pathname) &&
     !shouldHideMainNavbar.includes(location.pathname) &&
     !complianceRoutes.includes(location.pathname); // Hide navbar on compliance pages
@@ -120,8 +121,8 @@ function HospitalApp() {
   // Check if current route should be wrapped by TermsGuard
   const shouldUseTermsGuard =
     !authRoutes.includes(location.pathname) &&
-    !complianceRoutes.includes(location.pathname) &&
-    !location.pathname.startsWith('/app-admin');
+    !complianceRoutes.includes(location.pathname);
+  // !location.pathname.startsWith('/app-admin'); // Removed
 
   const { hospitalInfo, loading } = useHospital();
   const subdomain = getSubdomain();
@@ -258,12 +259,6 @@ function HospitalApp() {
             <Route path="/" element={<Login />} />
             <Route path="/forgotpassword" element={<ForgotPassword />} />
             <Route path="/change-password" element={<ChangePassword />} />
-            <Route path="/app-admin/login" element={<AppAdminLogin />} />
-            <Route path="/app-admin/*" element={
-              <AppAdminProtectedRoute>
-                <AppAdminDashboard />
-              </AppAdminProtectedRoute>
-            } />
 
             {/* Compliance Routes - No TermsGuard, No Navbar */}
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
@@ -281,6 +276,7 @@ function HospitalApp() {
 
 function App() {
   const isTenantAdminMode = isTenantAdmin();
+  const isAppAdminMode = isAppAdmin();
 
   return (
     <AppAdminAuthProvider>
@@ -288,6 +284,8 @@ function App() {
         <Router>
           {isTenantAdminMode ? (
             <TenantAdminApp />
+          ) : isAppAdminMode ? (
+            <AppAdminApp />
           ) : (
             <HospitalProvider>
               <HospitalApp />

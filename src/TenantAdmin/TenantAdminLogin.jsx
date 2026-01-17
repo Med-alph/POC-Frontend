@@ -289,16 +289,6 @@ export default function TenantAdminLogin() {
           </Button>
 
           {/* Back to regular login */}
-          {!resetMode && (
-            <div className="text-center">
-              <a
-                href="/"
-                className="text-sm text-gray-600 hover:text-blue-600 hover:underline"
-              >
-                ← Back to regular login
-              </a>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
