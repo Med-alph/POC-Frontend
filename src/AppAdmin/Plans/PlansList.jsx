@@ -68,7 +68,7 @@ const PlansList = () => {
   const filteredPlans = plans.filter(plan => {
     const matchesFilter = filter === 'all' || plan.status === filter;
     const matchesSearch = plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         plan.tier.toLowerCase().includes(searchTerm.toLowerCase());
+      plan.tier.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -92,7 +92,7 @@ const PlansList = () => {
         </div>
         <div className="flex items-center space-x-3">
           <Link
-            to="/app-admin/plans/preview"
+            to="/plans/preview"
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +102,7 @@ const PlansList = () => {
             Preview Plans
           </Link>
           <Link
-            to="/app-admin/plans/new"
+            to="/plans/new"
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,14 +166,14 @@ const PlansList = () => {
             {searchTerm || filter !== 'all' ? 'No plans found' : 'No plans yet'}
           </h3>
           <p className="text-gray-500 mb-4">
-            {searchTerm || filter !== 'all' 
+            {searchTerm || filter !== 'all'
               ? 'Try adjusting your search or filter criteria'
               : 'Get started by creating your first subscription plan'
             }
           </p>
           {(!searchTerm && filter === 'all') && (
             <Link
-              to="/app-admin/plans/new"
+              to="/plans/new"
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
             >
               Create Your First Plan
@@ -223,14 +223,14 @@ const DeleteConfirmationModal = ({ planName, onConfirm, onCancel }) => {
               <p className="text-sm text-gray-500">This action cannot be undone</p>
             </div>
           </div>
-          
+
           <div className="mb-6">
             <p className="text-sm text-gray-700">
-              Are you sure you want to delete "<span className="font-medium">{planName}</span>"? 
+              Are you sure you want to delete "<span className="font-medium">{planName}</span>"?
               This action cannot be undone and may affect existing subscriptions that use this plan.
             </p>
           </div>
-          
+
           <div className="flex justify-end space-x-3">
             <button
               onClick={onCancel}

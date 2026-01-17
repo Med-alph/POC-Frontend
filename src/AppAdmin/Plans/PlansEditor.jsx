@@ -20,7 +20,7 @@ const PlansEditor = () => {
     description: '',
     features: []
   });
-  
+
   const [features, setFeatures] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,7 +52,7 @@ const PlansEditor = () => {
     try {
       setLoading(true);
       const response = await plansApi.getPlanById(id);
-      
+
       // Transform plan features for the form
       const planFeatures = response.planFeatures?.map(pf => ({
         feature_key: pf.feature_key,
@@ -72,7 +72,7 @@ const PlansEditor = () => {
     } catch (error) {
       console.error('Failed to load plan:', error);
       toast.error('Failed to load plan');
-      navigate('/app-admin/plans');
+      navigate('/plans');
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ const PlansEditor = () => {
   const handleSave = async (planData) => {
     try {
       setSaving(true);
-      
+
       if (isEditing) {
         await plansApi.updatePlan(id, planData);
         toast.success('Plan updated successfully');
@@ -89,8 +89,8 @@ const PlansEditor = () => {
         await plansApi.createPlan(planData);
         toast.success('Plan created successfully');
       }
-      
-      navigate('/app-admin/plans');
+
+      navigate('/plans');
     } catch (error) {
       console.error('Failed to save plan:', error);
       toast.error(`Failed to ${isEditing ? 'update' : 'create'} plan`);
@@ -119,7 +119,7 @@ const PlansEditor = () => {
             {isEditing ? 'Update plan details and features' : 'Configure a new subscription plan'}
           </p>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowPreview(!showPreview)}
@@ -131,9 +131,9 @@ const PlansEditor = () => {
             </svg>
             {showPreview ? 'Hide Preview' : 'Show Preview'}
           </button>
-          
+
           <button
-            onClick={() => navigate('/app-admin/plans')}
+            onClick={() => navigate('/plans')}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Cancel
