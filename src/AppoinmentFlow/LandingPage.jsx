@@ -24,6 +24,7 @@ const countries = [
 
 const LandingPage = () => {
   const { hospitalInfo } = useHospital();
+  const HOSPITAL_ID = hospitalInfo?.hospital_id;
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
   const [loading, setLoading] = useState(false);
@@ -56,7 +57,7 @@ const LandingPage = () => {
     setLoading(true);
     try {
       const fullPhone = `${countryCode}${clean}`;
-      const res = await authAPI.sendOtp({ phone: clean, countryCode });
+      const res = await authAPI.sendOtp({ phone: clean, hospitalId: HOSPITAL_ID });
       if (res?.success) {
         toast.success("OTP sent successfully");
         // Store session info
