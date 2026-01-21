@@ -837,7 +837,21 @@ export default function Appointments() {
                       </>
                     )}
                     {!isAppointmentTodayOrFuture(a.appointment_date) && (
-                      <span className="text-sm text-gray-400">Past</span>
+                      <>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openViewModalWithAppointment(a)} >
+                          View
+                        </Button>
+                        {(a.status?.toLowerCase() === "fulfilled" || a.status?.toLowerCase() === "completed") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-auto px-2 py-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                            onClick={() => window.location.href = `/billing/${a.id}`}
+                          >
+                            Bill
+                          </Button>
+                        )}
+                      </>
                     )}
                   </TableCell>
                 </TableRow>

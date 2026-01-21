@@ -11,6 +11,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import toast from "react-hot-toast";
+import { PHONE_REGEX } from "@/constants/Constant";
+
 
 export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient }) {
     const [formData, setFormData] = useState({
@@ -58,10 +60,38 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.patient_name || !formData.contact_info) {
+        if (!formData.patient_name.trim() || !formData.contact_info.trim()) {
             toast.error("Please fill in required fields (Name and Contact)");
             return;
         }
+
+        // Phone number validation
+        const phoneToTest = formData.contact_info.trim().replace(/(?!^\+)[\s-]/g, '');
+
+        // Strict check for India
+        if (phoneToTest.startsWith('+91') && phoneToTest.replace('+91', '').length !== 10) {
+            toast.error("India phone numbers (+91) must have exactly 10 digits after the country code");
+            return;
+        }
+
+        if (!PHONE_REGEX.test(phoneToTest)) {
+            toast.error("Please enter a valid 10-digit phone number (e.g., +91 9876543210 or 9876543210)");
+            return;
+        }
+
+
+
+        // DOB future date validation
+        if (formData.dob) {
+            const selectedDate = new Date(formData.dob);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate > today) {
+                toast.error("Date of Birth cannot be in the future");
+                return;
+            }
+        }
+
 
         try {
             // Calculate age from dob if present, else null
@@ -115,18 +145,22 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
                                         type="date"
                                         value={formData.dob}
                                         onChange={handleChange}
+                                        max={new Date().toISOString().split('T')[0]}
                                     />
+
                                 </div>
                                 <div>
                                     <Label htmlFor="contact_info">Contact Number *</Label>
                                     <Input
                                         id="contact_info"
                                         name="contact_info"
+                                        type="tel"
                                         placeholder="Enter contact number"
                                         value={formData.contact_info}
                                         onChange={handleChange}
                                         required
                                     />
+
                                 </div>
                                 <div>
                                     <Label htmlFor="email">Email Address</Label>

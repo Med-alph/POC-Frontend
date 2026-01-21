@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
-import { Clock, AlertCircle } from "lucide-react";
+import { Clock, AlertCircle, Loader2 } from "lucide-react";
+
 import designationapi from "@/api/designationapi";
 import staffApi from "@/api/staffapi";
 import { rolesAPI } from "@/api/rolesapi";
 import RoleAssignmentDropdown from "../TenantAdmin/RoleManagement/RoleAssignmentDropdown";
+import { PHONE_REGEX, SUPPORTED_COUNTRY_CODES } from "@/constants/Constant";
+
 
 const WEEKDAYS = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
@@ -52,6 +55,9 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     status: "Active",
   });
   const [availabilityErrors, setAvailabilityErrors] = useState({});
+  const [formErrors, setFormErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     async function loadDesignations() {
@@ -124,6 +130,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         status: "Active",
       });
       setAvailabilityErrors({});
+      setFormErrors({});
     }
   }, [open, editStaff]);
 
@@ -210,15 +217,42 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
   };
 
   const validateForm = () => {
-    const errors = [];
-    if (!formData.staff_name.trim()) errors.push("Staff name is required");
-    if (!formData.department) errors.push("Department is required");
-    if (!formData.designation) errors.push("Designation is required");
-    // Role assignment is now optional - only validate if provided
-    if (!formData.contact_info.trim()) errors.push("Contact information is required");
-    if (!formData.email || !formData.email.trim()) errors.push("Email is required");
-    if (formData.email && !isValidEmail(formData.email)) errors.push("Invalid email format");
-    if (formData.experience && isNaN(Number(formData.experience))) errors.push("Experience must be a number");
+    const errors = {};
+    if (!formData.staff_name.trim()) errors.staff_name = "Staff name is required";
+    if (!formData.department) errors.department = "Department is required";
+    if (!formData.designation) errors.designation = "Designation is required";
+
+    if (!formData.contact_info.trim()) {
+      errors.contact_info = "Contact information is required";
+    } else {
+      const phoneToTest = formData.contact_info.trim().replace(/(?!^\+)[\s-]/g, '');
+
+      if (phoneToTest.startsWith('+')) {
+        const matchedCode = SUPPORTED_COUNTRY_CODES.find(c => phoneToTest.startsWith(c.code));
+        if (!matchedCode) {
+          errors.contact_info = "Unsupported or invalid country code (e.g., use +91, +1)";
+        } else {
+          const subscriberNumber = phoneToTest.replace(matchedCode.code, '');
+          if (subscriberNumber.length !== 10) {
+            errors.contact_info = `${matchedCode.country} phone numbers must have exactly 10 digits after the country code`;
+          }
+        }
+      } else if (phoneToTest.length !== 10) {
+        errors.contact_info = "Phone number must be exactly 10 digits";
+      } else if (!PHONE_REGEX.test(phoneToTest)) {
+        errors.contact_info = "Invalid phone number format";
+      }
+    }
+
+    if (!formData.email || !formData.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!isValidEmail(formData.email)) {
+      errors.email = "Invalid email format";
+    }
+
+    if (formData.experience && isNaN(Number(formData.experience))) {
+      errors.experience = "Experience must be a number";
+    }
 
     let hasAvailability = false;
     const availabilityValidationErrors = {};
@@ -229,12 +263,16 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         const validation = validateTimeSlot(slot);
         if (!validation.isValid) {
           availabilityValidationErrors[day] = validation.error;
-          errors.push(`${day}: ${validation.error}`);
         }
       }
     });
-    if (!hasAvailability) errors.push("Please specify availability for at least one day");
+
+    if (!hasAvailability) {
+      errors.availability = "Please specify availability for at least one day";
+    }
+
     setAvailabilityErrors(availabilityValidationErrors);
+    setFormErrors(errors);
     return errors;
   };
 
@@ -245,12 +283,30 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     console.log("Form submit triggered");
     if (editStaff) console.log("Editing staff:", editStaff.id);
     const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
+    if (Object.keys(validationErrors).length > 0) {
       console.log("Validation errors: \n", validationErrors);
-      toast.error(validationErrors[0]);
+      // Toast first error for quick feedback, inline errors will show the rest
+      toast.error(Object.values(validationErrors)[0]);
       return;
     }
+    setLoading(true);
+
     try {
+      const phoneToTest = formData.contact_info.trim().replace(/(?!^\+)[\s-]/g, '');
+
+      // Uniqueness Check: Check if phone number already exists in this hospital
+      const { exists } = await staffApi.checkPhone(
+        phoneToTest,
+        hospitalId,
+        editStaff ? editStaff.id : null
+      );
+
+      if (exists) {
+        toast.error("A staff member with this phone number already exists in this hospital.");
+        setLoading(false);
+        return;
+      }
+
       const availabilityObject = {};
       WEEKDAYS.forEach((day) => {
         const slot = formData.availability[day];
@@ -298,7 +354,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         }
 
         if (roleAssignmentSuccess || !formData.role_id || formData.role_id === "none") {
-          toast.success(`Staff updated successfully!`);
+          // Success handled by parent via onAdd
         } else {
           toast.error('Staff updated but role assignment failed. Please assign role manually.');
         }
@@ -320,7 +376,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         }
 
         if (roleAssignmentSuccess || !formData.role_id || formData.role_id === "none") {
-          toast.success(`Staff created successfully!`);
+          // Success handled by parent via onAdd
         } else {
           toast.error('Staff created but role assignment failed. Please assign role manually.');
         }
@@ -331,7 +387,10 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     } catch (error) {
       console.error('Staff operation error:', error);
       toast.error(`Failed to ${editStaff ? "update" : "create"} staff: ${error.message || "Unknown error"}`);
+    } finally {
+      setLoading(false);
     }
+
   };
 
   return (
@@ -352,7 +411,15 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                 <label className="text-sm font-medium text-gray-600 mb-1 block">
                   Staff Name <span className="text-red-500">*</span>
                 </label>
-                <Input name="staff_name" placeholder="Enter full name" value={formData.staff_name} onChange={handleChange} required />
+                <Input
+                  name="staff_name"
+                  placeholder="Enter full name"
+                  value={formData.staff_name}
+                  onChange={handleChange}
+                  required
+                  aria-invalid={!!formErrors.staff_name}
+                />
+                {formErrors.staff_name && <p className="text-xs text-red-500 mt-1">{formErrors.staff_name}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -360,7 +427,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                     Department <span className="text-red-500">*</span>
                   </label>
                   <Select onValueChange={handleDepartmentChange} value={formData.department}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-invalid={!!formErrors.department}>
                       <SelectValue placeholder="Select Department" />
                     </SelectTrigger>
                     <SelectContent>
@@ -371,13 +438,14 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                       ))}
                     </SelectContent>
                   </Select>
+                  {formErrors.department && <p className="text-xs text-red-500 mt-1">{formErrors.department}</p>}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600 mb-1 block">
                     Designation <span className="text-red-500">*</span>
                   </label>
                   <Select onValueChange={handleDesignationChange} value={formData.designation} disabled={!formData.department}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-invalid={!!formErrors.designation}>
                       <SelectValue placeholder="Select Designation" />
                     </SelectTrigger>
                     <SelectContent>
@@ -389,19 +457,38 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                         ))}
                     </SelectContent>
                   </Select>
+                  {formErrors.designation && <p className="text-xs text-red-500 mt-1">{formErrors.designation}</p>}
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600 mb-1 block">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
-                <Input name="contact_info" placeholder="+91 1234567890" value={formData.contact_info} onChange={handleChange} required />
+                <Input
+                  type="tel"
+                  name="contact_info"
+                  placeholder="+91 1234567890"
+                  value={formData.contact_info}
+                  onChange={handleChange}
+                  required
+                  aria-invalid={!!formErrors.contact_info}
+                />
+                {formErrors.contact_info && <p className="text-xs text-red-500 mt-1">{formErrors.contact_info}</p>}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600 mb-1 block">
                   Email <span className="text-red-500">*</span>
                 </label>
-                <Input type="email" name="email" placeholder="email@example.com" value={formData.email} onChange={handleChange} required />
+                <Input
+                  type="email"
+                  name="email"
+                  placeholder="email@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  aria-invalid={!!formErrors.email}
+                />
+                {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
               </div>
 
               {/* Role Assignment */}
@@ -425,7 +512,9 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                   max="50"
                   value={formData.experience}
                   onChange={handleChange}
+                  aria-invalid={!!formErrors.experience}
                 />
+                {formErrors.experience && <p className="text-xs text-red-500 mt-1">{formErrors.experience}</p>}
               </div>
             </div>
 
@@ -455,6 +544,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                     </ul>
                   </div>
                 </div>
+                {formErrors.availability && <p className="text-xs text-red-500 mt-2 font-medium">{formErrors.availability}</p>}
               </div>
 
               {/* Weekdays */}
@@ -552,12 +642,20 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
 
         {/* Footer */}
         <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" form="staff-form" className="bg-blue-600 hover:bg-blue-700 text-white">
-            {editStaff ? "Save Changes" : "Create Staff"}
+          <Button type="submit" form="staff-form" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {editStaff ? "Saving..." : "Creating..."}
+              </>
+            ) : (
+              editStaff ? "Save Changes" : "Create Staff"
+            )}
           </Button>
+
         </div>
       </DialogContent>
     </Dialog>

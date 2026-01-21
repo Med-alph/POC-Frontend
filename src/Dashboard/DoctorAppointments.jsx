@@ -19,7 +19,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
   const [callStatus, setCallStatus] = useState(null);
   const [isInitiatingCall, setIsInitiatingCall] = useState(false);
   const [existingActiveCall, setExistingActiveCall] = useState(null); // Store existing active call for rejoin
-  
+
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
 
@@ -143,10 +143,10 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
     if (!socketService.isConnected()) {
       console.warn('Socket not connected, attempting to connect...');
       socketService.connect(user.id);
-      
+
       // Wait a moment for connection
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       if (!socketService.isConnected()) {
         toast.error("Socket connection not established. Please refresh the page.");
         return;
@@ -178,7 +178,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
       });
 
       console.log('Call created via REST API:', callResponse);
-      
+
       // CRITICAL: Use room name from API response (backend returns what it stored)
       // This ensures we use the exact same room name that patient will receive
       setActiveCallId(callResponse.id);
@@ -197,7 +197,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
         doctorName: doctorName || user?.name || 'Doctor',
         reason: selectedAppointment.reason || 'Consultation'
       });
-      
+
       try {
         await socketService.startCall(
           callResponse.appointmentId,
@@ -216,7 +216,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
       // Open Jitsi meeting for doctor immediately with room name from backend
       setShowCall(true);
       setCallStatus('pending');
-      
+
       toast.success('Call initiated - waiting for patient to join');
 
     } catch (error) {
@@ -244,19 +244,19 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
 
     try {
       console.log('Ending call:', callId);
-      
+
       // Emit Socket.IO event to end call
       await socketService.endCall(callId);
-      
+
       // Update call status in backend
       await videoCallAPI.updateCallStatus(callId, 'ended');
-      
+
       setShowCall(false);
       setActiveCallId(null);
       setActiveRoomName(null);
       setCallStatus('ended');
       setExistingActiveCall(null);
-      
+
       toast.success('Call ended successfully');
     } catch (error) {
       console.error('Failed to end call:', error);
@@ -268,20 +268,20 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
   const rejoinCallHandler = () => {
     // Check if we have an existing active call or current call state
     const callToRejoin = existingActiveCall || (activeCallId && activeRoomName ? { id: activeCallId, roomName: activeRoomName, status: callStatus } : null);
-    
+
     if (!callToRejoin) {
       toast.error('No active call found');
       return;
     }
 
     console.log('Rejoining call:', callToRejoin);
-    
+
     // Use the room name from the call record
     setActiveCallId(callToRejoin.id);
     setActiveRoomName(callToRejoin.roomName);
     setCallStatus(callToRejoin.status || 'active');
     setShowCall(true);
-    
+
     toast.success('Rejoining call...');
   };
 
@@ -394,7 +394,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
         {/* Modal */}
         {selectedAppointment && !showCall && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div 
+            <div
               className="fixed inset-0 bg-black/50"
               onClick={() => setSelectedAppointment(null)}
             />
@@ -495,6 +495,14 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
                   >
                     Start Consultation
                   </Button>
+                  {(selectedAppointment.status?.toLowerCase() === "fulfilled" || selectedAppointment.status?.toLowerCase() === "completed") && (
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 text-sm font-medium rounded-md"
+                      onClick={() => navigate(`/billing/${selectedAppointment.id}`)}
+                    >
+                      Billing 💳
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

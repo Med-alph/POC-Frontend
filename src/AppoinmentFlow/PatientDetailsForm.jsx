@@ -10,6 +10,8 @@ import { useHospital } from "@/contexts/HospitalContext";
 import { toast } from "sonner";
 import { Stethoscope, ArrowLeft, Moon, Sun, User, Calendar, Phone, Mail, FileText, Heart, Pill } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
+import { PHONE_REGEX } from "@/constants/Constant";
+
 //this is a comment
 const PatientDetailsForm = () => {
     const navigate = useNavigate();
@@ -66,6 +68,7 @@ const PatientDetailsForm = () => {
     const [familyHistory, setFamilyHistory] = useState("");
     const [lifestyle, setLifestyle] = useState([]);
     const [emergencyContact, setEmergencyContact] = useState("");
+    const [errors, setErrors] = useState({});
 
     const lifestyleOptions = [
         "Non-smoker",
@@ -105,12 +108,46 @@ const PatientDetailsForm = () => {
         }
     }, [patient, phone]);
 
+    const validateSection = (section) => {
+        const newErrors = {};
+        if (section === 1) {
+            if (!name.trim()) newErrors.name = "Full name is required";
+            if (!dob) newErrors.dob = "Date of birth is required";
+            if (!gender.trim()) newErrors.gender = "Gender is required";
+
+            if (dob) {
+                const selectedDate = new Date(dob);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (selectedDate > today) newErrors.dob = "Date of Birth cannot be in the future";
+            }
+        } else if (section === 2) {
+            if (!contactPhone.trim()) {
+                newErrors.contactPhone = "Phone number is required";
+            } else {
+                const phoneToTest = contactPhone.trim().replace(/(?!^\+)[\s-]/g, '');
+                if (phoneToTest.startsWith('+91') && phoneToTest.replace('+91', '').length !== 10) {
+                    newErrors.contactPhone = "India phone numbers must have 10 digits after +91";
+                } else if (!PHONE_REGEX.test(phoneToTest)) {
+                    newErrors.contactPhone = "Invalid phone number format";
+                }
+            }
+            if (!emergencyContact.trim()) newErrors.emergencyContact = "Emergency contact is required";
+            if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                newErrors.email = "Invalid email format";
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async () => {
-        // Validation
-        if (!name.trim()) return toast.error("Please enter full name");
-        if (!dob) return toast.error("Please select date of birth");
-        if (!gender.trim()) return toast.error("Please enter gender");
-        if (!contactPhone.trim()) return toast.error("Please enter phone number");
+        if (!validateSection(1) || !validateSection(2)) {
+            toast.error("Please correct the errors in the form before submitting");
+            return;
+        }
+
 
         setLoading(true);
         try {
@@ -243,10 +280,12 @@ const PatientDetailsForm = () => {
                                         </Label>
                                         <Input
                                             value={name}
-                                            onChange={(e) => setName(e.target.value)}
+                                            onChange={(e) => { setName(e.target.value); if (errors.name) setErrors(prev => ({ ...prev, name: null })); }}
                                             placeholder="Enter your full name"
                                             className="h-12"
+                                            aria-invalid={!!errors.name}
                                         />
+                                        {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold flex items-center gap-2">
@@ -254,20 +293,29 @@ const PatientDetailsForm = () => {
                                             Date of Birth <span className="text-red-500">*</span>
                                         </Label>
                                         <Input
+                                            id="dob"
+                                            name="dob"
                                             type="date"
                                             value={dob}
-                                            onChange={(e) => setDob(e.target.value)}
+                                            onChange={(e) => { setDob(e.target.value); if (errors.dob) setErrors(prev => ({ ...prev, dob: null })); }}
+                                            max={new Date().toISOString().split('T')[0]}
                                             className="h-12"
+                                            aria-invalid={!!errors.dob}
                                         />
+                                        {errors.dob && <p className="text-xs text-red-500 mt-1">{errors.dob}</p>}
+
+
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold">Gender <span className="text-red-500">*</span></Label>
                                         <Input
                                             placeholder="Male / Female / Other"
                                             value={gender}
-                                            onChange={(e) => setGender(e.target.value)}
+                                            onChange={(e) => { setGender(e.target.value); if (errors.gender) setErrors(prev => ({ ...prev, gender: null })); }}
                                             className="h-12"
+                                            aria-invalid={!!errors.gender}
                                         />
+                                        {errors.gender && <p className="text-xs text-red-500 mt-1">{errors.gender}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold">Blood Group</Label>
@@ -290,11 +338,11 @@ const PatientDetailsForm = () => {
                                     </Button>
                                     <Button
                                         onClick={() => {
-                                            if (!name.trim() || !dob || !gender.trim()) {
-                                                toast.error("Please fill all required fields");
-                                                return;
+                                            if (validateSection(1)) {
+                                                setActiveSection(2);
+                                            } else {
+                                                toast.error("Please fill required fields correctly");
                                             }
-                                            setActiveSection(2);
                                         }}
                                         className="px-8 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
                                     >
@@ -316,10 +364,12 @@ const PatientDetailsForm = () => {
                                         <Input
                                             type="tel"
                                             value={contactPhone}
-                                            onChange={(e) => setContactPhone(e.target.value)}
+                                            onChange={(e) => { setContactPhone(e.target.value); if (errors.contactPhone) setErrors(prev => ({ ...prev, contactPhone: null })); }}
                                             placeholder="+91 9876543210"
                                             className="h-12"
+                                            aria-invalid={!!errors.contactPhone}
                                         />
+                                        {errors.contactPhone && <p className="text-xs text-red-500 mt-1">{errors.contactPhone}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm font-semibold flex items-center gap-2">
@@ -329,10 +379,12 @@ const PatientDetailsForm = () => {
                                         <Input
                                             type="email"
                                             value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
+                                            onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors(prev => ({ ...prev, email: null })); }}
                                             placeholder="example@mail.com"
                                             className="h-12"
+                                            aria-invalid={!!errors.email}
                                         />
+                                        {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
                                     </div>
                                     <div className="md:col-span-2 space-y-2">
                                         <Label className="text-sm font-semibold">Address</Label>
@@ -351,10 +403,12 @@ const PatientDetailsForm = () => {
                                         <Input
                                             placeholder="Name + Phone number"
                                             value={emergencyContact}
-                                            onChange={(e) => setEmergencyContact(e.target.value)}
+                                            onChange={(e) => { setEmergencyContact(e.target.value); if (errors.emergencyContact) setErrors(prev => ({ ...prev, emergencyContact: null })); }}
                                             className="h-12"
+                                            aria-invalid={!!errors.emergencyContact}
                                         />
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {errors.emergencyContact && <p className="text-xs text-red-500 mt-1">{errors.emergencyContact}</p>}
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                             Please provide an emergency contact person
                                         </p>
                                     </div>
@@ -370,11 +424,11 @@ const PatientDetailsForm = () => {
                                     </Button>
                                     <Button
                                         onClick={() => {
-                                            if (!contactPhone.trim() || !emergencyContact.trim()) {
-                                                toast.error("Please fill all required fields");
-                                                return;
+                                            if (validateSection(2)) {
+                                                setActiveSection(3);
+                                            } else {
+                                                toast.error("Please fill required fields correctly");
                                             }
-                                            setActiveSection(3);
                                         }}
                                         className="px-8 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
                                     >

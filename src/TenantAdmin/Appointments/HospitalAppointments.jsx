@@ -151,9 +151,8 @@ const HospitalAppointments = () => {
             >
               <span>{name}</span>
               <svg
-                className={`w-5 h-5 transform transition-transform duration-300 ${
-                  isExpanded ? "rotate-180" : ""
-                }`}
+                className={`w-5 h-5 transform transition-transform duration-300 ${isExpanded ? "rotate-180" : ""
+                  }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -227,6 +226,15 @@ const HospitalAppointments = () => {
                               >
                                 🗑️
                               </button>
+                              {(appt.status?.toLowerCase() === "fulfilled" || appt.status?.toLowerCase() === "completed") && (
+                                <button
+                                  onClick={() => window.location.href = `/billing/${appt.id}`}
+                                  className="px-2 py-1 text-xs font-semibold text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+                                  title="Go to Billing"
+                                >
+                                  Billing 💳
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}

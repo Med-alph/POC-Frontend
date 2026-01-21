@@ -205,6 +205,22 @@ export const FEATURE_LABELS = {
 };
 
 // ============================================
+// VALIDATION CONSTANTS
+// ============================================
+export const PHONE_REGEX = /^(\+\d{1,3}[\s-]?)?(\d{10})$/;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const SUPPORTED_COUNTRY_CODES = [
+  { code: "+91", country: "India" },
+  { code: "+1", country: "United States" },
+  { code: "+44", country: "United Kingdom" },
+  { code: "+971", country: "UAE" },
+  { code: "+65", country: "Singapore" },
+  { code: "+60", country: "Malaysia" },
+  { code: "+66", country: "Thailand" },
+];
+
+// ============================================
 // HELPER FUNCTIONS
 // ============================================
 export const getEnvironment = () => {
