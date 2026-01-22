@@ -89,6 +89,7 @@ const StaffsRolesTab = () => {
 
   const handleStaffSaved = async () => {
     await fetchStaffsByHospital(selectedHospitalId);
+    toast.success(`Staff ${editStaff ? "updated" : "created"} successfully!`);
   };
 
   // Show delete confirmation modal
@@ -199,7 +200,7 @@ const StaffsRolesTab = () => {
                               {staff.roles && staff.roles.length > 0 ? (
                                 <div className="flex flex-wrap gap-1">
                                   {staff.roles.map((role, index) => (
-                                    <span 
+                                    <span
                                       key={role.id || index}
                                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                                     >

@@ -8,6 +8,12 @@ export default function ItemTable({ items, onTotalChange }) {
     const [tableItems, setTableItems] = useState(items);
 
     useEffect(() => {
+        if (items && items.length > 0) {
+            setTableItems(items);
+        }
+    }, [items]);
+
+    useEffect(() => {
         const total = tableItems
             .filter(item => item.payNow)
             .reduce((sum, item) => sum + item.qty * item.unitPrice, 0);
@@ -57,11 +63,10 @@ export default function ItemTable({ items, onTotalChange }) {
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             {tableItems.map((item, idx) => (
-                                <tr 
-                                    key={item.id} 
-                                    className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                                        item.payNow ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
-                                    }`}
+                                <tr
+                                    key={item.id}
+                                    className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${item.payNow ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                                        }`}
                                 >
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-3">
@@ -94,8 +99,8 @@ export default function ItemTable({ items, onTotalChange }) {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <div className="flex justify-center">
-                                            <Checkbox 
-                                                checked={item.payNow} 
+                                            <Checkbox
+                                                checked={item.payNow}
                                                 onCheckedChange={() => togglePayNow(item.id)}
                                                 className="h-5 w-5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                                             />

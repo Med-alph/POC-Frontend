@@ -122,8 +122,8 @@ export const staffApi = {
     const queryParams = new URLSearchParams()
     if (start_date) queryParams.append('start_date', start_date)
     if (end_date) queryParams.append('end_date', end_date)
-    const endpoint = queryParams.toString() 
-      ? `/staffs/${id}/schedule?${queryParams.toString()}` 
+    const endpoint = queryParams.toString()
+      ? `/staffs/${id}/schedule?${queryParams.toString()}`
       : `/staffs/${id}/schedule`
     return apiRequest(endpoint)
   },
@@ -139,6 +139,16 @@ export const staffApi = {
     const queryParams = new URLSearchParams(params).toString()
     const endpoint = queryParams ? `/staffs/stats?${queryParams}` : '/staffs/stats'
     return apiRequest(endpoint)
+  },
+
+  // Check if a phone number already exists in a hospital
+  checkPhone: async (phone, hospitalId, excludeId = null) => {
+    const queryParams = new URLSearchParams({
+      phone,
+      hospital_id: hospitalId
+    });
+    if (excludeId) queryParams.append('exclude_id', excludeId);
+    return apiRequest(`/staffs/check-phone?${queryParams.toString()}`);
   },
 
   // Fixed: Soft delete staff by ID via PATCH

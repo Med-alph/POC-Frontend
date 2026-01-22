@@ -22,7 +22,7 @@ const handleResponse = async (response) => {
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_CONFIG.baseURL}${endpoint}`
   const token = getAuthToken()
-  
+
   const config = {
     ...options,
     headers: {
@@ -128,24 +128,27 @@ export const authAPI = {
     delete API_CONFIG.headers.Authorization
   },
   // Send OTP
-  sendOtp: async ({ phone }) => {
+  sendOtp: async ({ phone, hospitalId }) => {
     return apiRequest('/auth/send-otp', {
       method: 'POST',
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone, hospitalId }),
     });
   },
 
   // Verify OTP
-  verifyOtp: async ({ phone, otp }) => {
+  verifyOtp: async ({ phone, otp, hospitalId }) => {
     return apiRequest('/auth/verify-otp', {
       method: 'POST',
-      body: JSON.stringify({ phone, otp }),
+      body: JSON.stringify({ phone, otp, hospitalId }),
     });
   },
 
-   // Add checkPhone method
-  checkPhone: async ({ phone }) => {
-    return apiRequest(`/auth/check-phone?phone=${encodeURIComponent(phone)}`, {
+  // Add checkPhone method
+  checkPhone: async ({ phone, hospitalId }) => {
+    const params = new URLSearchParams({ phone });
+    if (hospitalId) params.append('hospitalId', hospitalId);
+
+    return apiRequest(`/auth/check-phone?${params.toString()}`, {
       method: 'GET',
     });
   },

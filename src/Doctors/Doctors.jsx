@@ -68,6 +68,18 @@ export default function Doctors() {
     const [editDoctor, setEditDoctor] = useState(null)
     const [editDialogOpen, setEditDialogOpen] = useState(false)
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [totalCount, setTotalCount] = useState(0)
+    const PAGE_SIZE = 10
+
+    const [stats, setStats] = useState({
+        total: 0,
+        active: 0,
+        inactive: 0,
+        senior: 0
+    })
+
     // Get hospital ID from user data
     const user = useSelector((state) => state.auth.user);
     const hospitalId = user?.hospital_id;
@@ -129,43 +141,53 @@ export default function Doctors() {
         return filtered
     }, [doctors, searchTerm, departmentFilter, statusFilter, experienceFilter, sortBy, sortOrder])
 
-    // Statistics
-    const stats = useMemo(() => {
-        const total = doctors.length
-        const active = doctors.filter(d => d.status === 'active').length
-        const inactive = doctors.filter(d => d.status === 'inactive').length
-        const senior = doctors.filter(d => d.experience >= 10).length
-
-        return { total, active, inactive, senior }
-    }, [doctors])
-
-    const fetchDoctors = async () => {
-  try {
-    setLoading(true);
-
-    const params = {
-      hospital_id: hospitalId,
+    const fetchStats = async () => {
+        try {
+            const statsData = await staffApi.getStats({ hospital_id: hospitalId });
+            setStats({
+                total: statsData.total || 0,
+                active: statsData.active || 0,
+                inactive: statsData.inactive || 0,
+                senior: statsData.senior || 0
+            });
+        } catch (err) {
+            console.error("Error fetching stats:", err);
+        }
     };
 
-    if (searchTerm) params.search = searchTerm;
-    if (departmentFilter !== "all") params.department = departmentFilter;
-    if (statusFilter !== "all") params.status = statusFilter;
+    const fetchDoctors = async () => {
+        try {
+            setLoading(true);
 
-    const result = await staffApi.getAll(params);
-    setDoctors(Array.isArray(result.data) ? result.data : []);
-  } catch (err) {
-    console.error("Error fetching doctors:", err);
-    toast.error("Failed to load doctors. Please try again.");
-    setDoctors([]);
-  } finally {
-    setLoading(false);
-  }
-};
+            const params = {
+                hospital_id: hospitalId,
+                limit: PAGE_SIZE,
+                offset: (currentPage - 1) * PAGE_SIZE
+            };
+
+            if (searchTerm) params.search = searchTerm;
+            if (departmentFilter !== "all") params.department = departmentFilter;
+            if (statusFilter !== "all") params.status = statusFilter;
+
+            const result = await staffApi.getAll(params);
+            setDoctors(Array.isArray(result.data) ? result.data : []);
+            setTotalCount(result.total || 0);
+
+            // Also fetch fresh stats
+            fetchStats();
+        } catch (err) {
+            console.error("Error fetching doctors:", err);
+            toast.error("Failed to load doctors. Please try again.");
+            setDoctors([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
     useEffect(() => {
         fetchDoctors()
-    }, [searchTerm, departmentFilter, statusFilter])
+    }, [searchTerm, departmentFilter, statusFilter, currentPage])
 
     // Utility functions
     const handleRefresh = () => {
@@ -227,14 +249,13 @@ export default function Doctors() {
         try {
             // The CreateStaffDialog already calls the API, so we just need to update local state
             const updated = updatedStaff?.data ?? updatedStaff
-            
+
             if (updated && updated.id) {
                 setDoctors(prev => prev.map(d => d.id === updated.id ? updated : d))
                 toast.success(`Doctor "${updated.staff_name || updatedStaff.staff_name}" updated successfully!`)
+                fetchStats() // Update stats if status changed
             } else {
-                // If response format is different, refetch
                 fetchDoctors()
-                toast.success("Doctor updated successfully!")
             }
             setEditDialogOpen(false)
             setEditDoctor(null)
@@ -350,7 +371,7 @@ export default function Doctors() {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <div className="flex items-center gap-2 text-gray-600 text-sm">
                                 <Filter className="h-4 w-4" />
-                                <span>{filteredAndSortedDoctors.length} of {doctors.length} doctors</span>
+                                <span>Showing {doctors.length} of {totalCount} doctors</span>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -560,19 +581,24 @@ export default function Doctors() {
                     <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="text-sm text-gray-600">
-                                Showing {filteredAndSortedDoctors.length} of {doctors.length} doctors
-                                {searchTerm && (
-                                    <span className="ml-2 text-blue-600">
-                                        • Filtered by "{searchTerm}"
-                                    </span>
-                                )}
+                                Page {currentPage} of {Math.ceil(totalCount / PAGE_SIZE) || 1} ({totalCount} total doctors)
                             </div>
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" disabled>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                >
                                     Previous
                                 </Button>
-                                <span className="text-sm text-gray-600">Page 1 of 1</span>
-                                <Button variant="outline" size="sm" disabled>
+                                <span className="text-sm text-gray-600">Page {currentPage}</span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => prev + 1)}
+                                    disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+                                >
                                     Next
                                 </Button>
                             </div>
@@ -593,7 +619,7 @@ export default function Doctors() {
                 <CreateStaffDialog
                     hospitalId={hospitalId}
                     onAdd={(newStaff) => {
-                        setDoctors(prev => [...prev, newStaff])
+                        fetchDoctors() // Refresh for correct pagination/stats
                         toast.success(`Doctor "${newStaff.staff_name}" added!`)
                     }}
                     open={openDialog}

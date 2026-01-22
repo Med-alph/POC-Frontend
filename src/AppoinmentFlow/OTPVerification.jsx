@@ -63,7 +63,7 @@ const OTPVerification = () => {
     }
     setLoading(true);
     try {
-      const res = await authAPI.verifyOtp({ phone, otp });
+      const res = await authAPI.verifyOtp({ phone, otp, hospitalId: HOSPITAL_ID });
       console.log("OTP verification API response:", res);
       if (res.success && res.token) {
         toast.success("OTP verified successfully");
@@ -93,7 +93,7 @@ const OTPVerification = () => {
   const handleResend = async () => {
     try {
       console.log("Resending OTP for phone:", phone);
-      await authAPI.sendOtp({ phone });
+      await authAPI.sendOtp({ phone, hospitalId: HOSPITAL_ID });
       setTimer(30);
       toast.success("OTP resent successfully");
     } catch (err) {

@@ -9,6 +9,8 @@ import { User, Phone, Mail, Calendar } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
 import PatientSelfConsent from "@/components/compliance/PatientSelfConsent";
 import toast from 'react-hot-toast';
+import { PHONE_REGEX } from "@/constants/Constant";
+
 
 export default function PatientSelfRegistration() {
   const navigate = useNavigate();
@@ -41,6 +43,34 @@ export default function PatientSelfRegistration() {
       toast.error("Please fill in required fields (Name and Phone)");
       return;
     }
+
+    // Phone number validation
+    const phoneToTest = patientData.contact_info.trim().replace(/(?!^\+)[\s-]/g, '');
+
+    // Strict check for India
+    if (phoneToTest.startsWith('+91') && phoneToTest.replace('+91', '').length !== 10) {
+      toast.error("India phone numbers (+91) must have exactly 10 digits after the country code");
+      return;
+    }
+
+    if (!PHONE_REGEX.test(phoneToTest)) {
+      toast.error("Please enter a valid 10-digit phone number (e.g., +91 9876543210 or 9876543210)");
+      return;
+    }
+
+
+
+    // DOB future date validation
+    if (patientData.dob) {
+      const selectedDate = new Date(patientData.dob);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate > today) {
+        toast.error("Date of Birth cannot be in the future");
+        return;
+      }
+    }
+
 
     setIsSubmitting(true);
     try {
@@ -143,8 +173,10 @@ export default function PatientSelfRegistration() {
                   type="date"
                   value={patientData.dob}
                   onChange={handleInputChange}
+                  max={new Date().toISOString().split('T')[0]}
                   className="h-12"
                 />
+
               </div>
 
               {/* Phone Number */}
@@ -156,7 +188,8 @@ export default function PatientSelfRegistration() {
                 <Input
                   id="contact_info"
                   name="contact_info"
-                  placeholder="Enter your phone number"
+                  type="tel"
+                  placeholder="+91 9876543210"
                   value={patientData.contact_info}
                   onChange={handleInputChange}
                   required

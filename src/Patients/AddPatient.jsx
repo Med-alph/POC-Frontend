@@ -16,6 +16,8 @@ import PatientConsentModal from "@/components/compliance/PatientConsentModal";
 import { complianceAPI } from "@/api/complianceapi";
 import DataProtectionNotice from "@/components/compliance/DataProtectionNotice";
 import StaffConsentRecording from "@/components/compliance/StaffConsentRecording";
+import { PHONE_REGEX, SUPPORTED_COUNTRY_CODES } from "@/constants/Constant";
+
 
 export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isSelfRegistration = false, onComplete }) {
     // Get hospital_id from localStorage user if not provided as prop
@@ -57,6 +59,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
     // Consent modal state
     const [showConsentModal, setShowConsentModal] = useState(false);
     const [pendingPatientData, setPendingPatientData] = useState(null);
+    const [formErrors, setFormErrors] = useState({});
 
     // Update hospital_id in form when prop changes
     useEffect(() => {
@@ -80,21 +83,58 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const validateForm = () => {
+        const errors = {};
+        if (!formData.patient_name.trim()) errors.patient_name = "Full name is required";
+        if (!formData.dob) errors.dob = "Date of birth is required";
+        if (!formData.contact_info.trim()) errors.contact_info = "Contact number is required";
+        if (!formData.email.trim()) errors.email = "Email address is required";
+        if (!formData.address.trim()) errors.address = "Address is required";
+
+        // Phone number validation
+        if (formData.contact_info.trim()) {
+            const phoneToTest = formData.contact_info.trim().replace(/(?!^\+)[\s-]/g, '');
+
+            if (phoneToTest.startsWith('+')) {
+                const matchedCode = SUPPORTED_COUNTRY_CODES.find(c => phoneToTest.startsWith(c.code));
+                if (!matchedCode) {
+                    errors.contact_info = "Unsupported or invalid country code";
+                } else {
+                    const subscriberNumber = phoneToTest.replace(matchedCode.code, '');
+                    if (subscriberNumber.length !== 10) {
+                        errors.contact_info = `${matchedCode.country} phone numbers must have exactly 10 digits after the code`;
+                    }
+                }
+            } else if (phoneToTest.length !== 10) {
+                errors.contact_info = "Please enter a valid 10-digit phone number";
+            } else if (!PHONE_REGEX.test(phoneToTest)) {
+                errors.contact_info = "Invalid phone number format";
+            }
+        }
+
+        // DOB future date validation
+        if (formData.dob) {
+            const selectedDate = new Date(formData.dob);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate > today) {
+                errors.dob = "Date of Birth cannot be in the future";
+            }
+        }
+
+        setFormErrors(errors);
+        return errors;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // console.log('Submitting form data:', formData);
 
-        // Basic validation with trimming to avoid whitespace only
-        if (
-            !formData.patient_name.trim() ||
-            !formData.contact_info.trim() ||
-            !formData.dob ||
-            !formData.email.trim() ||
-            !formData.address.trim()
-        ) {
-            toast.error("Please fill in all required fields (Name, DOB, Contact, Email, and Address)");
+        const errors = validateForm();
+        if (Object.keys(errors).length > 0) {
+            toast.error(Object.values(errors)[0]);
             return;
         }
+
 
         try {
             // Calculate age from date of birth
@@ -160,7 +200,6 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                 }
 
                 console.log('Consent recorded successfully');
-                toast.success("Patient created successfully with recorded consent!");
             }
 
             // Reset form and close modals
@@ -181,6 +220,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
 
             setPendingPatientData(null);
             setShowConsentModal(false);
+            setFormErrors({});
             setOpen(false);
 
             if (onComplete) {
@@ -221,7 +261,9 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                                             value={formData.patient_name}
                                             onChange={handleChange}
                                             required
+                                            aria-invalid={!!formErrors.patient_name}
                                         />
+                                        {formErrors.patient_name && <p className="text-xs text-red-500 mt-1">{formErrors.patient_name}</p>}
                                     </div>
                                     <div>
                                         <Label htmlFor="dob">Date of Birth *</Label>
@@ -231,19 +273,25 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                                             type="date"
                                             value={formData.dob}
                                             onChange={handleChange}
+                                            max={new Date().toISOString().split('T')[0]}
                                             required
+                                            aria-invalid={!!formErrors.dob}
                                         />
+                                        {formErrors.dob && <p className="text-xs text-red-500 mt-1">{formErrors.dob}</p>}
                                     </div>
                                     <div>
                                         <Label htmlFor="contact_info">Contact Number *</Label>
                                         <Input
                                             id="contact_info"
                                             name="contact_info"
+                                            type="tel"
                                             placeholder="Enter contact number"
                                             value={formData.contact_info}
                                             onChange={handleChange}
                                             required
+                                            aria-invalid={!!formErrors.contact_info}
                                         />
+                                        {formErrors.contact_info && <p className="text-xs text-red-500 mt-1">{formErrors.contact_info}</p>}
                                     </div>
                                     <div>
                                         <Label htmlFor="email">Email Address *</Label>
@@ -255,7 +303,9 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                                             value={formData.email}
                                             onChange={handleChange}
                                             required
+                                            aria-invalid={!!formErrors.email}
                                         />
+                                        {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -272,7 +322,9 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                                         value={formData.address}
                                         onChange={handleChange}
                                         required
+                                        aria-invalid={!!formErrors.address}
                                     />
+                                    {formErrors.address && <p className="text-xs text-red-500 mt-1">{formErrors.address}</p>}
                                 </div>
                                 <div>
                                     <Label htmlFor="emergency_contact">Emergency Contact</Label>
