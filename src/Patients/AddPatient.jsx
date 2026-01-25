@@ -53,8 +53,23 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
         insurance_number: "",
         medical_history: "",
         allergies: "",
-        status: "active"
+        status: "active",
+        is_credit_eligible: "no",
+        credit_amount: 0
     });
+
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const role = user.role?.toLowerCase();
+            const designation = user.designation_group?.toLowerCase();
+            setIsAdmin(role === 'hospital_admin' || role === 'super_admin' || role === 'admin' || designation === 'admin');
+        } catch (e) {
+            setIsAdmin(false);
+        }
+    }, []);
 
     // Consent modal state
     const [showConsentModal, setShowConsentModal] = useState(false);
@@ -149,6 +164,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                 ...formData,
                 insurance_number: normalizedInsuranceNumber,
                 age,
+                credit_amount: Number(formData.credit_amount) || 0,
                 created_at: new Date().toISOString(),
                 last_visit: null,
                 next_appointment: null
@@ -406,22 +422,43 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                                     />
                                 </div>
 
-                                {/* <div>
-                                    <Label htmlFor="status">Status</Label>
-                                    <Select
-                                        value={formData.status}
-                                        onValueChange={(value) => handleSelectChange('status', value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="active">Active</SelectItem>
-                                            <SelectItem value="inactive">Inactive</SelectItem>
-                                            <SelectItem value="pending">Pending</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div> */}
+                                {/* Credit Information (Admin Only) */}
+                                {isAdmin && (
+                                    <div className="space-y-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-md">
+                                        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300">Credit Information</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label htmlFor="is_credit_eligible">Credit Eligible</Label>
+                                                <Select
+                                                    value={formData.is_credit_eligible}
+                                                    onValueChange={(value) => handleSelectChange('is_credit_eligible', value)}
+                                                >
+                                                    <SelectTrigger className="bg-white dark:bg-gray-800">
+                                                        <SelectValue placeholder="Select eligibility" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="yes">Yes</SelectItem>
+                                                        <SelectItem value="no">No</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            {formData.is_credit_eligible === "yes" && (
+                                                <div>
+                                                    <Label htmlFor="credit_amount">Credit Amount (₹)</Label>
+                                                    <Input
+                                                        id="credit_amount"
+                                                        name="credit_amount"
+                                                        type="number"
+                                                        placeholder="Enter credit limit"
+                                                        value={formData.credit_amount}
+                                                        onChange={handleChange}
+                                                        className="bg-white dark:bg-gray-800"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                         </form>

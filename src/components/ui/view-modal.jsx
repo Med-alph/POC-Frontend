@@ -95,8 +95,8 @@ export default function ViewModal({
                 </div>
             </div>
 
-            {/* Status */}
-            <div className="pt-4 border-t">
+            {/* Status & Credit */}
+            <div className="pt-4 border-t space-y-4">
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-500">Status</span>
                     <Badge className={
@@ -107,6 +107,33 @@ export default function ViewModal({
                         {data.status}
                     </Badge>
                 </div>
+
+                {(() => {
+                    try {
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+                        const isAdmin = user.role === 'hospital_admin' || user.role === 'super_admin' || user.role === 'admin';
+                        if (isAdmin) {
+                            return (
+                                <>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium text-gray-500">Credit Eligible</span>
+                                        <Badge className={data.is_credit_eligible === 'yes' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}>
+                                            {data.is_credit_eligible === 'yes' ? 'Yes' : 'No'}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium text-gray-500">Remaining Credit</span>
+                                        <div className="text-right">
+                                            <p className="text-xl font-bold text-green-600">₹{(parseFloat(data.credit_amount || 0) - parseFloat(data.current_credit_balance || 0)).toFixed(2)}</p>
+                                            <p className="text-[10px] text-gray-400">Limit: ₹{parseFloat(data.credit_amount || 0).toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        }
+                    } catch (e) { }
+                    return null;
+                })()}
             </div>
         </div>
     )

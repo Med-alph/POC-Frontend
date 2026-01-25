@@ -58,6 +58,7 @@ import LeaveManagement from "./Admin/LeaveManagement";
 import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
 
 import BillingPage from "./Billing/BillingMainPage";
+import CashierDashboard from "./Billing/CashierDashboard";
 import PatientDashboard from "./AppoinmentFlow/PatientDashboard";
 import AuthCallback from "./AppoinmentFlow/AuthCallback";
 
@@ -257,6 +258,7 @@ function HospitalApp() {
 
               {/* Billing */}
               <Route path="/billing/:appoinmentid" element={<BillingPage />} />
+              <Route path="/cashier" element={<CashierDashboard />} />
 
               {/* Redirect to dashboard for any unknown route within hospital context */}
               <Route path="*" element={<Navigate to="/" replace />} />

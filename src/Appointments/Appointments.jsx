@@ -1,20 +1,37 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useMemo } from "react"
 import { useSelector } from "react-redux"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { Badge } from "@/components/ui/badge"
 import toast, { Toaster } from "react-hot-toast"
 import {
-  Loader2, Search, ArrowLeft, CheckCircleIcon, XCircleIcon, Stethoscope, Plus, Edit as EditIcon,
+  Loader2, Search, CheckCircleIcon, XCircleIcon, Stethoscope, Plus, Edit as EditIcon,
+  ChevronDown, ChevronRight, Calendar, Filter, Download as DownloadIcon, RefreshCw, Eye, MoreHorizontal,
+  Clock, CheckCircle2, AlertCircle, Ban, Users
 } from "lucide-react"
 import { appointmentsAPI } from "../api/appointmentsapi"
 import { patientsAPI } from "../api/patientsapi"
 import { staffApi } from "../api/staffapi"
 import AddPatientDialog from "../Patients/AddPatient"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import EditPatientDialog from "../Patients/EditPatient"
+import ViewModal from "@/components/ui/view-modal"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { useHospital } from "@/contexts/HospitalContext"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function Appointments() {
   const { hospitalInfo } = useHospital()
@@ -23,20 +40,14 @@ export default function Appointments() {
 
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [viewModalOpen, setViewModalOpen] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editDoctor, setEditDoctor] = useState(null)
-  const [editDate, setEditDate] = useState("")
-  const [editSlots, setEditSlots] = useState([])
-  const [editSlotInfo, setEditSlotInfo] = useState(null) // Store full slot response for edit
-  const [loadingEditSlots, setLoadingEditSlots] = useState(false)
-  const [editSelectedSlot, setEditSelectedSlot] = useState("")
-  const [editLoading, setEditLoading] = useState(false)
-  const [editAppointmentType, setEditAppointmentType] = useState("")
-  const [editStaffList, setEditStaffList] = useState([])
 
+  // Add/Edit Modals state
+  const [open, setOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState(null)
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+
+  // Multi-step form state
   const [step, setStep] = useState(1)
   const [patients, setPatients] = useState([])
   const [patientSearch, setPatientSearch] = useState("")
@@ -46,73 +57,89 @@ export default function Appointments() {
   const [staffList, setStaffList] = useState([])
   const [selectedStaff, setSelectedStaff] = useState(null)
   const [loadingDoctors, setLoadingDoctors] = useState(false)
+
   const [selectedDate, setSelectedDate] = useState("")
   const [slots, setSlots] = useState([])
-  const [slotInfo, setSlotInfo] = useState(null) // Store full slot response including leave info
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState("")
   const [appointmentType, setAppointmentType] = useState("consultation")
   const [reason, setReason] = useState("")
   const [formLoading, setFormLoading] = useState(false)
 
+  // Edit states
+  const [editDoctor, setEditDoctor] = useState(null)
+  const [editDate, setEditDate] = useState("")
+  const [editSlots, setEditSlots] = useState([])
+  const [editSelectedSlot, setEditSelectedSlot] = useState("")
+  const [editLoading, setEditLoading] = useState(false)
+  const [loadingEditSlots, setLoadingEditSlots] = useState(false)
+
+  // Cancellation state
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [appointmentToCancel, setAppointmentToCancel] = useState(null)
   const [cancelReason, setCancelReason] = useState("")
   const [cancelLoading, setCancelLoading] = useState(false)
-  const [page, setPage] = useState(1);
-  const limit = 10;  // fixed page size
-  const [total, setTotal] = useState(0)
 
+  // Custom Filters
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
 
+  // Stats
+  const [stats, setStats] = useState({
+    total: 0,
+    booked: 0,
+    fulfilled: 0,
+    cancelled: 0,
+    pending: 0
+  })
+
+  // Grouping state
+  const [expandedDoctors, setExpandedDoctors] = useState(new Set())
 
   useEffect(() => {
     fetchAppointments()
     fetchPatients()
-  }, [])
-
-  useEffect(() => {
-    fetchAppointments()
-  }, [page])
-
+  }, [HOSPITAL_ID])
 
 
 
   async function fetchAppointments() {
+    if (!HOSPITAL_ID) return
     setLoading(true);
     try {
-      const offset = (page - 1) * limit;
       const result = await appointmentsAPI.getAll({
         hospital_id: HOSPITAL_ID,
-        limit,
-        offset,
-        orderBy: 'created_at',
+        limit: 1000,
+        orderBy: 'appointment_date',
         sort: 'DESC'
       })
-      setAppointments(Array.isArray(result.data) ? result.data : [])
-      setTotal(result.total || 0)
+      const data = Array.isArray(result.data) ? result.data : []
+      setAppointments(data)
+
+      // Calculate stats locally from the full list so they match the table 100%
+      const newStats = { total: data.length, booked: 0, pending: 0, fulfilled: 0, cancelled: 0 };
+      data.forEach(appt => {
+        const s = appt.status?.toLowerCase();
+        if (s === 'booked') newStats.booked++;
+        else if (s === 'pending') newStats.pending++;
+        else if (s === 'fulfilled' || s === 'completed') newStats.fulfilled++;
+        else if (s === 'cancelled') newStats.cancelled++;
+      });
+      setStats(newStats);
+
+      // Auto-expand doctors who have appointments
+      const doctorIds = new Set(data.map(a => a.staff_id || 'unassigned'))
+      setExpandedDoctors(doctorIds)
     } catch {
       toast.error("Failed to load appointments.");
-      setAppointments([]);
     } finally {
       setLoading(false);
     }
   }
 
-
-
-  // Helper function to check if appointment date is today or future
-  const isAppointmentTodayOrFuture = (appointmentDate) => {
-    if (!appointmentDate) return false;
-    const aptDate = new Date(appointmentDate);
-    aptDate.setHours(0, 0, 0, 0);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return aptDate >= today;
-  };
-
   async function fetchPatients() {
+    if (!HOSPITAL_ID) return
     try {
-      // Fetch all patients for search (use a large limit or fetch all)
       const result = await patientsAPI.getAll({ hospital_id: HOSPITAL_ID, limit: 1000 })
       setPatients(Array.isArray(result.data) ? result.data : [])
     } catch {
@@ -120,13 +147,8 @@ export default function Appointments() {
     }
   }
 
-
-  useEffect(() => {
-    if (open && step === 2) fetchStaff()
-  }, [open, step])
-
-
   async function fetchStaff() {
+    if (!HOSPITAL_ID) return
     setLoadingDoctors(true)
     try {
       const result = await staffApi.getAll({ hospital_id: HOSPITAL_ID, limit: 1000 })
@@ -140,90 +162,127 @@ export default function Appointments() {
     }
   }
 
-
-  async function fetchEditStaffList() {
-    try {
-      const result = await staffApi.getAll({ hospital_id: HOSPITAL_ID, limit: 1000 })
-      setEditStaffList((Array.isArray(result.data) ? result.data : []).filter(
-        doc => doc.status?.toLowerCase() === "active" && !doc.is_archived
-      ))
-    } catch {
-      setEditStaffList([])
-      toast.error("Failed to load doctors")
-    }
+  const toggleDoctor = (doctorId) => {
+    const next = new Set(expandedDoctors)
+    if (next.has(doctorId)) next.delete(doctorId)
+    else next.add(doctorId)
+    setExpandedDoctors(next)
   }
 
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter(a => {
+      const matchesSearch = !searchTerm ||
+        (a.patient_name || a.patient?.patient_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (a.appointment_code || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === 'all' || a.status?.toLowerCase() === statusFilter.toLowerCase();
+
+      return matchesSearch && matchesStatus;
+    })
+  }, [appointments, searchTerm, statusFilter])
+
+  const groupedAppointments = useMemo(() => {
+    const groups = {}
+    filteredAppointments.forEach(appt => {
+      const doctorId = appt.staff_id || 'unassigned'
+      if (!groups[doctorId]) {
+        groups[doctorId] = {
+          name: appt.staff_name || appt.staff?.staff_name || "Unassigned / General",
+          id: doctorId,
+          appointments: []
+        }
+      }
+      groups[doctorId].appointments.push(appt)
+    })
+    return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name))
+  }, [filteredAppointments])
+
+  const renderStatusBadge = (status) => {
+    const s = status?.toLowerCase()
+    if (s === "pending") return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">Pending</Badge>
+    if (s === "fulfilled" || s === "completed") return <Badge className="bg-green-100 text-green-700 border-green-200">Completed</Badge>
+    if (s === "cancelled") return <Badge className="bg-red-100 text-red-700 border-red-200">Cancelled</Badge>
+    if (s === "booked") return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Booked</Badge>
+    return <Badge variant="outline">{status}</Badge>
+  }
+
+  const renderPaymentBadge = (orders = []) => {
+    const isPaid = orders.some(o => o.status?.toLowerCase() === 'paid');
+    return isPaid ? (
+      <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px]">Paid</Badge>
+    ) : (
+      <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px]">Unpaid</Badge>
+    );
+  };
+
+  const isAppointmentTodayOrFuture = (date) => {
+    if (!date) return false;
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return d >= today;
+  }
+
+  const handleOpenChange = (v) => {
+    if (!v) resetModal()
+    else if (step === 2 && staffList.length === 0) fetchStaff()
+    setOpen(v)
+  }
 
   useEffect(() => {
-    if (isEditing && editDoctor && editDate) {
-      loadEditSlots(editDoctor.id, editDate)
-    }
-  }, [isEditing, editDoctor, editDate])
+    if (open && step === 2 && staffList.length === 0) fetchStaff()
+  }, [open, step])
 
+  const resetModal = () => {
+    setStep(1)
+    setSelectedPatient(null)
+    setSelectedStaff(null)
+    setSelectedDate("")
+    setSelectedSlot("")
+    setReason("")
+    setPatientSearch("")
+    setIsEditing(false)
+  }
 
-  async function loadEditSlots(staffId, date) {
-    if (!staffId || !date) {
-      setEditSlots([])
-      setEditSlotInfo(null)
-      return
-    }
-    setLoadingEditSlots(true)
+  const openViewModal = (appt) => {
+    setSelectedAppointment(appt)
+    setViewModalOpen(true)
+  }
+
+  const handleEditClick = (appt) => {
+    setSelectedAppointment(appt)
+    setIsEditing(true)
+    setEditDoctor({ id: appt.staff_id, staff_name: appt.staff_name })
+    setEditDate(appt.appointment_date)
+    setEditSelectedSlot(appt.appointment_time)
+    setOpen(true)
+    fetchStaff()
+  }
+
+  const handleCancelClick = (appt) => {
+    setAppointmentToCancel(appt)
+    setCancelReason("")
+    setCancelModalOpen(true)
+  }
+
+  const handleConfirmCancel = async () => {
+    if (!cancelReason.trim()) return toast.error("Please enter a reason")
+    setCancelLoading(true)
     try {
-      const response = await appointmentsAPI.getAvailableSlots(staffId, date)
-      console.log("📦 Edit Slot API Response:", response);
-      setEditSlotInfo(response); // Store full response including leave info
-      setEditSlots(response.slots || [])
-      if (response.on_leave) {
-        toast.error(`Doctor is on ${response.leave_type || ''} leave on this date`);
-      }
+      await appointmentsAPI.cancel(appointmentToCancel.id, { cancellation_reason: cancelReason, cancelled_by: user?.id })
+      toast.success("Appointment cancelled")
+      setCancelModalOpen(false)
+      fetchAppointments()
+      fetchStats()
     } catch {
-      toast.error("Failed to fetch slots")
-      setEditSlots([])
-      setEditSlotInfo(null)
+      toast.error("Failed to cancel appointment")
     } finally {
-      setLoadingEditSlots(false)
+      setCancelLoading(false)
     }
   }
 
-
-  useEffect(() => {
-    if (open && step === 3 && selectedStaff && selectedDate) loadAvailableSlots()
-  }, [open, step, selectedStaff, selectedDate])
-
-
-  async function loadAvailableSlots() {
-    if (!selectedStaff || !selectedDate) return
-    setLoadingSlots(true)
-    try {
-      const response = await appointmentsAPI.getAvailableSlots(selectedStaff.id, selectedDate)
-      console.log("📦 Admin Slot API Response:", response);
-      setSlotInfo(response); // Store full response including leave info
-      setSlots(response.slots || [])
-      if (response.on_leave) {
-        toast.error(`Dr. ${selectedStaff.staff_name} is on ${response.leave_type || ''} leave on this date`);
-      }
-    } catch {
-      toast.error("Failed to fetch slots")
-      setSlots([])
-      setSlotInfo(null);
-    } finally {
-      setLoadingSlots(false)
-    }
-  }
-
-
-  const filteredPatients = patients.filter(patient =>
-    patient.patient_name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
-    (patient.contact_info && patient.contact_info.includes(patientSearch))
-  )
-
-
-  async function handleConfirm() {
-    if (!selectedPatient) return toast.error("Select patient")
-    if (!selectedStaff) return toast.error("Select doctor")
-    if (!selectedDate) return toast.error("Select date")
-    if (!selectedSlot) return toast.error("Select time slot")
-    if (!reason.trim()) return toast.error("Enter reason")
+  const handleCreateConfirm = async () => {
     setFormLoading(true)
     try {
       await appointmentsAPI.create({
@@ -235,13 +294,12 @@ export default function Appointments() {
         appointment_type: appointmentType,
         reason: reason.trim(),
         status: "pending",
-        updated_by: user?.id,  // Use updated_by here to match backend
+        updated_by: user?.id,
       });
-
       toast.success("Appointment created!")
       setOpen(false)
-      resetModal()
       fetchAppointments()
+      fetchStats()
     } catch {
       toast.error("Failed to book appointment")
     } finally {
@@ -249,669 +307,558 @@ export default function Appointments() {
     }
   }
 
-
-  function resetModal() {
-    setStep(1)
-    setSelectedPatient(null)
-    setPatientSearch("")
-    setSelectedStaff(null)
-    setSelectedDate("")
-    setSlots([])
-    setSelectedSlot("")
-    setAppointmentType("consultation")
-    setReason("")
-  }
-
-
-  function handleOpenChange(value) {
-    setOpen(value)
-    if (!value) resetModal()
-  }
-
-
-  function openCancelModal(appointment) {
-    setAppointmentToCancel(appointment)
-    setCancelReason("")
-    setCancelModalOpen(true)
-  }
-
-
-  async function handleCancelConfirm() {
-    if (!cancelReason.trim()) {
-      toast.error("Cancellation reason required.")
-      return
-    }
-    if (!appointmentToCancel) return
-    setCancelLoading(true)
-    try {
-      await appointmentsAPI.cancel(appointmentToCancel.id, {
-        cancelled_by: user?.id,
-        reason: cancelReason.trim(),
-      })
-      toast.success("Appointment cancelled")
-      setCancelModalOpen(false)
-      setAppointmentToCancel(null)
-      fetchAppointments()
-    } catch {
-      toast.error("Failed to cancel appointment")
-    } finally {
-      setCancelLoading(false)
-    }
-  }
-
-
-  function openViewModalWithAppointment(appointment) {
-    setSelectedAppointment(appointment)
-    setViewModalOpen(true)
-    setIsEditing(false)
-    setEditDoctor({
-      id: appointment.staff_id,
-      staff_name: appointment.staff_name,
-      department: appointment.department,
-    })
-    setEditDate(appointment.appointment_date || "")
-    setEditSelectedSlot(appointment.appointment_time || "")
-    setEditAppointmentType(appointment.appointment_type || "consultation")
-    setEditSlots([])
-    fetchEditStaffList()
-  }
-
-
-  async function handleSaveEdit() {
-    if (!editDoctor || !editDoctor.id) {
-      toast.error("Please select a doctor")
-      return
-    }
-    if (!editDate) {
-      toast.error("Please select a date")
-      return
-    }
-    if (!editSelectedSlot) {
-      toast.error("Please select a time slot")
-      return
-    }
+  const handleUpdateConfirm = async () => {
     setEditLoading(true)
-    // When calling the update API, include updated_by (e.g., current user ID)
     try {
       await appointmentsAPI.update(selectedAppointment.id, {
         staff_id: editDoctor.id,
         appointment_date: editDate,
         appointment_time: editSelectedSlot,
-        appointment_type: editAppointmentType,
-        updated_by: user?.id,
-      });
-      toast.success("Appointment updated")
-      setViewModalOpen(false)
-      setIsEditing(false)
+        updated_by: user?.id
+      })
+      toast.success("Appointment updated!")
+      setOpen(false)
       fetchAppointments()
     } catch {
-      toast.error("Failed to update appointment")
+      toast.error("Failed to update")
     } finally {
       setEditLoading(false)
     }
   }
 
-
-  const formatDate = (dateString) => {
-    try {
-      return new Date(dateString).toLocaleDateString(undefined, {
-        year: "numeric", month: "long", day: "numeric",
-      })
-    } catch { return "N/A" }
-  }
-
-
-  const formatTime = (timeString) => {
-    try {
-      const [hour, minute] = timeString.split(":")
-      const date = new Date()
-      date.setHours(parseInt(hour, 10))
-      date.setMinutes(parseInt(minute, 10))
-      return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
-    } catch { return timeString || "N/A" }
-  }
-
-
-  function renderStatusBadge(status) {
-    const base = "inline-block px-2 py-1 rounded text-xs font-medium border"
-    switch ((status || "").toLowerCase()) {
-      case "pending": return <span className={`${base} bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800`}>Pending</span>
-      case "cancelled": return <span className={`${base} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800`}>Cancelled</span>
-      case "fulfilled":
-      case "completed": return <span className={`${base} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800`}>Completed</span>
-      default: return <span className={`${base} bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700`}>{status || "Unknown"}</span>
+  // Load slots effect
+  useEffect(() => {
+    if (selectedStaff && selectedDate && step === 3) {
+      const load = async () => {
+        setLoadingSlots(true)
+        try {
+          const res = await appointmentsAPI.getAvailableSlots(selectedStaff.id, selectedDate)
+          setSlots(res.slots || [])
+        } catch { toast.error("Failed to load slots") }
+        finally { setLoadingSlots(false) }
+      }
+      load()
     }
+  }, [selectedStaff, selectedDate, step])
+
+  useEffect(() => {
+    if (isEditing && editDoctor && editDate) {
+      const load = async () => {
+        setLoadingEditSlots(true)
+        try {
+          const res = await appointmentsAPI.getAvailableSlots(editDoctor.id, editDate)
+          setEditSlots(res.slots || [])
+        } catch { toast.error("Failed to load slots") }
+        finally { setLoadingEditSlots(false) }
+      }
+      load()
+    }
+  }, [isEditing, editDoctor, editDate])
+
+  const handleExport = () => {
+    const csv = [
+      ['ID', 'Patient', 'Doctor', 'Date', 'Time', 'Type', 'Status'],
+      ...filteredAppointments.map(a => [
+        a.appointment_code || a.id.slice(0, 8),
+        a.patient_name || a.patient?.patient_name,
+        a.staff_name || a.staff?.staff_name,
+        a.appointment_date,
+        a.appointment_time,
+        a.appointment_type,
+        a.status
+      ])
+    ].map(r => r.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `appointments_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
   }
 
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <main className="flex-1 p-6 lg:p-8">
+        <Toaster position="top-right" />
 
-  function renderViewModalContent() {
-    if (!selectedAppointment) return null
+        {/* Header */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Appointments</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Manage medical schedules and patient visits</p>
+          </div>
+          <Dialog open={open && !isEditing} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700 h-10">
+                <Plus className="h-4 w-4 mr-2" /> Book Appointment
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Step {step}: {step === 1 ? "Select Patient" : step === 2 ? "Select Doctor" : step === 3 ? "Select Slot" : "Final Details"}</DialogTitle>
+                <div className="flex gap-1 mt-2">
+                  {[1, 2, 3, 4].map(i => <div key={i} className={`h-1 flex-1 rounded-full ${step >= i ? "bg-blue-500" : "bg-gray-200"}`} />)}
+                </div>
+              </DialogHeader>
 
-
-    if (isEditing) {
-      return (
-        <>
-          <div className="mb-2 font-semibold text-lg">Edit Appointment</div>
-          <div className="mb-2">{renderStatusBadge(selectedAppointment.status)}</div>
-
-
-          <label className="block mb-1 font-medium">Doctor</label>
-          <select
-            className="w-full border rounded mb-4 p-2"
-            value={editDoctor?.id || ""}
-            onChange={e => {
-              const doc = editStaffList.find(d => d.id === e.target.value)
-              setEditDoctor(doc)
-              setEditSelectedSlot("")
-              setEditSlots([])
-              setEditDate(editDate)
-            }}
-          >
-            <option value="" disabled>Select doctor</option>
-            {editStaffList.map(doc => (
-              <option key={doc.id} value={doc.id}>{doc.staff_name} {doc.department ? " - " + doc.department : ""}</option>
-            ))}
-          </select>
-
-
-          <label className="block font-medium mb-1">Date</label>
-          <Input
-            type="date"
-            value={editDate}
-            min={new Date().toISOString().split("T")[0]}
-            onChange={e => {
-              setEditDate(e.target.value)
-              setEditSelectedSlot("")
-              if (editDoctor) loadEditSlots(editDoctor.id, e.target.value)
-            }}
-            className="mb-4"
-          />
-
-
-          <label className="block font-medium mb-1">Time Slot</label>
-          {loadingEditSlots ? (
-            <Loader2 className="animate-spin text-blue-500 mb-4" />
-          ) : (
-            <>
-              {editSlotInfo?.on_leave && (
-                <div className="bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-lg p-3 flex items-start gap-2 shadow-md mb-3">
-                  <XCircleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-1">
-                      ⚠️ Doctor on Leave
-                    </p>
-                    <p className="text-xs text-amber-800 dark:text-amber-200">
-                      Doctor is on {editSlotInfo.leave_type ? `${editSlotInfo.leave_type} ` : ''}leave. All slots unavailable. Please select a different date.
-                    </p>
+              {step === 1 && (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} className="pl-10 h-10" />
+                  </div>
+                  <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
+                    {patients.filter(p => !patientSearch || p.patient_name?.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
+                      <div key={p.id} onClick={() => setSelectedPatient(p)} className={`p-3 rounded-lg border cursor-pointer flex items-center justify-between ${selectedPatient?.id === p.id ? "bg-blue-50 border-blue-500" : "hover:bg-gray-50 border-gray-200"}`}>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10"><AvatarFallback>{p.patient_name?.[0]}</AvatarFallback></Avatar>
+                          <div><p className="text-sm font-medium">{p.patient_name}</p><p className="text-xs text-gray-500">{p.contact_info}</p></div>
+                        </div>
+                        {selectedPatient?.id === p.id && <CheckCircleIcon className="h-4 w-4 text-blue-600" />}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setShowAddPatientDialog(true)}><Plus className="h-4 w-4 mr-2" /> New Patient</Button>
+                    <Button className="flex-1" disabled={!selectedPatient} onClick={() => setStep(2)}>Next</Button>
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto mb-4">
-                {editSlots.map((slot, idx) => {
-                  const disabled = slot.status === "unavailable"
-                  const selected = slot.time === editSelectedSlot
-                  const isOnLeave = slot.reason === "on_leave"
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setEditSelectedSlot(slot.time)}
-                      className={`rounded-md py-2 px-2 text-sm border ${disabled
-                        ? isOnLeave
-                          ? "bg-amber-50 text-amber-700 border-amber-300 cursor-not-allowed"
-                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : selected
-                          ? "bg-blue-600 text-white border-blue-700"
-                          : "bg-white text-gray-900 hover:bg-blue-50"
-                        }`}
-                      title={isOnLeave ? `Doctor on ${editSlotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time passed" : ""}
-                    >
-                      {slot.display_time}
-                    </button>
-                  )
-                })}
-                {editSlots.length === 0 && <div className="col-span-2 text-gray-500">No slots available</div>}
-              </div>
-            </>
-          )}
 
-
-          <label className="block font-medium mb-1">Appointment Type</label>
-          <select className="w-full mb-4 rounded border p-2" value={editAppointmentType} onChange={e => setEditAppointmentType(e.target.value)}>
-            <option value="consultation">Consultation</option>
-            <option value="follow-up">Follow-up</option>
-            <option value="emergency">Emergency</option>
-            <option value="vaccination">Vaccination</option>
-            <option value="checkup">Checkup</option>
-          </select>
-
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" disabled={editLoading} onClick={() => setIsEditing(false)}>Cancel</Button>
-            <Button disabled={editLoading} onClick={handleSaveEdit}>
-              {editLoading ? <><Loader2 className="inline h-4 w-4 animate-spin mr-2" />Saving...</> : "Save"}
-            </Button>
-          </div>
-        </>
-      )
-    }
-
-
-    return (
-      <>
-        <div className="mb-2">{renderStatusBadge(selectedAppointment.status)}</div>
-        <div className="mb-2"><strong>Patient:</strong> {selectedAppointment.patient_name || "Unknown"}</div>
-        <div className="mb-2"><strong>Doctor:</strong> {selectedAppointment.staff_name || "Unknown"}</div>
-        <div className="mb-2"><strong>Date:</strong> {formatDate(selectedAppointment.appointment_date)}</div>
-        <div className="mb-2"><strong>Time:</strong> {formatTime(selectedAppointment.appointment_time)}</div>
-        <div className="mb-2"><strong>Type:</strong> {selectedAppointment.appointment_type}</div>
-        <div className="mb-2"><strong>Reason:</strong> {selectedAppointment.reason || "-"}</div>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setViewModalOpen(false)}>Close</Button>
-          {selectedAppointment.status?.toLowerCase() === "pending" && (
-            <Button variant="default" onClick={() => setIsEditing(true)}>
-              <EditIcon className="inline h-4 w-4 mr-1" /> Edit
-            </Button>
-          )}
-        </div>
-      </>
-    )
-  }
-
-
-  function renderStep() {
-    switch (step) {
-      case 1:
-        return (
-          <>
-            <label className="font-medium text-gray-700 block mb-1 flex items-center justify-between">
-              <span>Search and select patient</span>
-              <Button
-                variant="link"
-                size="sm"
-                className="text-blue-600"
-                onClick={() => setShowAddPatientDialog(true)}
-              >
-                Add New Patient
-              </Button>
-            </label>
-
-            <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
-              <Input
-                className="pl-10"
-                placeholder="Search patients by name or contact"
-                value={patientSearch}
-                onChange={e => setPatientSearch(e.target.value)}
-              />
-            </div>
-            {patientSearch && (
-              <div className="max-h-40 overflow-y-auto border rounded-md bg-white shadow-lg mb-2">
-                {filteredPatients.length ? filteredPatients.map(p => (
-                  <div
-                    key={p.id}
-                    className="p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 flex items-center gap-3"
-                    onClick={() => { setSelectedPatient(p); setPatientSearch(p.patient_name) }}
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{p.patient_name?.split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{p.patient_name}</p>
-                      <p className="text-xs text-gray-500">{p.contact_info}</p>
-                    </div>
+              {step === 2 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-2">
+                    {loadingDoctors ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500" /> :
+                      staffList.map(s => (
+                        <div key={s.id} onClick={() => setSelectedStaff(s)} className={`p-3 rounded-lg border cursor-pointer flex items-center justify-between ${selectedStaff?.id === s.id ? "bg-blue-50 border-blue-500" : "hover:bg-gray-50 border-gray-200"}`}>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10"><AvatarFallback>{s.staff_name?.[0]}</AvatarFallback></Avatar>
+                            <div><p className="text-sm font-medium">{s.staff_name}</p><p className="text-xs text-gray-500">{s.department}</p></div>
+                          </div>
+                          {selectedStaff?.id === s.id && <CheckCircleIcon className="h-4 w-4 text-blue-600" />}
+                        </div>
+                      ))}
                   </div>
-                )) : <div className="p-3 text-gray-500 text-center">No patients found</div>}
-              </div>
-            )}
-            {selectedPatient && (
-              <div className="p-3 mt-2 border rounded-md bg-blue-50 flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>{selectedPatient.patient_name?.split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
-                </Avatar>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                    <Button className="flex-1" disabled={!selectedStaff} onClick={() => setStep(3)}>Next</Button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-4">
+                  <Input type="date" value={selectedDate} min={new Date().toISOString().split('T')[0]} onChange={e => setSelectedDate(e.target.value)} className="h-10" />
+                  <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                    {loadingSlots ? <Loader2 className="h-5 w-5 animate-spin mx-auto" colSpan={3} /> :
+                      slots.map(s => (
+                        <Button key={s.time} variant={selectedSlot === s.time ? "default" : "outline"} disabled={s.status !== 'available'} size="sm" onClick={() => setSelectedSlot(s.time)}>{s.display_time}</Button>
+                      ))}
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+                    <Button className="flex-1" disabled={!selectedSlot} onClick={() => setStep(4)}>Next</Button>
+                  </div>
+                </div>
+              )}
+
+              {step === 4 && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-gray-500">Appointment Type</label>
+                    <select className="w-full p-2.5 border rounded-lg bg-gray-50 text-sm" value={appointmentType} onChange={e => setAppointmentType(e.target.value)}>
+                      <option value="consultation">Consultation</option>
+                      <option value="follow-up">Follow-up</option>
+                      <option value="emergency">Emergency</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-gray-500">Reason</label>
+                    <textarea className="w-full p-2.5 border rounded-lg bg-gray-50 text-sm min-h-[80px]" value={reason} onChange={e => setReason(e.target.value)} placeholder="Enter visit reason..." />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
+                    <Button className="flex-1" disabled={formLoading} onClick={handleCreateConfirm}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Booking"}</Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-blue-900">{selectedPatient.patient_name}</p>
-                  <p className="text-sm text-blue-700">{selectedPatient.contact_info}</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total Appointments</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.total}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedPatient(null); setPatientSearch("") }} className="ml-auto">×</Button>
+                <Users className="h-6 w-6 text-gray-400 dark:text-gray-500" />
               </div>
-            )}
-            <div className="flex justify-end">
-              <Button className="mt-4" disabled={!selectedPatient} onClick={() => setStep(2)}>Continue</Button>
             </div>
-          </>
-        )
-      case 2:
-        return (
-          <>
-            <div className="flex items-center gap-4 mb-4">
-              <Button variant="ghost" size="icon" onClick={() => setStep(1)} aria-label="Go Back">
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-              <h2 className="text-xl font-semibold">Select Doctor</h2>
-            </div>
-            {loadingDoctors ? (
-              <Loader2 className="animate-spin mx-auto text-blue-500" />
-            ) : staffList.length === 0 ? (
-              <p className="text-center text-gray-500">No doctors available</p>
-            ) : (
-              <div className="grid gap-3 mb-4 max-h-80 overflow-y-auto p-1">
-                {staffList.map(doc => (
-                  <div
-                    key={doc.id}
-                    className={`border rounded-md p-3 cursor-pointer transition-colors ${selectedStaff?.id === doc.id ? "border-blue-600 bg-blue-50" : "hover:border-blue-300"}`}
-                    onClick={() => setSelectedStaff(doc)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="font-medium text-gray-900">{doc.staff_name}</div>
-                        <div className="text-xs text-gray-600">{doc.department || "General"}</div>
-                      </div>
-                      <Button size="sm" variant={selectedStaff?.id === doc.id ? "default" : "outline"}>
-                        {selectedStaff?.id === doc.id ? "Selected" : "Select"}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex justify-end">
-              <Button disabled={!selectedStaff} onClick={() => setStep(3)}>Continue</Button>
-            </div>
-          </>
-        )
-      case 3:
-        return (
-          <>
-            <div className="flex items-center gap-4 mb-4">
-              <Button variant="ghost" size="icon" onClick={() => setStep(2)} aria-label="Go Back">
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-              <h2 className="text-xl font-semibold">Select Date & Time Slot</h2>
-            </div>
-            <Input
-              type="date"
-              value={selectedDate}
-              min={new Date().toISOString().split("T")[0]}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="mb-3"
-            />
-            <Button onClick={loadAvailableSlots} disabled={!selectedDate || loadingSlots} className="w-full mb-4">
-              {loadingSlots ? (<><Loader2 className="h-4 w-4 animate-spin mr-2 inline" />Loading Slots...</>) : "Load Available Slots"}
-            </Button>
-            {slots.length > 0 ? (
-              <>
-                {slotInfo?.on_leave && (
-                  <div className="bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-xl p-3 flex items-start gap-2 shadow-md mb-3">
-                    <XCircleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-amber-900 dark:text-amber-100 mb-1">
-                        ⚠️ Doctor on Leave
-                      </p>
-                      <p className="text-xs text-amber-800 dark:text-amber-200">
-                        Dr. {selectedStaff?.staff_name} is on {slotInfo.leave_type ? `${slotInfo.leave_type} ` : ''}leave. All slots unavailable. Please select a different date.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                  {slots.map((slot, idx) => {
-                    const isOnLeave = slot.reason === "on_leave";
-                    return (
-                      <Button
-                        key={idx}
-                        variant={selectedSlot === slot.time ? "default" : "outline"}
-                        className={`flex justify-between items-center ${slot.status === "unavailable"
-                          ? isOnLeave
-                            ? "cursor-not-allowed opacity-60 bg-amber-50 border-amber-300"
-                            : "cursor-not-allowed opacity-50 bg-red-50 border-red-300"
-                          : "hover:bg-green-50 hover:border-green-300"
-                          }`}
-                        onClick={() => slot.status !== "unavailable" && setSelectedSlot(slot.time)}
-                        disabled={slot.status === "unavailable"}
-                        title={isOnLeave ? `Doctor on ${slotInfo?.leave_type || ''} leave` : slot.reason === "booked" ? "Already booked" : slot.reason === "past" ? "Time has passed" : ""}
-                      >
-                        <span className={isOnLeave ? "text-amber-700" : ""}>{slot.display_time}</span>
-                        {slot.status === "available" ? <CheckCircleIcon className="text-green-500 w-4 h-4" /> : <XCircleIcon className={isOnLeave ? "text-amber-500 w-4 h-4" : "text-red-500 w-4 h-4"} />}
-                      </Button>
-                    );
-                  })}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Pending</p>
+                  <p className="text-2xl font-semibold text-yellow-600 dark:text-yellow-400">{stats.pending}</p>
                 </div>
-              </>
-            ) : <p>No slots available</p>}
-            <div className="flex justify-end mt-4"><Button disabled={!selectedSlot} onClick={() => setStep(4)}>Continue</Button></div>
-          </>
-        )
-      case 4:
-        return (
-          <>
-            <div className="flex items-center gap-4 mb-4">
-              <Button variant="ghost" size="icon" onClick={() => setStep(3)} aria-label="Go Back">
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-              <h2 className="text-xl font-semibold">Appointment Details</h2>
+                <Clock className="h-6 w-6 text-yellow-400 dark:text-yellow-500" />
+              </div>
             </div>
-            <select className="w-full mb-3 border p-2 rounded-md" value={appointmentType} onChange={e => setAppointmentType(e.target.value)}>
-              <option value="consultation">Consultation</option>
-              <option value="follow-up">Follow-up</option>
-              <option value="emergency">Emergency</option>
-              <option value="vaccination">Vaccination</option>
-              <option value="checkup">Checkup</option>
-            </select>
-            <textarea className="w-full mb-2 border p-2 rounded-md resize-none focus:ring-2 focus:ring-blue-500" rows={3}
-              placeholder="Please describe your reason for visit..." value={reason} onChange={e => setReason(e.target.value)} />
-            {reason.trim().length > 0 && <p className="text-xs text-gray-500 mb-3">{reason.trim().length} characters</p>}
-            <Button className="w-full" disabled={formLoading || !reason.trim()} onClick={handleConfirm}>
-              {formLoading ? (<><Loader2 className="h-4 w-4 animate-spin mr-2 inline" />Booking Appointment...</>) : "Confirm Appointment"}
-            </Button>
-          </>
-        )
-      default:
-        return null
-    }
-  }
-
-
-  return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 p-6 lg:p-8">
-      <Toaster position="top-right" />
-      <Breadcrumb items={[{ label: "Appointments" }]} />
-
-
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">Appointments</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Manage and schedule appointments</p>
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Completed</p>
+                  <p className="text-2xl font-semibold text-green-600 dark:text-green-400">{stats.fulfilled}</p>
+                </div>
+                <CheckCircle2 className="h-6 w-6 text-green-400 dark:text-green-500" />
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Cancelled</p>
+                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400">{stats.cancelled}</p>
+                </div>
+                <Ban className="h-6 w-6 text-red-400 dark:text-red-500" />
+              </div>
+            </div>
+          </div>
         </div>
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add Appointment
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Book an Appointment</DialogTitle>
-              <div className="grid grid-cols-4 gap-2 mt-4 mb-2">
-                {[1, 2, 3, 4].map(s => <div key={s} className={`h-2 rounded ${step >= s ? "bg-blue-500" : "bg-gray-300"}`} />)}
-              </div>
-              <div className="flex justify-between text-xs text-gray-600 mb-2">
-                <span>Patient</span>
-                <span className="flex items-center justify-center">Doctor</span>
-                <span>Slot</span>
-                <span>Details</span>
-              </div>
-            </DialogHeader>
-            {renderStep()}
-            <AddPatientDialog
-              open={showAddPatientDialog}
-              setOpen={setShowAddPatientDialog}
-              onAdd={async (newPatient) => {
-                console.log('handleAddPatient called with:', newPatient)
-                try {
-                  const response = await patientsAPI.create(newPatient)
-                  const createdPatient = response?.data ?? response
-                  console.log('Patient created:', createdPatient)
-                  if (!createdPatient?.id) throw new Error("Created patient data invalid")
-                  setPatients(prev => [...prev.filter(p => p.id !== createdPatient.id), createdPatient])
-                  toast.success(`Patient "${createdPatient.patient_name}" added!`)
-                  setShowAddPatientDialog(false)
-                } catch (error) {
-                  console.error("Add patient error:", error)
-                  toast.error("Failed to add patient, please try again.")
-                }
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
 
+        {/* Filters and Actions */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
+                <Input
+                  type="text"
+                  placeholder="Search by ID or Patient name..."
+                  className="pl-10 h-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-full sm:w-40 md:w-40 lg:w-48 h-10">
+                  <span className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-gray-500" />
+                    <SelectValue placeholder="All Status" />
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="fulfilled">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 overflow-x-auto">
-        {loading ? (
-          <p className="text-center text-gray-500">Loading appointments...</p>
-        ) : (
-          <Table className="min-w-[700px] md:min-w-full">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={fetchAppointments}
+                disabled={loading}
+                className="h-10 flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                className="h-10 flex items-center gap-2"
+              >
+                <DownloadIcon className="h-4 w-4" />
+                Export
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Grouped Table */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden shadow-sm">
+          <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Appointment ID</TableHead>
-                <TableHead>Patient</TableHead>
-                <TableHead>Doctor</TableHead>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+              <TableRow className="bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                <TableHead className="w-10"></TableHead>
+                <TableHead className="font-semibold text-gray-900 dark:text-white py-4">ID</TableHead>
+                <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Patient</TableHead>
+                <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Schedule</TableHead>
+                <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Payment</TableHead>
+                <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Status</TableHead>
+                <TableHead className="text-right font-semibold text-gray-900 dark:text-white py-4 w-28">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {appointments.map(a => (
-                <TableRow key={a.id}>
-                  <TableCell>
-                    <span className="font-mono text-sm font-medium">{a.appointment_code || a.id.slice(0, 8) + '...'}</span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{(a.patient?.patient_name || a.patient_name)?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{a.patient?.patient_name || a.patient_name || a.patient_id}</p>
-                        <p className="text-xs text-gray-500">{a.patient?.patient_code || a.patient_code || a.patient_id}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{(a.staff?.staff_name || a.staff_name)?.charAt(0).toUpperCase() || 'S'}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{a.staff?.staff_name || a.staff_name || a.staff_id}</p>
-                        <p className="text-xs text-gray-500">{a.staff?.staff_code || a.staff_code || a.staff_id}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{formatDate(a.appointment_date)}</span>
-                      <span className="text-sm text-gray-600">{formatTime(a.appointment_time)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{a.appointment_type}</TableCell>
-                  <TableCell><span>{a.duration} min</span></TableCell>
-                  <TableCell>{renderStatusBadge(a.status)}</TableCell>
-                  <TableCell className="flex gap-2 items-center">
-                    {isAppointmentTodayOrFuture(a.appointment_date) && (
-                      <>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openViewModalWithAppointment(a)} >
-                          View
-                        </Button>
-                        {(a.status?.toLowerCase() !== "cancelled" && a.status?.toLowerCase() !== "fulfilled" && a.status?.toLowerCase() !== "completed") && (
-                          <Button variant="destructive" size="sm" className="h-8 w-auto px-2 py-1" onClick={() => openCancelModal(a)}>
-                            Cancel
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {!isAppointmentTodayOrFuture(a.appointment_date) && (
-                      <>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openViewModalWithAppointment(a)} >
-                          View
-                        </Button>
-                        {(a.status?.toLowerCase() === "fulfilled" || a.status?.toLowerCase() === "completed") && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-auto px-2 py-1 text-blue-600 border-blue-200 hover:bg-blue-50"
-                            onClick={() => window.location.href = `/billing/${a.id}`}
-                          >
-                            Bill
-                          </Button>
-                        )}
-                      </>
-                    )}
+              {loading && appointments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-60 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500 mb-2" />
+                    <p className="text-gray-500">Loading schedule...</p>
                   </TableCell>
                 </TableRow>
+              ) : groupedAppointments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-60 text-center">
+                    <AlertCircle className="h-10 w-10 mx-auto text-gray-300 mb-2" />
+                    <p className="text-gray-500 font-medium">No appointments found.</p>
+                  </TableCell>
+                </TableRow>
+              ) : groupedAppointments.map(group => (
+                <React.Fragment key={group.id}>
+                  <TableRow className="bg-blue-50/20 dark:bg-blue-900/5 cursor-pointer hover:bg-blue-50/40 transition-colors border-y border-gray-100 dark:border-gray-800" onClick={() => toggleDoctor(group.id)}>
+                    <TableCell className="py-4">
+                      {expandedDoctors.has(group.id) ? <ChevronDown className="h-5 w-5 text-blue-600" /> : <ChevronRight className="h-5 w-5 text-gray-400" />}
+                    </TableCell>
+                    <TableCell colSpan={6} className="py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+                          <Stethoscope className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <span className="font-bold text-lg text-gray-900 dark:text-gray-100">Dr. {group.name}</span>
+                        <Badge variant="secondary" className="bg-white dark:bg-gray-800 text-xs h-6 px-3 border-none shadow-sm">{group.appointments.length} Appointments</Badge>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {expandedDoctors.has(group.id) && group.appointments.map(appt => (
+                    <TableRow key={appt.id} className="group hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-colors border-b border-gray-100 dark:border-gray-800/50">
+                      <TableCell className="py-5" />
+                      <TableCell className="py-5">
+                        <span className="font-mono text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-800">
+                          {appt.appointment_code || appt.id.slice(0, 8).toUpperCase()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-5 text-center">
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-700 shadow-md">
+                            <AvatarFallback className="text-base font-bold bg-blue-100 text-blue-700">{(appt.patient_name || appt.patient?.patient_name)?.[0] || 'P'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col text-left">
+                            <span className="text-base font-bold text-gray-900 dark:text-gray-100 mb-0.5">{appt.patient_name || appt.patient?.patient_name}</span>
+                            {appt.patient?.patient_code && <span className="text-xs text-gray-500 font-medium tracking-tight">{appt.patient.patient_code}</span>}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-5">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{new Date(appt.appointment_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          <span className="text-xs text-gray-500 flex items-center gap-1.5 font-bold"><Clock className="h-4 w-4 text-blue-500" /> {appt.appointment_time}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-5">
+                        <div className="scale-110 origin-left">
+                          {renderPaymentBadge(appt.orders)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-5">
+                        <div className="scale-110 origin-left">
+                          {renderStatusBadge(appt.status)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-5 text-right">
+                        <div className="flex justify-end gap-2 pr-2">
+                          <Button variant="ghost" size="sm" className="h-10 w-10 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full" onClick={() => openViewModal(appt)}>
+                            <Eye className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-10 w-10 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                                <MoreHorizontal className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-2xl border-gray-200">
+                              <DropdownMenuItem className="text-sm font-medium py-2.5 px-3 rounded-md cursor-pointer" onClick={() => handleEditClick(appt)}>
+                                <EditIcon className="h-4 w-4 mr-2.5 text-blue-500" /> Edit Timing
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-sm font-medium py-2.5 px-3 rounded-md cursor-pointer" onClick={() => window.location.href = `/billing/${appt.id}`} disabled={!['fulfilled', 'completed'].includes(appt.status?.toLowerCase())}>
+                                <Clock className="h-4 w-4 mr-2.5 text-green-500" /> Open Billing
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-sm font-medium py-2.5 px-3 rounded-md text-red-500 focus:text-white focus:bg-red-600 cursor-pointer" onClick={() => handleCancelClick(appt)}>
+                                <Ban className="h-4 w-4 mr-2.5" /> Cancel Visit
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
-
-
-        )}
-        <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="text-sm text-gray-600">
-              Showing {(page - 1) * limit + 1} - {Math.min(page * limit, total)} of {total} appointments
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>Previous</Button>
-              <span className="text-sm text-gray-600">Page {page} of {Math.ceil(total / limit) || 1}</span>
-              <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page * limit >= total}>Next</Button>
-            </div>
-          </div>
         </div>
 
+        {/* Create/Edit Modal */}
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {isEditing ? "Edit Appointment Details" : `Step ${step}: ${step === 1 ? "Select Patient" : step === 2 ? "Select Doctor" : step === 3 ? "Select Slot" : "Final Details"}`}
+              </DialogTitle>
+              {!isEditing && (
+                <div className="flex gap-1 mt-2">
+                  {[1, 2, 3, 4].map(i => <div key={i} className={`h-1 flex-1 rounded-full ${step >= i ? "bg-blue-500" : "bg-gray-200"}`} />)}
+                </div>
+              )}
+            </DialogHeader>
 
-      </div>
+            {isEditing ? (
+              <div className="space-y-5 py-2">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Doctor</label>
+                  <Select
+                    value={editDoctor?.id}
+                    onValueChange={(val) => setEditDoctor(staffList.find(s => s.id === val))}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Select Doctor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {staffList.map(s => <SelectItem key={s.id} value={s.id}>{s.staff_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Date</label>
+                  <Input type="date" value={editDate} min={new Date().toISOString().split('T')[0]} onChange={e => setEditDate(e.target.value)} className="h-11" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Available Slots</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {loadingEditSlots ? <div className="col-span-3 py-4 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500" /></div> :
+                      editSlots.length > 0 ? editSlots.map(s => (
+                        <Button key={s.time} variant={editSelectedSlot === s.time ? "default" : "outline"} disabled={s.status !== 'available'} size="sm" onClick={() => setEditSelectedSlot(s.time)} className="h-9">{s.display_time}</Button>
+                      )) : <p className="col-span-3 text-center text-sm text-gray-500 py-2">No slots available</p>
+                    }
+                  </div>
+                </div>
+                <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700" disabled={editLoading || !editSelectedSlot} onClick={handleUpdateConfirm}>
+                  {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+                </Button>
+              </div>
+            ) : (
+              <div>
+                {step === 1 && (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} className="pl-10 h-11" />
+                    </div>
+                    <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
+                      {patients.filter(p => !patientSearch || p.patient_name?.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
+                        <div key={p.id} onClick={() => setSelectedPatient(p)} className={`p-4 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${selectedPatient?.id === p.id ? "bg-blue-50 border-blue-500 shadow-sm" : "hover:bg-gray-50 border-gray-100"}`}>
+                          <div className="flex items-center gap-4">
+                            <Avatar className="h-10 w-10"><AvatarFallback>{p.patient_name?.[0]}</AvatarFallback></Avatar>
+                            <div><p className="text-sm font-bold text-gray-900">{p.patient_name}</p><p className="text-xs text-gray-500">{p.contact_info}</p></div>
+                          </div>
+                          {selectedPatient?.id === p.id && <CheckCircleIcon className="h-5 w-5 text-blue-600" />}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" className="flex-1 h-11" onClick={() => setShowAddPatientDialog(true)}><Plus className="h-4 w-4 mr-2" /> New Patient</Button>
+                      <Button className="flex-1 h-11" disabled={!selectedPatient} onClick={() => setStep(2)}>Next</Button>
+                    </div>
+                  </div>
+                )}
 
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto pr-2">
+                      {loadingDoctors ? <div className="py-10 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" /></div> :
+                        staffList.map(s => (
+                          <div key={s.id} onClick={() => setSelectedStaff(s)} className={`p-4 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${selectedStaff?.id === s.id ? "bg-blue-50 border-blue-500 shadow-sm" : "hover:bg-gray-50 border-gray-100"}`}>
+                            <div className="flex items-center gap-4">
+                              <Avatar className="h-10 w-10"><AvatarFallback>{s.staff_name?.[0]}</AvatarFallback></Avatar>
+                              <div><p className="text-sm font-bold text-gray-900">{s.staff_name}</p><p className="text-xs text-gray-500">{s.department}</p></div>
+                            </div>
+                            {selectedStaff?.id === s.id && <CheckCircleIcon className="h-5 w-5 text-blue-600" />}
+                          </div>
+                        ))}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" className="h-11 px-6" onClick={() => setStep(1)}>Back</Button>
+                      <Button className="flex-1 h-11" disabled={!selectedStaff} onClick={() => setStep(3)}>Next</Button>
+                    </div>
+                  </div>
+                )}
 
+                {step === 3 && (
+                  <div className="space-y-4">
+                    <Input type="date" value={selectedDate} min={new Date().toISOString().split('T')[0]} onChange={e => setSelectedDate(e.target.value)} className="h-11" />
+                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                      {loadingSlots ? <div className="col-span-3 py-10 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" /></div> :
+                        slots.length > 0 ? slots.map(s => (
+                          <Button key={s.time} variant={selectedSlot === s.time ? "default" : "outline"} disabled={s.status !== 'available'} onClick={() => setSelectedSlot(s.time)} className="h-10">{s.display_time}</Button>
+                        )) : <p className="col-span-3 text-center text-sm text-gray-500 py-10">No slots available for this date</p>
+                      }
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button variant="outline" className="h-11 px-6" onClick={() => setStep(2)}>Back</Button>
+                      <Button className="flex-1 h-11" disabled={!selectedSlot} onClick={() => setStep(4)}>Next</Button>
+                    </div>
+                  </div>
+                )}
 
-      <Dialog open={viewModalOpen} onOpenChange={() => {
-        setViewModalOpen(false)
-        setIsEditing(false)
-      }}>
-        <DialogContent className="max-w-md max-h-[600px] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Appointment Details</DialogTitle>
-          </DialogHeader>
-          {renderViewModalContent()}
-        </DialogContent>
-      </Dialog>
+                {step === 4 && (
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-gray-500 tracking-wider">Type</label>
+                      <select className="w-full h-11 border rounded-lg bg-gray-50 text-sm px-3" value={appointmentType} onChange={e => setAppointmentType(e.target.value)}>
+                        <option value="consultation">Consultation</option>
+                        <option value="follow-up">Follow-up</option>
+                        <option value="emergency">Emergency</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-gray-500 tracking-wider">Reason</label>
+                      <textarea className="w-full p-3 border rounded-lg bg-gray-50 text-sm min-h-[100px] resize-none" value={reason} onChange={e => setReason(e.target.value)} placeholder="Please enter the reason for this visit..." />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button variant="outline" className="h-11 px-6" onClick={() => setStep(3)}>Back</Button>
+                      <Button className="flex-1 h-11 bg-blue-600 hover:bg-blue-700" disabled={formLoading} onClick={handleCreateConfirm}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Booking"}</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
-      {cancelModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cancel-dialog-title"
-          className="fixed inset-0 flex items-center justify-center z-50"
-        >
-          <div className="fixed inset-0 bg-black opacity-50" onClick={() => !cancelLoading && setCancelModalOpen(false)} />
-          <div className="bg-white dark:bg-gray-800 rounded-md shadow-lg max-w-sm w-full z-60 p-6 relative border border-gray-200 dark:border-gray-700">
-            <h3 id="cancel-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Confirm Cancellation</h3>
-            <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">Please provide a reason for cancellation:</p>
-            <Input type="text" value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="Reason for cancellation" disabled={cancelLoading} className="mb-4" />
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" disabled={cancelLoading} onClick={() => setCancelModalOpen(false)} className="h-9 px-4 text-sm font-medium rounded-md">Close</Button>
-              <Button variant="destructive" disabled={cancelLoading || !cancelReason.trim()} onClick={handleCancelConfirm} className="h-9 px-4 text-sm font-medium rounded-md">
-                {cancelLoading ? <><Loader2 className="inline h-4 w-4 animate-spin mr-2" />Cancelling...</> : "Confirm Cancel"}
-              </Button>
+        {/* Cancellation Modal */}
+        <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Cancel Appointment</DialogTitle></DialogHeader>
+            <div className="space-y-5 pt-4">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-700 dark:text-red-400 font-medium">Are you sure you want to cancel the visit for <strong>{appointmentToCancel?.patient_name || "this patient"}</strong>?</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-gray-500 tracking-wider">Cancellation Reason</label>
+                <textarea className="w-full p-4 border rounded-xl text-sm min-h-[120px] bg-gray-50/50 resize-none focus:ring-2 focus:ring-blue-500" placeholder="Please specify the reason for cancellation..." value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" className="h-11 px-6" onClick={() => setCancelModalOpen(false)}>Go Back</Button>
+                <Button variant="destructive" className="h-11 px-6" disabled={cancelLoading} onClick={handleConfirmCancel}>{cancelLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Cancellation"}</Button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Patient Register Dialog */}
+        <AddPatientDialog open={showAddPatientDialog} setOpen={setShowAddPatientDialog} onComplete={fetchPatients} />
+
+        {/* Appointment View Modal */}
+        <ViewModal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} data={selectedAppointment} type="appointment" />
+      </main>
     </div>
   )
 }

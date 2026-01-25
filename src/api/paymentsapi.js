@@ -31,25 +31,50 @@ const apiRequest = async (endpoint, options = {}) => {
 };
 
 const paymentsAPI = {
-  // Create a Razorpay order
-  createOrder: async ({ amount, receipt, patientId }) => {
-  return apiRequest('/payments/create-order', {
-    method: 'POST',
-    body: JSON.stringify({ amount, receipt, patientId }),
-  });
-},
+  // Initiate an order (Digital, Cash, or Credit)
+  initiateOrder: async (orderData) => {
+    return apiRequest('/payments/orders/initiate', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  },
 
+  // Settle a cash order manually
+  settleManually: async (orderId, staffId) => {
+    return apiRequest(`/payments/orders/${orderId}/settle-manually`, {
+      method: 'POST',
+      body: JSON.stringify({ staffId }),
+    });
+  },
 
-  // Verify payment signature and complete the payment process
+  // Fetch all UNPAID orders (Accounts Receivable)
+  getAccountsReceivable: async (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    const endpoint = queryParams ? `/payments/orders/accounts-receivable?${queryParams}` : '/payments/orders/accounts-receivable';
+    return apiRequest(endpoint);
+  },
+
+  // Legacy Razorpay order creation (Backwards compatibility)
+  createOrder: async ({ amount, receipt, patientId, appointmentId }) => {
+    return apiRequest('/payments/orders/initiate', {
+      method: 'POST',
+      body: JSON.stringify({
+        amount,
+        receipt,
+        patientId,
+        appointmentId,
+        paymentModeCategory: 'digital'
+      }),
+    });
+  },
+
+  // Verify payment signature
   verifyPayment: async ({ orderId, paymentId, signature, paymentMethod }) => {
-  return apiRequest('/payments/verify', {
-    method: 'POST',
-    body: JSON.stringify({ orderId, paymentId, signature, paymentMethod }),
-  });
-},
-
-
-  // Additional payment related APIs can be added here, for example webhook logs retrieval or refunds
+    return apiRequest('/payments/verify', {
+      method: 'POST',
+      body: JSON.stringify({ orderId, paymentId, signature, paymentMethod }),
+    });
+  },
 };
 
 export default paymentsAPI;
