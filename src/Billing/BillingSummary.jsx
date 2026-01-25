@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Receipt, Calculator } from "lucide-react";
 
-export default function BillingSummary({ subtotal, tax, totalToday, pendingTotal, onPayNow, loading }) {
+export default function BillingSummary({ subtotal, tax, totalToday, pendingTotal, onPayNow, loading, showPayButton = true }) {
   return (
     <Card className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
       <CardContent className="p-6">
@@ -31,23 +31,25 @@ export default function BillingSummary({ subtotal, tax, totalToday, pendingTotal
               </div>
             </div>
           </div>
-          <div className="w-full lg:w-auto">
-            <Button
-              onClick={onPayNow}
-              disabled={loading}
-              className="w-full lg:w-auto bg-blue-600 hover:bg-blue-700 text-white h-12 px-6 text-base font-semibold rounded-md transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <Receipt className="h-5 w-5" />
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline" />
-                  Processing...
-                </>
-              ) : (
-                "Pay Now"
-              )}
-            </Button>
-          </div>
+          {showPayButton && (
+            <div className="w-full lg:w-auto">
+              <Button
+                onClick={onPayNow}
+                disabled={loading}
+                className="w-full lg:w-auto bg-blue-600 hover:bg-blue-700 text-white h-12 px-6 text-base font-semibold rounded-md transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Receipt className="h-5 w-5" />
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline" />
+                    Processing...
+                  </>
+                ) : (
+                  "Pay Now"
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

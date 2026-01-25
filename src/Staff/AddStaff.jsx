@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
-import { Clock, AlertCircle, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Trash2, Plus, Clock, AlertCircle, Loader2 } from "lucide-react";
 
 import designationapi from "@/api/designationapi";
 import staffApi from "@/api/staffapi";
@@ -14,28 +15,25 @@ import { PHONE_REGEX, SUPPORTED_COUNTRY_CODES } from "@/constants/Constant";
 
 
 const WEEKDAYS = [
-  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
 ];
+const WEEKEND = ["Saturday", "Sunday"];
 
 // Utility to convert string like "monday" or "MONDAY" to "Monday"
 const toTitleCase = (str) =>
   str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
-// Normalize time string to "HH:MM-HH:MM" format
-const normalizeTime = (timeStr) => {
-  if (!timeStr) return "";
-  const parts = timeStr.split("-");
-  if (parts.length !== 2) return timeStr; // fallback, do not break
-  const pad = (str) => {
-    if (str.includes(":")) return str;
-    // Pad single digit hour with zero and add ":00"
-    const trimmed = str.trim();
-    if (/^\d{1,2}$/.test(trimmed)) {
-      return (trimmed.length === 1 ? "0" + trimmed : trimmed) + ":00";
-    }
-    return str; // fallback
-  };
-  return `${pad(parts[0])}-${pad(parts[1])}`;
+const ALL_DAYS = [...WEEKDAYS, ...WEEKEND];
+
+const createDefaultAvailability = () => {
+  const avail = {};
+  ALL_DAYS.forEach(day => {
+    avail[day] = {
+      active: false,
+      sessions: [{ start: "", end: "" }]
+    };
+  });
+  return avail;
 };
 
 export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, editStaff }) {
@@ -50,7 +48,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     experience: "",
     designation: "",
     role_id: "", // Add role assignment
-    availability: {},
+    availability: createDefaultAvailability(),
     is_archived: false,
     status: "Active",
   });
@@ -77,16 +75,28 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
   useEffect(() => {
     if (open && editStaff) {
       // Parse & normalize availability keys and time strings
-      let availabilityObj = {};
+      const newAvail = createDefaultAvailability();
+
       if (editStaff.availability) {
         try {
           const rawAvail = JSON.parse(editStaff.availability);
           Object.entries(rawAvail).forEach(([key, value]) => {
             const titleKey = toTitleCase(key);
-            availabilityObj[titleKey] = normalizeTime(value);
+            if (newAvail[titleKey]) {
+              const ranges = Array.isArray(value) ? value : [value];
+              const sessions = ranges.map(range => {
+                const [start, end] = range.split('-');
+                return { start: start || "", end: end || "" };
+              });
+
+              newAvail[titleKey] = {
+                active: true,
+                sessions: sessions.length > 0 ? sessions : [{ start: "", end: "" }]
+              };
+            }
           });
         } catch (e) {
-          availabilityObj = {};
+          console.error("Error parsing availability:", e);
         }
       }
 
@@ -105,7 +115,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         experience: editStaff.experience != null ? editStaff.experience.toString() : "",
         designation: editStaff.designation_id ? editStaff.designation_id.toString() : "",
         role_id: roleId,
-        availability: availabilityObj,
+        availability: newAvail,
         is_archived: editStaff.is_archived || false,
         status:
           editStaff.status?.charAt(0).toUpperCase() + editStaff.status?.slice(1) || "Active",
@@ -125,7 +135,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         experience: "",
         designation: "",
         role_id: "none",
-        availability: {},
+        availability: createDefaultAvailability(),
         is_archived: false,
         status: "Active",
       });
@@ -134,32 +144,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     }
   }, [open, editStaff]);
 
-  const validateTimeFormat = (time) => /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/.test(time);
-
-  const validateTimeSlot = (slot) => {
-    if (!slot || slot.trim() === "") return { isValid: true, error: null };
-    const trimmedSlot = slot.trim();
-    if (!trimmedSlot.includes("-"))
-      return { isValid: false, error: "Use format HH:MM-HH:MM (e.g., 09:00-14:00)" };
-    const [startTime, endTime] = trimmedSlot.split("-").map((t) => t.trim());
-    if (!validateTimeFormat(startTime))
-      return {
-        isValid: false,
-        error: `Invalid start time: ${startTime}. Use 24hr format (e.g., 09:00)`,
-      };
-    if (!validateTimeFormat(endTime))
-      return {
-        isValid: false,
-        error: `Invalid end time: ${endTime}. Use 24hr format (e.g., 14:00)`,
-      };
-    const startMinutes = parseInt(startTime.split(":")[0]) * 60 + parseInt(startTime.split(":")[1]);
-    const endMinutes = parseInt(endTime.split(":")[0]) * 60 + parseInt(endTime.split(":")[1]);
-    if (endMinutes <= startMinutes) return { isValid: false, error: "End time must be after start time" };
-    return { isValid: true, error: null };
-  };
-
-  const ensureTimeIn24HourFormat = (timeSlot) => (!timeSlot || timeSlot.trim() === "" ? "" : timeSlot.trim());
-
+  /* Form Handlers */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -169,51 +154,105 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
 
   const handleDesignationChange = (value) => setFormData((prev) => ({ ...prev, designation: value }));
 
-  const handleAvailabilityChange = (day, slot) => {
-    const validation = validateTimeSlot(slot);
-    setAvailabilityErrors((prev) => ({ ...prev, [day]: validation.error }));
+  /* Availability Handlers */
+
+  const handleDayToggle = (day, checked) => {
     setFormData((prev) => ({
       ...prev,
-      availability: { ...prev.availability, [day]: slot },
+      availability: {
+        ...prev.availability,
+        [day]: { ...prev.availability[day], active: checked },
+      },
+    }));
+    // Clear error for this day if turned off
+    if (!checked) {
+      setAvailabilityErrors(prev => {
+        const newErrs = { ...prev };
+        delete newErrs[day];
+        return newErrs;
+      });
+    }
+  };
+
+  const handleSessionChange = (day, index, field, value) => {
+    setFormData((prev) => {
+      const currentDay = prev.availability[day];
+      const newSessions = [...currentDay.sessions];
+      newSessions[index] = { ...newSessions[index], [field]: value };
+      return {
+        ...prev,
+        availability: {
+          ...prev.availability,
+          [day]: { ...currentDay, sessions: newSessions },
+        },
+      };
+    });
+  };
+
+  const addSession = (day) => {
+    setFormData((prev) => ({
+      ...prev,
+      availability: {
+        ...prev.availability,
+        [day]: {
+          ...prev.availability[day],
+          sessions: [...prev.availability[day].sessions, { start: "", end: "" }],
+        },
+      },
     }));
   };
 
-  const copyToWeekdays = (sourceDay) => {
-    const sourceTime = formData.availability[sourceDay];
-    if (!sourceTime) return toast.error("Please enter a time slot first");
-    const validation = validateTimeSlot(sourceTime);
-    if (!validation.isValid) return toast.error("Please fix the time format before copying");
-    const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-    const newAvailability = { ...formData.availability };
-    weekdays.forEach((day) => {
-      newAvailability[day] = sourceTime;
+  const removeSession = (day, index) => {
+    setFormData((prev) => {
+      const currentDay = prev.availability[day];
+      if (currentDay.sessions.length <= 1) return prev;
+      const newSessions = currentDay.sessions.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        availability: {
+          ...prev.availability,
+          [day]: { ...currentDay, sessions: newSessions },
+        },
+      };
     });
-    setFormData((prev) => ({ ...prev, availability: newAvailability }));
-    const newErrors = { ...availabilityErrors };
-    weekdays.forEach((day) => {
-      delete newErrors[day];
-    });
-    setAvailabilityErrors(newErrors);
-    toast.success("Time copied to all weekdays");
   };
 
-  const copyToWeekend = (sourceDay) => {
-    const sourceTime = formData.availability[sourceDay];
-    if (!sourceTime) return toast.error("Please enter a time slot first");
-    const validation = validateTimeSlot(sourceTime);
-    if (!validation.isValid) return toast.error("Please fix the time format before copying");
-    const weekend = ["Saturday", "Sunday"];
-    const newAvailability = { ...formData.availability };
-    weekend.forEach((day) => {
-      newAvailability[day] = sourceTime;
+  const copyToOtherDays = (sourceDay, targetDays) => {
+    const sourceState = formData.availability[sourceDay];
+    if (!sourceState.active) {
+      return toast.error(`Please enable ${sourceDay} first`);
+    }
+
+    // Validate source sessions before copying
+    const errors = [];
+    sourceState.sessions.forEach((session, idx) => {
+      if (!session.start || !session.end) errors.push(`Session ${idx + 1} incomplete`);
+      if (session.start && session.end && session.start >= session.end) errors.push(`Session ${idx + 1} invalid time`);
     });
-    setFormData((prev) => ({ ...prev, availability: newAvailability }));
-    const newErrors = { ...availabilityErrors };
-    weekend.forEach((day) => {
-      delete newErrors[day];
+
+    if (errors.length > 0) {
+      return toast.error("Please fix errors in source day before copying");
+    }
+
+    setFormData((prev) => {
+      const newAvail = { ...prev.availability };
+      targetDays.forEach((day) => {
+        newAvail[day] = {
+          active: true,
+          sessions: JSON.parse(JSON.stringify(sourceState.sessions)) // Deep copy
+        };
+      });
+      return { ...prev, availability: newAvail };
     });
-    setAvailabilityErrors(newErrors);
-    toast.success("Time copied to weekend");
+
+    // Clear errors for targets
+    setAvailabilityErrors(prev => {
+      const newErrs = { ...prev };
+      targetDays.forEach(day => delete newErrs[day]);
+      return newErrs;
+    });
+
+    toast.success("Schedule copied successfully");
   };
 
   const validateForm = () => {
@@ -256,14 +295,22 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
 
     let hasAvailability = false;
     const availabilityValidationErrors = {};
-    WEEKDAYS.forEach((day) => {
-      const slot = formData.availability[day];
-      if (slot && slot.trim() !== "") {
-        hasAvailability = true;
-        const validation = validateTimeSlot(slot);
-        if (!validation.isValid) {
-          availabilityValidationErrors[day] = validation.error;
-        }
+
+    ALL_DAYS.forEach((day) => {
+      const { active, sessions } = formData.availability[day];
+      if (active) {
+        let dayHasValidSession = false;
+        sessions.forEach((session, idx) => {
+          if (!session.start || !session.end) {
+            availabilityValidationErrors[`${day}_${idx}`] = "Incomplete time range";
+          } else if (session.start >= session.end) {
+            availabilityValidationErrors[`${day}_${idx}`] = "End time must be after start time";
+          } else {
+            dayHasValidSession = true;
+          }
+        });
+
+        if (dayHasValidSession) hasAvailability = true;
       }
     });
 
@@ -307,11 +354,17 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         return;
       }
 
-      const availabilityObject = {};
-      WEEKDAYS.forEach((day) => {
-        const slot = formData.availability[day];
-        if (slot && slot.trim() !== "") {
-          availabilityObject[day] = ensureTimeIn24HourFormat(slot);
+      const availabilityMap = {};
+      ALL_DAYS.forEach((day) => {
+        const { active, sessions } = formData.availability[day];
+        if (active) {
+          const validRanges = sessions
+            .filter(s => s.start && s.end && s.start < s.end)
+            .map(s => `${s.start}-${s.end}`);
+
+          if (validRanges.length > 0) {
+            availabilityMap[day] = validRanges;
+          }
         }
       });
 
@@ -325,7 +378,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         email: formData.email.trim() || null,
         ...(editStaff ? (formData.password ? { password: formData.password } : {}) : { password: formData.password }),
         experience: formData.experience ? Number(formData.experience) : 0,
-        availability: JSON.stringify(availabilityObject),
+        availability: JSON.stringify(availabilityMap),
         is_archived: false,
         status: formData.status?.toLowerCase() || "active",
       };
@@ -524,118 +577,80 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                 <h3 className="font-semibold text-sm text-gray-700">
                   Weekly Availability <span className="text-red-500">*</span>
                 </h3>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Clock className="h-3 w-3" />
-                  <span>24-hour format</span>
-                </div>
               </div>
+
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div className="text-xs text-blue-800">
-                    <p className="font-medium mb-1">Time Format Instructions:</p>
-                    <ul className="list-disc list-inside space-y-0.5 ml-2">
-                      <li>
-                        Use 24-hour format: <code className="bg-blue-100 px-1 rounded">09:00-14:00</code>
-                      </li>
-                      <li>Start and end times must be HH:MM (e.g., 09:00, not 9:00)</li>
-                      <li>End time must be after start time</li>
-                      <li>Leave blank for days off</li>
-                    </ul>
+                    Using 24-hour format. Enable days to add time slots.
                   </div>
                 </div>
                 {formErrors.availability && <p className="text-xs text-red-500 mt-2 font-medium">{formErrors.availability}</p>}
               </div>
 
-              {/* Weekdays */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-sm text-gray-700">Weekdays</p>
-                  {formData.availability["Monday"] && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToWeekdays("Monday")}
-                      className="text-xs h-7"
-                    >
-                      Copy Monday to All Weekdays
-                    </Button>
-                  )}
-                </div>
-                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day) => (
-                  <div key={day} className="space-y-1">
-                    <div className="flex gap-2 items-center">
-                      <span className="text-sm font-medium text-gray-600 min-w-[100px]">{day}:</span>
-                      <Input
-                        type="text"
-                        placeholder="09:00-14:00"
-                        value={formData.availability[day] || ""}
-                        onChange={(e) => handleAvailabilityChange(day, e.target.value)}
-                        className={`flex-1 ${availabilityErrors[day] ? "border-red-500" : ""}`}
-                      />
-                    </div>
-                    {availabilityErrors[day] && (
-                      <p className="text-xs text-red-500 ml-[108px]">{availabilityErrors[day]}</p>
+              {/* Render Day Rows */}
+              <div className="space-y-4">
+                {/* Weekdays Group */}
+                <div className="border rounded-md p-3 space-y-3">
+                  <div className="flex items-center justify-between border-b pb-2 mb-2">
+                    <span className="font-medium text-sm">Weekdays</span>
+                    {formData.availability["Monday"].active && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-6 text-blue-600 hover:text-blue-800"
+                        onClick={() => copyToOtherDays("Monday", ["Tuesday", "Wednesday", "Thursday", "Friday"])}
+                      >
+                        Copy Mon to All Weekdays
+                      </Button>
                     )}
                   </div>
-                ))}
-              </div>
-
-              {/* Weekend */}
-              <div className="space-y-2 mt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-sm text-gray-700">Weekend</p>
-                  {formData.availability["Saturday"] && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToWeekend("Saturday")}
-                      className="text-xs h-7"
-                    >
-                      Copy Saturday to Sunday
-                    </Button>
-                  )}
+                  {WEEKDAYS.map(day => (
+                    <DayRow
+                      key={day}
+                      day={day}
+                      data={formData.availability[day]}
+                      errors={availabilityErrors}
+                      onToggle={handleDayToggle}
+                      onSessionChange={handleSessionChange}
+                      onAddSession={addSession}
+                      onRemoveSession={removeSession}
+                    />
+                  ))}
                 </div>
-                {["Saturday", "Sunday"].map((day) => (
-                  <div key={day} className="space-y-1">
-                    <div className="flex gap-2 items-center">
-                      <span className="text-sm font-medium text-gray-600 min-w-[100px]">{day}:</span>
-                      <Input
-                        type="text"
-                        placeholder="09:00-18:00"
-                        value={formData.availability[day] || ""}
-                        onChange={(e) => handleAvailabilityChange(day, e.target.value)}
-                        className={`flex-1 ${availabilityErrors[day] ? "border-red-500" : ""}`}
-                      />
-                    </div>
-                    {availabilityErrors[day] && (
-                      <p className="text-xs text-red-500 ml-[108px]">{availabilityErrors[day]}</p>
+
+                {/* Weekend Group */}
+                <div className="border rounded-md p-3 space-y-3">
+                  <div className="flex items-center justify-between border-b pb-2 mb-2">
+                    <span className="font-medium text-sm">Weekend</span>
+                    {formData.availability["Saturday"].active && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-6 text-blue-600 hover:text-blue-800"
+                        onClick={() => copyToOtherDays("Saturday", ["Sunday"])}
+                      >
+                        Copy Sat to Sun
+                      </Button>
                     )}
                   </div>
-                ))}
+                  {WEEKEND.map(day => (
+                    <DayRow
+                      key={day}
+                      day={day}
+                      data={formData.availability[day]}
+                      errors={availabilityErrors}
+                      onToggle={handleDayToggle}
+                      onSessionChange={handleSessionChange}
+                      onAddSession={addSession}
+                      onRemoveSession={removeSession}
+                    />
+                  ))}
+                </div>
               </div>
-
-              {/* Preview */}
-              {Object.keys(formData.availability).some((day) =>
-                formData.availability[day]?.trim()
-              ) && (
-                  <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                    <p className="text-xs font-medium text-gray-700 mb-2">Availability Preview:</p>
-                    <pre className="text-xs text-gray-600 overflow-x-auto">
-                      {JSON.stringify(
-                        Object.fromEntries(
-                          Object.entries(formData.availability)
-                            .filter(([_, value]) => value?.trim())
-                            .map(([day, value]) => [day, value.trim()])
-                        ),
-                        null,
-                        2
-                      )}
-                    </pre>
-                  </div>
-                )}
             </div>
           </form>
         </div>
@@ -659,5 +674,98 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Process component for Day Row to keep main component clean
+function DayRow({ day, data, errors, onToggle, onSessionChange, onAddSession, onRemoveSession }) {
+  const { active, sessions } = data;
+
+  return (
+    <div className={`p-4 rounded-xl border transition-all duration-200 w-full ${active ? 'bg-blue-50/50 border-blue-100 shadow-sm' : 'bg-transparent border-transparent hover:bg-gray-50'}`}>
+      <div className="flex flex-col sm:flex-row gap-4 w-full">
+        {/* Checkbox and Label */}
+        <div className="flex items-center gap-3 pt-1 sm:w-[130px] shrink-0">
+          <Checkbox
+            id={`day-${day}`}
+            checked={active}
+            onCheckedChange={(checked) => onToggle(day, checked)}
+            className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 mt-0.5"
+          />
+          <label
+            htmlFor={`day-${day}`}
+            className={`text-sm font-medium cursor-pointer select-none ${active ? 'text-gray-900' : 'text-gray-500'}`}
+          >
+            {day}
+          </label>
+        </div>
+
+        {/* Sessions */}
+        <div className="flex-1 min-w-0 w-full">
+          {active ? (
+            <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-200 w-full">
+              {sessions.map((session, index) => {
+                const errorKey = `${day}_${index}`;
+                const hasError = errors[errorKey];
+
+                return (
+                  <div key={index} className="w-full">
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="relative flex-1 min-w-0">
+                        <Input
+                          type="time"
+                          value={session.start}
+                          onChange={(e) => onSessionChange(day, index, 'start', e.target.value)}
+                          className={`w-full h-9 bg-white text-sm transition-colors ${hasError ? 'border-red-500 focus-visible:ring-red-200' : 'focus-visible:ring-blue-200'}`}
+                        />
+                      </div>
+                      <span className="text-gray-400 text-xs font-medium uppercase px-1 shrink-0">to</span>
+                      <div className="relative flex-1 min-w-0">
+                        <Input
+                          type="time"
+                          value={session.end}
+                          onChange={(e) => onSessionChange(day, index, 'end', e.target.value)}
+                          className={`w-full h-9 bg-white text-sm transition-colors ${hasError ? 'border-red-500 focus-visible:ring-red-200' : 'focus-visible:ring-blue-200'}`}
+                        />
+                      </div>
+
+                      {/* Delete Button Container - Fixed Width */}
+                      <div className="w-8 flex justify-center shrink-0">
+                        {sessions.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                            onClick={() => onRemoveSession(day, index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {hasError && <p className="text-xs text-red-500 pl-1 mt-1">{hasError}</p>}
+                  </div>
+                );
+              })}
+
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onAddSession(day)}
+                  className="text-xs h-8 px-3 border-dashed text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                >
+                  <Plus className="h-3 w-3 mr-1.5" /> Add Session
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="pt-1.5 text-sm text-gray-400 italic font-light">Unavailable</div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

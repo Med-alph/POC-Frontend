@@ -81,6 +81,7 @@ import EmailTemplateManagement from "./components/email-templates/EmailTemplateM
 // Footer Component
 import Footer from "./components/Footer";
 import TenantAdminApp from "./TenantAdmin/TenantAdminApp";
+import HospitalAdminSettings from "./Settings/HospitalAdminSettings";
 
 function HospitalApp() {
   const location = useLocation();
@@ -176,6 +177,14 @@ function HospitalApp() {
                 element={
                   <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
                     <EmailTemplateManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hospital/settings"
+                element={
+                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                    <HospitalAdminSettings />
                   </ProtectedRoute>
                 }
               />

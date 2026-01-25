@@ -12,6 +12,8 @@ import { PlusCircle, Edit, Trash2, Copy, Link as LinkIcon, ExternalLink, AlertTr
 import hospitalsapi from "../../api/hospitalsapi";
 import toast from "react-hot-toast";
 import AddHospitalDialog from "./AddHospitalDialog";
+import HospitalSettings from "./HospitalSettings";
+import { Settings as SettingsIcon, ArrowLeft } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
@@ -25,6 +27,7 @@ export default function HospitalListTable() {
   const [deleteHospital, setDeleteHospital] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showSettingsFor, setShowSettingsFor] = useState(null);
 
   const fetchHospitals = async () => {
     setLoading(true);
@@ -307,6 +310,24 @@ export default function HospitalListTable() {
     </div>
   );
 
+  if (showSettingsFor) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-4">
+        <Button
+          variant="ghost"
+          onClick={() => setShowSettingsFor(null)}
+          className="flex items-center text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Hospital List
+        </Button>
+        <HospitalSettings
+          hospitalId={showSettingsFor.id}
+          hospitalName={showSettingsFor.name}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6 space-x-4 flex-wrap">
@@ -452,6 +473,15 @@ export default function HospitalListTable() {
                     </div>
                   </TableCell>
                   <TableCell className="px-6 py-4 text-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSettingsFor(hospital)}
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      aria-label={`Settings for ${hospital.name}`}
+                    >
+                      <SettingsIcon size={16} />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

@@ -10,9 +10,11 @@ import PaymentTab from "./PaymentTab";
 import paymentsAPI from "../api/paymentsapi";
 import appointmentsAPI from "../api/appointmentsapi";
 import toast, { Toaster } from "react-hot-toast"
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { useHospital } from "../contexts/HospitalContext";
 
 export default function BillingPage() {
+  const { hospitalInfo } = useHospital();
   const { appoinmentid } = useParams();
   const [totalToday, setTotalToday] = useState(0);
   const [orderCreated, setOrderCreated] = useState(false);
@@ -125,6 +127,12 @@ export default function BillingPage() {
     }
   };
 
+  // Determine if payment is enabled from appointment details (priority) or global hospital context
+  // Use loose equality check to handle string "true" if API returns that, though boolean is expected
+  const isPaymentEnabled = appointment?.hospital?.is_payment_enabled !== undefined
+    ? appointment.hospital.is_payment_enabled
+    : (hospitalInfo?.is_payment_enabled ?? false);
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <main className="flex-1 p-6 lg:p-8">
@@ -176,7 +184,14 @@ export default function BillingPage() {
                   pendingTotal={pendingPayments.reduce((sum, a) => sum + a.pendingAmount, 0)}
                   onPayNow={handlePayNow}
                   loading={loading}
+                  showPayButton={isPaymentEnabled}
                 />
+                {!isPaymentEnabled && (
+                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-md flex items-center gap-3 text-amber-800">
+                    <AlertCircle className="h-5 w-5" />
+                    <p className="text-sm font-medium">Online payments are currently disabled for this hospital. Please pay at the reception.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="payment" className="mt-6">
@@ -184,6 +199,7 @@ export default function BillingPage() {
                   amount={amountToPay}
                   orderId={razorpayOrderId}
                   patient={patient}
+                  isPaymentEnabled={isPaymentEnabled}
                   onPaymentSuccess={() => {
                     toast.success("Payment success!");
                   }}

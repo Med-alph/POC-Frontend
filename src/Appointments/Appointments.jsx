@@ -129,7 +129,7 @@ export default function Appointments() {
   async function fetchStaff() {
     setLoadingDoctors(true)
     try {
-      const result = await staffApi.getAll({ hospital_id: HOSPITAL_ID })
+      const result = await staffApi.getAll({ hospital_id: HOSPITAL_ID, limit: 1000 })
       const activeStaff = (Array.isArray(result.data) ? result.data : []).filter(
         doc => doc.status?.toLowerCase() === "active" && !doc.is_archived)
       setStaffList(activeStaff)
@@ -143,7 +143,7 @@ export default function Appointments() {
 
   async function fetchEditStaffList() {
     try {
-      const result = await staffApi.getAll({ hospital_id: HOSPITAL_ID })
+      const result = await staffApi.getAll({ hospital_id: HOSPITAL_ID, limit: 1000 })
       setEditStaffList((Array.isArray(result.data) ? result.data : []).filter(
         doc => doc.status?.toLowerCase() === "active" && !doc.is_archived
       ))
@@ -596,7 +596,7 @@ export default function Appointments() {
             ) : staffList.length === 0 ? (
               <p className="text-center text-gray-500">No doctors available</p>
             ) : (
-              <div className="grid gap-3 mb-4">
+              <div className="grid gap-3 mb-4 max-h-80 overflow-y-auto p-1">
                 {staffList.map(doc => (
                   <div
                     key={doc.id}
@@ -731,7 +731,7 @@ export default function Appointments() {
               Add Appointment
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Book an Appointment</DialogTitle>
               <div className="grid grid-cols-4 gap-2 mt-4 mb-2">

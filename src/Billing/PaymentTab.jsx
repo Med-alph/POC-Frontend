@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, Smartphone, Wallet, Receipt } from "lucide-react";
 import paymentsAPI from "../api/paymentsapi";
+import { useHospital } from "../contexts/HospitalContext";
 
-const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymentSuccess }) => {
+const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymentSuccess, isPaymentEnabled = true }) => {
+  const { hospitalInfo } = useHospital();
   const [method, setMethod] = useState("card");
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +41,7 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
     }
 
     const options = {
-      key: import.meta.env.VITE_TestKey, // Replace with your Razorpay Key ID
+      key: hospitalInfo?.razorpay_key_id || import.meta.env.VITE_TestKey, // Replace with your Razorpay Key ID
       amount: amount * 100, // Amount in paise
       currency,
       name: "DermaCare Clinic",
@@ -92,25 +94,25 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
         <CardContent className="p-6">
           <Tabs value={method} onValueChange={setMethod}>
             <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full mb-6 bg-gray-100 dark:bg-gray-700 rounded-md p-1">
-              <TabsTrigger 
+              <TabsTrigger
                 value="card"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
               >
                 <CreditCard className="h-4 w-4 mr-2" /> Card
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="upi"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
               >
                 <Smartphone className="h-4 w-4 mr-2" /> UPI
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="wallet"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
               >
                 <Wallet className="h-4 w-4 mr-2" /> Wallet
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="later"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
               >
@@ -128,8 +130,8 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
                     <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
                       Cardholder Name
                     </Label>
-                    <Input 
-                      placeholder="Enter cardholder name" 
+                    <Input
+                      placeholder="Enter cardholder name"
                       className="h-12 border focus:border-blue-500 dark:focus:border-blue-400 rounded-md"
                     />
                   </div>
@@ -147,8 +149,8 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
                     <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
                       UPI ID
                     </Label>
-                    <Input 
-                      placeholder="username@upi" 
+                    <Input
+                      placeholder="username@upi"
                       className="h-12 border focus:border-blue-500 dark:focus:border-blue-400 rounded-md"
                     />
                   </div>
@@ -195,11 +197,16 @@ const PaymentTab = ({ amount = 500, currency = "INR", patient, orderId, onPaymen
                 <span className="text-xl font-semibold text-blue-600 dark:text-blue-400">₹{amount.toFixed(2)}</span>
               </div>
             </div>
+            {!isPaymentEnabled && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs font-medium text-center">
+                Payments are currently disabled.
+              </div>
+            )}
           </div>
         </CardContent>
         <CardFooter className="p-6 pt-0">
           <Button
-            disabled={loading || method === "later"}
+            disabled={loading || method === "later" || !isPaymentEnabled}
             className="w-full text-base py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={openRazorpay}
           >
