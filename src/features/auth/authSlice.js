@@ -1,10 +1,27 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import { getSecureItem, setSecureItem, removeSecureItem, SECURE_KEYS } from '../../utils/secureStorage'
 
-// Initial state
+// Initial state - check secure storage first, then localStorage for backward compatibility
+const getInitialToken = () => {
+  const secureToken = getSecureItem(SECURE_KEYS.JWT_TOKEN)
+  if (secureToken) return secureToken
+  // Fallback to localStorage for migration
+  return localStorage.getItem('access_token') || null
+}
+
+const getInitialUser = () => {
+  try {
+    const userData = localStorage.getItem('user')
+    return userData ? JSON.parse(userData) : null
+  } catch {
+    return null
+  }
+}
+
 const initialState = {
-  token: localStorage.getItem('access_token') || null,
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  isAuthenticated: !!localStorage.getItem('access_token'),
+  token: getInitialToken(),
+  user: getInitialUser(),
+  isAuthenticated: !!getInitialToken(),
   loading: false,
   error: null,
 }
@@ -59,16 +76,37 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const { access_token, user, uiModules } = action.payload
+      const { access_token, session_id, user, uiModules } = action.payload
       state.token = access_token
       state.user = user
       state.isAuthenticated = true
       state.error = null
       
-      // Persist to localStorage
-      localStorage.setItem('access_token', access_token)
+      // Store in secure storage (memory) - primary storage
+      setSecureItem(SECURE_KEYS.JWT_TOKEN, access_token)
+      if (session_id) {
+        setSecureItem(SECURE_KEYS.SESSION_ID, session_id)
+      }
+      
+      // Also store in localStorage for backward compatibility (non-sensitive data only)
+      // Note: In production, consider removing this after migration period
       localStorage.setItem('user', JSON.stringify(user))
-      localStorage.setItem('loginResponse', JSON.stringify(action.payload)) // Store complete response
+      localStorage.setItem('loginResponse', JSON.stringify(action.payload))
+      
+      // Extract tenant/hospital IDs from token and store securely
+      try {
+        const base64Url = access_token.split('.')[1]
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+        const jsonPayload = JSON.parse(atob(base64))
+        if (jsonPayload.tenant_id || jsonPayload.tenantId) {
+          setSecureItem(SECURE_KEYS.TENANT_ID, jsonPayload.tenant_id || jsonPayload.tenantId)
+        }
+        if (jsonPayload.hospital_id || jsonPayload.hospitalId) {
+          setSecureItem(SECURE_KEYS.HOSPITAL_ID, jsonPayload.hospital_id || jsonPayload.hospitalId)
+        }
+      } catch (error) {
+        console.error('[AuthSlice] Failed to extract tenant context:', error)
+      }
     },
     clearCredentials: (state) => {
       state.token = null
@@ -76,11 +114,17 @@ const authSlice = createSlice({
       state.isAuthenticated = false
       state.error = null
       
+      // Clear secure storage
+      removeSecureItem(SECURE_KEYS.JWT_TOKEN)
+      removeSecureItem(SECURE_KEYS.SESSION_ID)
+      removeSecureItem(SECURE_KEYS.TENANT_ID)
+      removeSecureItem(SECURE_KEYS.HOSPITAL_ID)
+      
       // Clear localStorage
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
       localStorage.removeItem('auth_token')
-      localStorage.removeItem('loginResponse') // Clear complete response
+      localStorage.removeItem('loginResponse')
     },
     clearError: (state) => {
       state.error = null
@@ -98,16 +142,36 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false
-        const { access_token, user, uiModules } = action.payload
+        const { access_token, session_id, user, uiModules } = action.payload
         state.token = access_token
         state.user = user
         state.isAuthenticated = true
         state.error = null
         
-        // Persist to localStorage
-        localStorage.setItem('access_token', access_token)
+        // Store in secure storage (memory) - primary storage
+        setSecureItem(SECURE_KEYS.JWT_TOKEN, access_token)
+        if (session_id) {
+          setSecureItem(SECURE_KEYS.SESSION_ID, session_id)
+        }
+        
+        // Also store in localStorage for backward compatibility
         localStorage.setItem('user', JSON.stringify(user))
-        localStorage.setItem('loginResponse', JSON.stringify(action.payload)) // Store complete response
+        localStorage.setItem('loginResponse', JSON.stringify(action.payload))
+        
+        // Extract tenant/hospital IDs from token
+        try {
+          const base64Url = access_token.split('.')[1]
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+          const jsonPayload = JSON.parse(atob(base64))
+          if (jsonPayload.tenant_id || jsonPayload.tenantId) {
+            setSecureItem(SECURE_KEYS.TENANT_ID, jsonPayload.tenant_id || jsonPayload.tenantId)
+          }
+          if (jsonPayload.hospital_id || jsonPayload.hospitalId) {
+            setSecureItem(SECURE_KEYS.HOSPITAL_ID, jsonPayload.hospital_id || jsonPayload.hospitalId)
+          }
+        } catch (error) {
+          console.error('[AuthSlice] Failed to extract tenant context:', error)
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false
@@ -121,10 +185,16 @@ const authSlice = createSlice({
         state.isAuthenticated = false
         state.error = null
         
+        // Clear secure storage
+        removeSecureItem(SECURE_KEYS.JWT_TOKEN)
+        removeSecureItem(SECURE_KEYS.SESSION_ID)
+        removeSecureItem(SECURE_KEYS.TENANT_ID)
+        removeSecureItem(SECURE_KEYS.HOSPITAL_ID)
+        
         // Clear localStorage
         localStorage.removeItem('access_token')
         localStorage.removeItem('user')
-        localStorage.removeItem('loginResponse') // Clear complete response
+        localStorage.removeItem('loginResponse')
       })
   },
 })

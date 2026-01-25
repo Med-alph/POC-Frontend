@@ -19,14 +19,57 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import emailTemplatesAPI from '../../api/emailTemplatesApi';
 import { EMAIL_TEMPLATE_TYPES, TEMPLATE_LABELS, PLACEHOLDERS } from './constants';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
 import toast from 'react-hot-toast';
+
+// Import ReactQuill with fallback for robustness
+let ReactQuill = null;
+let ReactQuillLoaded = false;
+
+// Fallback textarea component (used when ReactQuill is not available)
+const FallbackTextarea = ({ value, onChange, className, ...props }) => {
+  return (
+    <textarea
+      value={value || ''}
+      onChange={(e) => onChange && onChange(e.target.value)}
+      className={`w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 ${className || ''}`}
+      style={{ minHeight: '320px', fontFamily: 'monospace' }}
+      placeholder="Rich text editor not available. Using plain textarea."
+      {...props}
+    />
+  );
+};
+
+// Try to load ReactQuill - uses dynamic import to handle missing package gracefully
+const loadReactQuill = async () => {
+  if (ReactQuillLoaded) return ReactQuill;
+  
+  try {
+    // Dynamic import to avoid build-time errors if package is missing
+    const quillModule = await import('react-quill-new');
+    ReactQuill = quillModule.default || quillModule;
+    
+    // Load styles
+    try {
+      await import('react-quill-new/dist/quill.snow.css');
+    } catch (cssError) {
+      // Styles optional
+    }
+    
+    ReactQuillLoaded = true;
+    return ReactQuill;
+  } catch (error) {
+    console.warn('ReactQuill not available, using fallback textarea:', error.message);
+    ReactQuill = FallbackTextarea;
+    ReactQuillLoaded = true;
+    return FallbackTextarea;
+  }
+};
 
 const EmailTemplateManagement = () => {
     const [loading, setLoading] = useState(true);
     const [templates, setTemplates] = useState({});
     const [editingTemplate, setEditingTemplate] = useState(null);
+    const [ReactQuill, setReactQuill] = useState(() => FallbackTextarea);
     const [formData, setFormData] = useState({
         subject: '',
         html_body: '',
@@ -49,6 +92,13 @@ const EmailTemplateManagement = () => {
         text: '',
         loading: false
     });
+
+    // Load ReactQuill on mount
+    useEffect(() => {
+        loadReactQuill().then((Quill) => {
+            setReactQuill(() => Quill);
+        });
+    }, []);
 
     useEffect(() => {
         fetchTemplates();

@@ -41,8 +41,13 @@ export default function Login() {
       const response = await authAPI.login({ email, password })
 
       if (response.access_token && response.user) {
-        // Store complete response in Redux (including uiModules)
-        dispatch(setCredentials(response))
+        // Store complete response in Redux (including uiModules and session_id)
+        // Note: session_id may come from response.session_id or response.sessionId
+        const loginData = {
+          ...response,
+          session_id: response.session_id || response.sessionId || null,
+        }
+        dispatch(setCredentials(loginData))
 
         toast({
           title: "Login Successful 🎉",

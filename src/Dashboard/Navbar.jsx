@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,8 @@ import CopilotChat from "../components/CopilotChat";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
 import { useHospital } from "../contexts/HospitalContext";
+import { useAuth } from "../contexts/AuthContext";
+import ActiveSessions from "../components/ActiveSessions";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home, requiredModule: UI_MODULES.DASHBOARD },
@@ -46,9 +48,11 @@ export default function Navbar() {
   const user = useSelector((state) => state.auth.user);
   const { hospitalInfo } = useHospital();
   const { hasModule, loading: permissionsLoading } = usePermissions();
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showCopilotChat, setShowCopilotChat] = useState(false);
+  const [showActiveSessions, setShowActiveSessions] = useState(false);
 
   // Extract patientId from current route
   const getPatientIdFromRoute = () => {
@@ -116,9 +120,8 @@ export default function Navbar() {
 
 
 
-  const handleLogout = () => {
-    dispatch(clearCredentials());
-    navigate("/");
+  const handleLogout = async () => {
+    await logout(true); // Use AuthContext logout which handles session revocation
   };
 
   const handleTabClick = (path) => {
@@ -401,6 +404,13 @@ export default function Navbar() {
                 <Settings className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium">Settings</span>
               </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
+                onClick={() => setShowActiveSessions(true)}
+              >
+                <Monitor className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-medium">Active Sessions</span>
+              </DropdownMenuItem>
               {(user?.role === 'Admin' || user?.designation_group === 'Admin') && (
                 <>
                   <DropdownMenuItem
@@ -465,6 +475,12 @@ export default function Navbar() {
         visitId={null}
         isOpen={showCopilotChat}
         onClose={() => setShowCopilotChat(false)}
+      />
+
+      {/* Active Sessions Dialog */}
+      <ActiveSessions
+        open={showActiveSessions}
+        onOpenChange={setShowActiveSessions}
       />
     </div>
   );

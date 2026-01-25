@@ -1,5 +1,6 @@
 import { baseUrl } from '../constants/Constant'
 import { getAuthToken } from '../utils/auth'
+import { getSecureItem, SECURE_KEYS } from '../utils/secureStorage'
 
 // API Configuration
 const API_CONFIG = {
@@ -22,12 +23,16 @@ const handleResponse = async (response) => {
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_CONFIG.baseURL}${endpoint}`
   const token = getAuthToken()
+  
+  // Get session ID from secure storage
+  const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID)
 
   const config = {
     ...options,
     headers: {
       ...API_CONFIG.headers,
       ...(token && { Authorization: `Bearer ${token}` }),
+      ...(sessionId && { 'X-Session-Id': sessionId }),
       ...options.headers,
     },
   }

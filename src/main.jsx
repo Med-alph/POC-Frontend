@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { store } from './app/store'
 import { ToastProvider } from './components/ui/toast'
+import { AuthProvider } from './contexts/AuthContext'
+// Initialize API interceptor (must be imported before other modules that use fetch)
+import './services/apiInterceptor'
 import './index.css'
 import App from './App.jsx'
 
@@ -12,7 +15,9 @@ if (rootElement) {
   createRoot(rootElement).render(
       <Provider store={store}>
         <ToastProvider>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </ToastProvider>
       </Provider>
   )
