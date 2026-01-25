@@ -41,10 +41,10 @@ const todayStr = () => {
 
 function AppointmentsModal({ title, appointments, onClose }) {
   const isCancelled = title.toLowerCase().includes("cancellation");
-  
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
+      <div
         className="fixed inset-0 bg-black/50"
         onClick={onClose}
       />
@@ -73,13 +73,12 @@ function AppointmentsModal({ title, appointments, onClose }) {
           ) : (
             <div className="space-y-2">
               {appointments.map((appt, idx) => (
-                <div 
-                  key={appt.id || idx} 
-                  className={`p-3 rounded-md border transition-colors ${
-                    isCancelled 
-                      ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
+                <div
+                  key={appt.id || idx}
+                  className={`p-3 rounded-md border transition-colors ${isCancelled
+                      ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
                       : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                  }`}
+                    }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex-1">
@@ -96,11 +95,10 @@ function AppointmentsModal({ title, appointments, onClose }) {
                       </div>
                     </div>
                     <div className="text-xs">
-                      <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                        isCancelled 
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800' 
+                      <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${isCancelled
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800'
                           : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
-                      }`}>
+                        }`}>
                         {appt.appointment_type ?? "N/A"}
                       </div>
                       {appt.reason && (
@@ -463,10 +461,10 @@ export default function Dashboard() {
       {/* <Navbar /> */}
       <main className="flex-1 p-6 lg:p-8">
         <Toaster position="top-right" />
-        
+
         {/* Compliance Banner */}
         <ComplianceBanner />
-        
+
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
             Good Morning, Care Coordinator
@@ -493,8 +491,8 @@ export default function Dashboard() {
             <div className="p-4">
               <div className="space-y-2 mb-3">
                 {todaysAppointments.slice(0, 3).map((appt, idx) => (
-                  <div 
-                    key={appt.id || idx} 
+                  <div
+                    key={appt.id || idx}
                     className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-3 border border-blue-200 dark:border-blue-800"
                   >
                     <div className="flex items-center gap-2">
@@ -526,7 +524,7 @@ export default function Dashboard() {
             </div>
           </div>
           {/* Card 2 - New Patients Today */}
-          <div 
+          <div
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
             onClick={() => navigate("/patients")}
           >
@@ -543,8 +541,8 @@ export default function Dashboard() {
             <div className="p-4">
               <div className="space-y-2 mb-3">
                 {newPatientsToday.slice(0, 3).map((patient) => (
-                  <div 
-                    key={patient.id} 
+                  <div
+                    key={patient.id}
                     className="bg-green-50 dark:bg-green-900/20 rounded-md p-2 border border-green-200 dark:border-green-800"
                   >
                     <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
@@ -581,8 +579,8 @@ export default function Dashboard() {
             <div className="p-4">
               <div className="space-y-2 mb-3">
                 {cancelledAppointments.slice(0, 3).map((appt, idx) => (
-                  <div 
-                    key={appt.id || idx} 
+                  <div
+                    key={appt.id || idx}
                     className="bg-red-50 dark:bg-red-900/20 rounded-md p-2 border border-red-200 dark:border-red-800"
                   >
                     <div className="flex items-center gap-2 mb-0.5">
@@ -618,7 +616,7 @@ export default function Dashboard() {
 
         {/* Charts section */}
         <div className="mt-6 sm:mt-8 grid grid-cols-1 gap-6">
-          <LiveAppointmentList />
+          <LiveAppointmentList appointments={todaysAppointments} />
         </div>
         <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Weekly Patient Visits Chart */}
@@ -651,8 +649,8 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-2">
                   {Object.entries(appointmentsPerDept).map(([dept, count]) => (
-                    <div 
-                      key={dept} 
+                    <div
+                      key={dept}
                       className="bg-white dark:bg-gray-700 rounded-md p-3 border border-gray-200 dark:border-gray-600 flex items-center justify-between"
                     >
                       <span className="font-medium text-sm text-gray-900 dark:text-white">{dept}</span>

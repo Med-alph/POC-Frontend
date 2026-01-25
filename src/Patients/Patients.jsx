@@ -75,6 +75,18 @@ export default function Patients() {
 
     // Consent status cache
     const [consentStatuses, setConsentStatuses] = useState({})
+    const [isAdmin, setIsAdmin] = useState(false)
+
+    useEffect(() => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const role = user.role?.toLowerCase();
+            const designation = user.designation_group?.toLowerCase();
+            setIsAdmin(role === 'hospital_admin' || role === 'super_admin' || role === 'admin' || designation === 'admin');
+        } catch (e) {
+            setIsAdmin(false);
+        }
+    }, []);
 
     // Defensive patient validity check
     const isValidPatient = (patient) => {
@@ -511,13 +523,19 @@ export default function Patients() {
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">Last Visit</TableHead>
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">Next Appointment</TableHead>
                                         <TableHead className="font-semibold text-gray-900 dark:text-white">Status</TableHead>
+                                        {isAdmin && (
+                                            <>
+                                                <TableHead className="font-semibold text-gray-900 dark:text-white">Credit Eligible</TableHead>
+                                                <TableHead className="font-semibold text-gray-900 dark:text-white">Credit Amount</TableHead>
+                                            </>
+                                        )}
                                         <TableHead className="font-semibold text-gray-900 dark:text-white text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredAndSortedPatients.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={9} className="text-center py-12">
+                                            <TableCell colSpan={isAdmin ? 11 : 9} className="text-center py-12">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <Users className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
                                                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -636,6 +654,25 @@ export default function Patients() {
                                                         {patient.status || 'N/A'}
                                                     </Badge>
                                                 </TableCell>
+                                                {isAdmin && (
+                                                    <>
+                                                        <TableCell className="py-4">
+                                                            <Badge className={patient.is_credit_eligible === 'yes' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                                                                {patient.is_credit_eligible === 'yes' ? 'Yes' : 'No'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="py-4 text-right">
+                                                            <div className="flex flex-col items-end">
+                                                                <span className="font-bold text-gray-900 dark:text-white">
+                                                                    ₹{(parseFloat(patient.credit_amount || 0) - parseFloat(patient.current_credit_balance || 0)).toFixed(2)}
+                                                                </span>
+                                                                <span className="text-[10px] text-gray-500 uppercase font-medium">
+                                                                    Remaining Credit
+                                                                </span>
+                                                            </div>
+                                                        </TableCell>
+                                                    </>
+                                                )}
                                                 <TableCell className="py-4">
                                                     <div className="flex items-center justify-end gap-1">
                                                         <Button

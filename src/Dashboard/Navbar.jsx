@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,7 @@ const navigationItems = [
   { id: "attendance-management", label: "Attendance Management", path: "/admin/attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock, requiredModule: UI_MODULES.REMINDERS },
   { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS },
+  { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote },
 ];
 
 const doctorNavItems = [
@@ -414,6 +415,13 @@ export default function Navbar() {
               {(user?.role === 'Admin' || user?.designation_group === 'Admin') && (
                 <>
                   <DropdownMenuItem
+                    onClick={() => navigate('/hospital/settings')}
+                    className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
+                  >
+                    <Settings className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                    <span className="text-sm font-medium">Hospital Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     onClick={() => navigate('/hospital/consent')}
                     className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
                   >
@@ -440,7 +448,7 @@ export default function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </nav>
+      </nav >
 
       <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="px-6 lg:px-8">
