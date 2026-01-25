@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import socketService from '@/services/socketService';
 import { baseUrl } from '../constants/Constant';
-import { getAuthToken } from '../utils/auth';
+import { getSecureItem, SECURE_KEYS } from '../utils/secureStorage';
 
 /**
  * Shared hook for chart data with HTTP + Socket.IO updates
@@ -35,17 +35,28 @@ export function useChartData(endpoint, options = {}) {
       setError(null);
 
       try {
-        const token = getAuthToken();
+        // Get token and session ID from secure storage (same as API interceptor)
+        const token = getSecureItem(SECURE_KEYS.JWT_TOKEN);
+        const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
         const url = endpoint.startsWith('http')
           ? endpoint
           : `${baseUrl}${endpoint}`;
 
-        const response = await axios.get(url, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        });
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+
+        // Attach JWT token
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        // Attach session ID
+        if (sessionId) {
+          headers['X-Session-Id'] = sessionId;
+        }
+
+        const response = await axios.get(url, { headers });
 
         if (!isMounted) return;
         setData(response.data || null);
