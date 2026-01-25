@@ -58,6 +58,7 @@ import LeaveManagement from "./Admin/LeaveManagement";
 import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
 
 import BillingPage from "./Billing/BillingMainPage";
+import CashierDashboard from "./Billing/CashierDashboard";
 import PatientDashboard from "./AppoinmentFlow/PatientDashboard";
 import AuthCallback from "./AppoinmentFlow/AuthCallback";
 
@@ -81,6 +82,7 @@ import EmailTemplateManagement from "./components/email-templates/EmailTemplateM
 // Footer Component
 import Footer from "./components/Footer";
 import TenantAdminApp from "./TenantAdmin/TenantAdminApp";
+import HospitalAdminSettings from "./Settings/HospitalAdminSettings";
 
 function HospitalApp() {
   const location = useLocation();
@@ -179,6 +181,14 @@ function HospitalApp() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/hospital/settings"
+                element={
+                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                    <HospitalAdminSettings />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Inventory Management Routes */}
               <Route path="/inventory" element={<InventoryLayout />}>
@@ -248,6 +258,7 @@ function HospitalApp() {
 
               {/* Billing */}
               <Route path="/billing/:appoinmentid" element={<BillingPage />} />
+              <Route path="/cashier" element={<CashierDashboard />} />
 
               {/* Redirect to dashboard for any unknown route within hospital context */}
               <Route path="*" element={<Navigate to="/" replace />} />

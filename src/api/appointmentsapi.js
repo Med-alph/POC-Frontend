@@ -73,7 +73,7 @@ export const appointmentsAPI = {
     // >>> Correct parameter keys:
     if (fromDate) queryParams.append('fromDate', fromDate);
     if (toDate) queryParams.append('toDate', toDate);
-    
+
     // >>> Sorting parameters:
     if (orderBy) queryParams.append('orderBy', orderBy);
     if (sort) queryParams.append('sort', sort);
@@ -193,13 +193,24 @@ export const appointmentsAPI = {
       staff_id: staffId,
       date: date,
     });
-    
+
     // Exclude current appointment when rescheduling
     if (excludeAppointmentId) {
       params.append('exclude_appointment_id', excludeAppointmentId);
     }
-    
+
     return apiRequest(`/appointments/available-slots?${params.toString()}`);
+  },
+
+  // NEW: Get consolidated availability for a hospital session
+  getConsolidatedAvailableSlots: async (hospitalId, date, sessionStart, sessionEnd) => {
+    const params = new URLSearchParams({
+      hospital_id: hospitalId,
+      date: date,
+      session_start: sessionStart,
+      session_end: sessionEnd
+    });
+    return apiRequest(`/appointments/consolidated-available-slots?${params.toString()}`);
   },
 
   // Get appointment statistics
@@ -240,8 +251,8 @@ export const appointmentsAPI = {
   },
 
   getAppointmentStatusCounts: async (hospital_id) => {
-    const url = 
-       `/appointments/stats/appointments-status-counts?hospital_id=${hospital_id}`
+    const url =
+      `/appointments/stats/appointments-status-counts?hospital_id=${hospital_id}`
     return apiRequest(url);
   },
 
