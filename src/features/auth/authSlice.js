@@ -5,8 +5,19 @@ import { getSecureItem, setSecureItem, removeSecureItem, SECURE_KEYS } from '../
 const getInitialToken = () => {
   const secureToken = getSecureItem(SECURE_KEYS.JWT_TOKEN)
   if (secureToken) return secureToken
-  // Fallback to localStorage for migration
-  return localStorage.getItem('access_token') || null
+  // Fallback to localStorage - restore to memory storage if found
+  const localStorageToken = localStorage.getItem('access_token')
+  if (localStorageToken) {
+    // Restore to memory storage for consistency
+    setSecureItem(SECURE_KEYS.JWT_TOKEN, localStorageToken)
+    // Also restore session_id if available
+    const localStorageSessionId = localStorage.getItem('session_id')
+    if (localStorageSessionId) {
+      setSecureItem(SECURE_KEYS.SESSION_ID, localStorageSessionId)
+    }
+    return localStorageToken
+  }
+  return null
 }
 
 const getInitialUser = () => {
@@ -88,10 +99,13 @@ const authSlice = createSlice({
         setSecureItem(SECURE_KEYS.SESSION_ID, session_id)
       }
       
-      // Also store in localStorage for backward compatibility (non-sensitive data only)
-      // Note: In production, consider removing this after migration period
+      // Store in localStorage for persistence across page refreshes
+      localStorage.setItem('access_token', access_token)
       localStorage.setItem('user', JSON.stringify(user))
       localStorage.setItem('loginResponse', JSON.stringify(action.payload))
+      if (session_id) {
+        localStorage.setItem('session_id', session_id)
+      }
       
       // Extract tenant/hospital IDs from token and store securely
       try {
@@ -125,6 +139,7 @@ const authSlice = createSlice({
       localStorage.removeItem('user')
       localStorage.removeItem('auth_token')
       localStorage.removeItem('loginResponse')
+      localStorage.removeItem('session_id')
     },
     clearError: (state) => {
       state.error = null
@@ -154,9 +169,13 @@ const authSlice = createSlice({
           setSecureItem(SECURE_KEYS.SESSION_ID, session_id)
         }
         
-        // Also store in localStorage for backward compatibility
+        // Store in localStorage for persistence across page refreshes
+        localStorage.setItem('access_token', access_token)
         localStorage.setItem('user', JSON.stringify(user))
         localStorage.setItem('loginResponse', JSON.stringify(action.payload))
+        if (session_id) {
+          localStorage.setItem('session_id', session_id)
+        }
         
         // Extract tenant/hospital IDs from token
         try {
@@ -195,6 +214,7 @@ const authSlice = createSlice({
         localStorage.removeItem('access_token')
         localStorage.removeItem('user')
         localStorage.removeItem('loginResponse')
+        localStorage.removeItem('session_id')
       })
   },
 })

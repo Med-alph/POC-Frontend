@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { User, ClipboardList, Activity, Stethoscope, Pill, FlaskConical, Play, StopCircle, XCircle, Clock, Camera } from "lucide-react";
 import appointmentsAPI from "../api/appointmentsapi";
@@ -9,6 +9,9 @@ import { useSelector } from "react-redux";
 import cancellationRequestAPI from "../api/cancellationrequestapi";
 import UploadSessionModal from "../components/UploadSessionModal";
 import MedicationAutocomplete from "../components/MedicationAutocomplete";
+import VoiceTranscription from "../components/VoiceTranscription";
+import { baseUrl } from "../constants/Constant";
+import { getAuthToken } from "../utils/auth";
 
 const DoctorConsultation = () => {
     const { appointmentId } = useParams();
@@ -43,6 +46,16 @@ const DoctorConsultation = () => {
     const [labOrders, setLabOrders] = useState([
         { test_name: "", instructions: "" }
     ]);
+
+    // AI SOAP generation state
+    const [aiGenerationInProgress, setAiGenerationInProgress] = useState(false);
+    const [aiDraftApplied, setAiDraftApplied] = useState(false);
+    const [showReplaceConfirmModal, setShowReplaceConfirmModal] = useState(false);
+    const [pendingAiDraft, setPendingAiDraft] = useState(null);
+
+    // Voice transcription state
+    const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+    const voiceTranscriptionRef = useRef(null);
 
 
     async function checkCancellationRequest() {
@@ -220,8 +233,106 @@ const DoctorConsultation = () => {
         }
     };
 
-    const handleSoapChange = (field, value) =>
+    const handleSoapChange = (field, value) => {
         setSoapNotes((prev) => ({ ...prev, [field]: value }));
+        // Reset AI draft flag if doctor manually edits
+        if (aiDraftApplied) {
+            setAiDraftApplied(false);
+        }
+    };
+
+    // Handle voice transcription completion - automatically generate SOAP
+    const handleTranscriptionComplete = async () => {
+        setIsVoiceRecording(false);
+        // Small delay to ensure backend has processed the audio
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Automatically call generate SOAP API
+        await handleGenerateAiSoap();
+    };
+
+    // Handle voice transcription errors
+    const handleTranscriptionError = (error) => {
+        setIsVoiceRecording(false);
+        toast.error(`Voice transcription error: ${error}`);
+    };
+
+    // Toggle voice recording
+    const handleToggleVoiceRecording = () => {
+        if (voiceTranscriptionRef.current) {
+            if (isVoiceRecording) {
+                voiceTranscriptionRef.current.handleStopRecording();
+            } else {
+                voiceTranscriptionRef.current.handleStartRecording();
+            }
+        }
+    };
+
+    const handleGenerateAiSoap = async () => {
+        try {
+            setAiGenerationInProgress(true);
+
+            // Make API call to generate SOAP from accumulated audio
+            const token = getAuthToken();
+            const response = await fetch(`${baseUrl}/consultation/appointment/${appointmentId}/generate-soap`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` }),
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "AI SOAP generation failed");
+            }
+
+            const result = await response.json();
+
+            // Check if fields already have content
+            const hasExistingContent = soapNotes.subjective || 
+                                      soapNotes.objective || 
+                                      soapNotes.assessment || 
+                                      soapNotes.plan;
+
+            if (hasExistingContent) {
+                // Store draft and show confirmation modal
+                setPendingAiDraft({
+                    subjective: result.subjective || result.S || "",
+                    objective: result.objective || result.O || "",
+                    assessment: result.assessment || result.A || "",
+                    plan: result.plan || result.P || "",
+                });
+                setShowReplaceConfirmModal(true);
+            } else {
+                // Apply directly if no existing content
+                setSoapNotes({
+                    subjective: result.subjective || result.S || "",
+                    objective: result.objective || result.O || "",
+                    assessment: result.assessment || result.A || "",
+                    plan: result.plan || result.P || "",
+                });
+                setAiDraftApplied(true);
+            }
+        } catch (err) {
+            toast.error("AI SOAP generation failed. Please try again.");
+        } finally {
+            setAiGenerationInProgress(false);
+        }
+    };
+
+    const handleConfirmReplace = () => {
+        if (pendingAiDraft) {
+            setSoapNotes(pendingAiDraft);
+            setAiDraftApplied(true);
+            setPendingAiDraft(null);
+        }
+        setShowReplaceConfirmModal(false);
+    };
+
+    const handleCancelReplace = () => {
+        setPendingAiDraft(null);
+        setShowReplaceConfirmModal(false);
+    };
 
     const addPrescription = () =>
         setPrescriptions([...prescriptions, { medicine_name: "", dosage: "", frequency: "", duration: "" }]);
@@ -404,6 +515,15 @@ const DoctorConsultation = () => {
                         </button>
                     )}
 
+                    {isConsultationStarted && user?.id && (
+                        <button 
+                            onClick={handleToggleVoiceRecording}
+                            className="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                        >
+                            {isVoiceRecording ? 'Stop AI Capture' : 'Start AI Capture'}
+                        </button>
+                    )}
+
                     {canCancelAppointment && !cancelRequested && (
                         <button 
                             onClick={() => setShowCancelModal(true)}
@@ -460,14 +580,41 @@ const DoctorConsultation = () => {
                 </div>
             </div>
 
+            {/* Voice Transcription Section - Hidden UI, only controls */}
+            {isConsultationStarted && !isCompleted && !isCancelled && user?.id && appointmentId && (
+                <div style={{ display: 'none' }}>
+                    <VoiceTranscription
+                        ref={voiceTranscriptionRef}
+                        userId={user.id}
+                        appointmentId={appointmentId}
+                        onTranscriptionComplete={handleTranscriptionComplete}
+                        onError={handleTranscriptionError}
+                        showTranscription={false}
+                        onStartRecording={() => setIsVoiceRecording(true)}
+                        onStopRecording={() => setIsVoiceRecording(false)}
+                    />
+                </div>
+            )}
+
             {/* SOAP Notes Section */}
             <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
-                <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-3">
-                    <Stethoscope className="h-5 w-5 text-blue-500" /> Consultation Notes (SOAP)
-                    {!isConsultationStarted && !isCompleted && (
-                        <span className="text-xs text-gray-500 font-normal ml-2">(Start consultation to edit)</span>
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                        <Stethoscope className="h-5 w-5 text-blue-500" /> Consultation Notes (SOAP)
+                        {!isConsultationStarted && !isCompleted && (
+                            <span className="text-xs text-gray-500 font-normal ml-2">(Start consultation to edit)</span>
+                        )}
+                    </h2>
+                    {isConsultationStarted && !isCompleted && aiGenerationInProgress && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500">Generating AI draft…</span>
+                        </div>
                     )}
-                </h2>
+                </div>
+
+                {aiDraftApplied && (
+                    <p className="text-sm text-gray-500 mb-3">AI-generated draft — please review and edit</p>
+                )}
 
                 <div className="grid md:grid-cols-2 gap-4">
                     {["subjective", "objective", "assessment", "plan"].map((field) => (
@@ -713,6 +860,32 @@ const DoctorConsultation = () => {
                                 {isSaving ? (
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>
                                 ) : 'Request Admin Approval'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Replace SOAP Confirmation Modal */}
+            {showReplaceConfirmModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-96 shadow-xl">
+                        <h3 className="text-lg font-semibold mb-4">Replace current notes with AI draft?</h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Your current SOAP notes will be replaced with the AI-generated draft. This action cannot be undone.
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={handleCancelReplace}
+                                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmReplace}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            >
+                                Replace
                             </button>
                         </div>
                     </div>

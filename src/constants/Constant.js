@@ -24,6 +24,22 @@ export const socketUrl = isProd
     ? "http://localhost:9009"
     : "";
 
+// Voice Processing Socket.IO URL
+// Socket.IO uses http/https URLs and handles WebSocket upgrade internally
+// For transports: ['websocket'], it will use ws:// or wss:// automatically
+export const getVoiceProcessingSocketUrl = () => {
+  const baseSocketUrl = socketUrl;
+  if (!baseSocketUrl) {
+    return 'http://localhost:9009/voice-processing';
+  }
+  
+  // Socket.IO expects http/https, not ws/wss
+  // It will automatically upgrade to WebSocket when using transports: ['websocket']
+  return `${baseSocketUrl}/voice-processing`;
+};
+
+export const voiceProcessingSocketUrl = getVoiceProcessingSocketUrl();
+
 // ============================================
 // FEATURE FLAGS
 // ============================================
@@ -237,4 +253,5 @@ if (isLocal) {
   console.log("🚀 Environment:", getEnvironment());
   console.log("🌐 API Base URL:", baseUrl);
   console.log("🔌 Socket URL:", socketUrl);
+  console.log("🎤 Voice Processing Socket URL:", voiceProcessingSocketUrl);
 }

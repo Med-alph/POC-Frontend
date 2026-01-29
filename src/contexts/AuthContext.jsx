@@ -82,12 +82,33 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = () => {
       try {
-        const storedToken = getSecureItem(SECURE_KEYS.JWT_TOKEN);
-        const storedSessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
+        // First check memory storage
+        let storedToken = getSecureItem(SECURE_KEYS.JWT_TOKEN);
+        let storedSessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
+        
+        // If not in memory (e.g., after page refresh), load from localStorage
+        if (!storedToken) {
+          const localStorageToken = localStorage.getItem('access_token');
+          if (localStorageToken) {
+            storedToken = localStorageToken;
+            // Restore to memory storage
+            setSecureItem(SECURE_KEYS.JWT_TOKEN, storedToken);
+          }
+        }
+        
+        if (!storedSessionId) {
+          const localStorageSessionId = localStorage.getItem('session_id');
+          if (localStorageSessionId) {
+            storedSessionId = localStorageSessionId;
+            // Restore to memory storage
+            setSecureItem(SECURE_KEYS.SESSION_ID, storedSessionId);
+          }
+        }
         
         // If we have a token in Redux but not in secure storage, sync it
         if (reduxToken && !storedToken) {
           setSecureItem(SECURE_KEYS.JWT_TOKEN, reduxToken);
+          localStorage.setItem('access_token', reduxToken);
           const context = extractTenantContext(reduxToken);
           if (context.tenant_id) setSecureItem(SECURE_KEYS.TENANT_ID, context.tenant_id);
           if (context.hospital_id) setSecureItem(SECURE_KEYS.HOSPITAL_ID, context.hospital_id);
@@ -175,6 +196,12 @@ export const AuthProvider = ({ children }) => {
         setSessionId(session_id);
       }
       
+      // Store in localStorage for persistence across page refreshes
+      localStorage.setItem('access_token', access_token);
+      if (session_id) {
+        localStorage.setItem('session_id', session_id);
+      }
+      
       // Extract and store tenant/hospital IDs from token (never user-editable)
       const context = extractTenantContext(access_token);
       if (context.tenant_id) {
@@ -221,6 +248,9 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Clear secure storage
       clearSecureStorage();
+      // Clear localStorage
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('session_id');
       setSessionId(null);
       setIsSessionValid(false);
       
@@ -241,6 +271,9 @@ export const AuthProvider = ({ children }) => {
     console.warn('[AuthContext] Session invalidated:', reason);
     setIsSessionValid(false);
     clearSecureStorage();
+    // Clear localStorage
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('session_id');
     dispatch(clearCredentials());
     // Use window.location for navigation (works outside Router context)
     window.location.href = '/';

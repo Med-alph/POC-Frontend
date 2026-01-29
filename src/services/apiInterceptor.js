@@ -60,11 +60,20 @@ if (typeof window !== 'undefined' && originalFetch) {
   const token = getSecureItem(SECURE_KEYS.JWT_TOKEN);
   const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
 
-  // Prepare headers
-  const headers = {
-    ...options.headers,
-    'Content-Type': 'application/json',
-  };
+  // Check if body is FormData - if so, don't set Content-Type (browser will set it with boundary)
+  const isFormData = options.body instanceof FormData;
+
+  // Prepare headers (copy existing headers)
+  const headers = { ...options.headers };
+
+  // For FormData, remove Content-Type if it exists (browser will set it with boundary)
+  if (isFormData) {
+    delete headers['Content-Type'];
+    delete headers['content-type'];
+  } else if (!headers['Content-Type'] && !headers['content-type']) {
+    // Only set Content-Type for non-FormData requests if not already set
+    headers['Content-Type'] = 'application/json';
+  }
 
   // Attach JWT token
   if (token) {
