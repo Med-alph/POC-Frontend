@@ -5,8 +5,8 @@
 
 
 // Set ONLY ONE to true at a time
-const isProd = false;   // Production environment
-const isLocal = true;   // Local development environment
+const isProd = true;   // Production environment
+const isLocal = false;   // Local development environment
 
 // ============================================
 // API CONFIGURATION
