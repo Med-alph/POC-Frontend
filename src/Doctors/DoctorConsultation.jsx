@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { User, ClipboardList, Activity, Stethoscope, Pill, FlaskConical, Play, StopCircle, XCircle, Clock, Camera } from "lucide-react";
+import { User, ClipboardList, Activity, Stethoscope, Pill, FlaskConical, Play, StopCircle, XCircle, Clock, Camera, Sparkles, Check, X } from "lucide-react";
 import appointmentsAPI from "../api/appointmentsapi";
 import consultationsAPI from "../api/consultationsapi";
 import imagesAPI from "../api/imagesapi";
@@ -25,13 +25,13 @@ const DoctorConsultation = () => {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancellationReason, setCancellationReason] = useState("");
     const [isSaving, setIsSaving] = useState(false);
-    
+
     const [cancelRequested, setCancelRequested] = useState(false);
-    
+
     // Image upload state
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadedSessions, setUploadedSessions] = useState([]);
-    
+
     const [soapNotes, setSoapNotes] = useState({
         subjective: "",
         objective: "",
@@ -59,50 +59,50 @@ const DoctorConsultation = () => {
 
 
     async function checkCancellationRequest() {
-  try {
-    // Call an API endpoint you must create:
-    // Should return boolean or details if request exists
-    const exists = await cancellationRequestAPI.hasRequestForAppointment(appointmentId, user.id);
-    setCancelRequested(exists);
-  } catch (err) {
-    console.error("Error checking cancellation request", err);
-  }
-}
+        try {
+            // Call an API endpoint you must create:
+            // Should return boolean or details if request exists
+            const exists = await cancellationRequestAPI.hasRequestForAppointment(appointmentId, user.id);
+            setCancelRequested(exists);
+        } catch (err) {
+            console.error("Error checking cancellation request", err);
+        }
+    }
 
 
     useEffect(() => {
-  const fetchAppointmentDetails = async () => {
-    if (!appointmentId) {
-      toast.error("No appointment ID provided");
-      setLoading(false);
-      return;
-    }
+        const fetchAppointmentDetails = async () => {
+            if (!appointmentId) {
+                toast.error("No appointment ID provided");
+                setLoading(false);
+                return;
+            }
 
-    try {
-      setLoading(true);
-      const response = await appointmentsAPI.getById(appointmentId);
-      setAppointmentData(response);
+            try {
+                setLoading(true);
+                const response = await appointmentsAPI.getById(appointmentId);
+                setAppointmentData(response);
 
-      if (response.status === 'in-progress' && response.actual_start_time) {
-        setIsConsultationStarted(true);
-        setConsultationStartTime(new Date(response.actual_start_time));
-      }
+                if (response.status === 'in-progress' && response.actual_start_time) {
+                    setIsConsultationStarted(true);
+                    setConsultationStartTime(new Date(response.actual_start_time));
+                }
 
-      // Check if a cancellation request exists for this appointment by this doctor
-      const hasCancelRequest = await cancellationRequestAPI.hasRequestForAppointment(appointmentId, user.id);
-      setCancelRequested(hasCancelRequest);
+                // Check if a cancellation request exists for this appointment by this doctor
+                const hasCancelRequest = await cancellationRequestAPI.hasRequestForAppointment(appointmentId, user.id);
+                setCancelRequested(hasCancelRequest);
 
-      toast.success("Appointment loaded successfully!");
-    } catch (err) {
-      console.error("Failed to fetch appointment details:", err);
-      toast.error(`Failed to load: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+                toast.success("Appointment loaded successfully!");
+            } catch (err) {
+                console.error("Failed to fetch appointment details:", err);
+                toast.error(`Failed to load: ${err.message}`);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-  fetchAppointmentDetails();
-}, [appointmentId, user?.id]);
+        fetchAppointmentDetails();
+    }, [appointmentId, user?.id]);
 
 
     useEffect(() => {
@@ -242,12 +242,18 @@ const DoctorConsultation = () => {
     };
 
     // Handle voice transcription completion - automatically generate SOAP
-    const handleTranscriptionComplete = async () => {
+    const handleTranscriptionComplete = async (fullText) => {
         setIsVoiceRecording(false);
-        // Small delay to ensure backend has processed the audio
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Automatically call generate SOAP API
-        await handleGenerateAiSoap();
+
+        if (!fullText || !fullText.trim()) {
+            console.warn("Transcription session ended with no text.");
+            return;
+        }
+
+        console.log("Captured transcription for SOAP:", fullText);
+        // Small delay to ensure any pending state updates are finished
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await handleGenerateAiSoap(fullText);
     };
 
     // Handle voice transcription errors
@@ -267,11 +273,16 @@ const DoctorConsultation = () => {
         }
     };
 
-    const handleGenerateAiSoap = async () => {
+    const handleGenerateAiSoap = async (transcriptionText) => {
         try {
             setAiGenerationInProgress(true);
 
-            // Make API call to generate SOAP from accumulated audio
+            console.log("Sending transcription to Generate SOAP API:", {
+                length: transcriptionText.length,
+                preview: transcriptionText.substring(0, 100) + "..."
+            });
+
+            // Make API call to generate SOAP from accurately captured text
             const token = getAuthToken();
             const response = await fetch(`${baseUrl}/consultation/appointment/${appointmentId}/generate-soap`, {
                 method: 'POST',
@@ -279,40 +290,34 @@ const DoctorConsultation = () => {
                     'Content-Type': 'application/json',
                     ...(token && { Authorization: `Bearer ${token}` }),
                 },
+                body: JSON.stringify({
+                    transcription: transcriptionText
+                })
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+                if (response.status === 400) {
+                    throw new Error("The backend has no cached transcript. Ensure the recording was captures and the transcription text is being sent correctly.");
+                }
                 throw new Error(errorData.message || "AI SOAP generation failed");
             }
 
             const result = await response.json();
+            console.log("AI SOAP Result:", result);
 
-            // Check if fields already have content
-            const hasExistingContent = soapNotes.subjective || 
-                                      soapNotes.objective || 
-                                      soapNotes.assessment || 
-                                      soapNotes.plan;
+            // Corrected Mapping based on your API response structure
+            const aiDraft = {
+                subjective: result.soap_notes?.S || result.subjective || "",
+                objective: result.soap_notes?.O || result.objective || "",
+                assessment: result.soap_notes?.A || result.assessment || "",
+                plan: result.soap_notes?.P || result.plan || "",
+            };
 
-            if (hasExistingContent) {
-                // Store draft and show confirmation modal
-                setPendingAiDraft({
-                    subjective: result.subjective || result.S || "",
-                    objective: result.objective || result.O || "",
-                    assessment: result.assessment || result.A || "",
-                    plan: result.plan || result.P || "",
-                });
-                setShowReplaceConfirmModal(true);
-            } else {
-                // Apply directly if no existing content
-                setSoapNotes({
-                    subjective: result.subjective || result.S || "",
-                    objective: result.objective || result.O || "",
-                    assessment: result.assessment || result.A || "",
-                    plan: result.plan || result.P || "",
-                });
-                setAiDraftApplied(true);
-            }
+            // Store the draft for interactive review
+            setPendingAiDraft(aiDraft);
+            setAiDraftApplied(true);
+            toast.success("AI clinical draft ready for review!");
         } catch (err) {
             toast.error("AI SOAP generation failed. Please try again.");
         } finally {
@@ -344,7 +349,7 @@ const DoctorConsultation = () => {
         const updated = [...prescriptions];
         updated[index].medicine_name = medication.name;
         setPrescriptions(updated);
-        
+
         // Show stock info to doctor
         if (!medication.is_available) {
             toast.error(`${medication.name} is currently out of stock`);
@@ -408,7 +413,7 @@ const DoctorConsultation = () => {
             <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-lg text-gray-600">Appointment not found</p>
-                    <button 
+                    <button
                         onClick={() => window.history.back()}
                         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
@@ -506,7 +511,7 @@ const DoctorConsultation = () => {
             {!isCompleted && !isCancelled && (
                 <div className="flex gap-3 justify-end">
                     {canStartConsultation && (
-                        <button 
+                        <button
                             onClick={handleStartConsultation}
                             className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                         >
@@ -516,7 +521,7 @@ const DoctorConsultation = () => {
                     )}
 
                     {isConsultationStarted && user?.id && (
-                        <button 
+                        <button
                             onClick={handleToggleVoiceRecording}
                             className="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
                         >
@@ -525,7 +530,7 @@ const DoctorConsultation = () => {
                     )}
 
                     {canCancelAppointment && !cancelRequested && (
-                        <button 
+                        <button
                             onClick={() => setShowCancelModal(true)}
                             className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                         >
@@ -534,7 +539,7 @@ const DoctorConsultation = () => {
                         </button>
                     )}
                     {cancelRequested && (
-                        <button 
+                        <button
                             disabled
                             className="flex items-center gap-2 px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed"
                         >
@@ -546,7 +551,7 @@ const DoctorConsultation = () => {
             )}
 
             {/* Rest of your UI like Medical History, Allergies, SOAP Notes, Prescriptions, Lab Orders, Bottom Action Buttons... */}
-{/* Medical History + Alerts */}
+            {/* Medical History + Alerts */}
             <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-white shadow rounded-lg p-5">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-2">
@@ -612,24 +617,79 @@ const DoctorConsultation = () => {
                     )}
                 </div>
 
-                {aiDraftApplied && (
-                    <p className="text-sm text-gray-500 mb-3">AI-generated draft — please review and edit</p>
+                {aiDraftApplied && pendingAiDraft && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-500">
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-blue-600" />
+                            <div>
+                                <p className="text-sm font-semibold text-blue-900">AI Clinical Insights Ready</p>
+                                <p className="text-xs text-blue-700">Review sections below. Press <strong>Enter</strong> in empty fields to accept or <strong>Esc</strong> to discard.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setSoapNotes(pendingAiDraft);
+                                setPendingAiDraft(null);
+                                setAiDraftApplied(false);
+                                toast.success("All AI suggestions applied");
+                            }}
+                            className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 font-medium whitespace-nowrap"
+                        >
+                            Apply All
+                        </button>
+                    </div>
                 )}
 
                 <div className="grid md:grid-cols-2 gap-4">
                     {["subjective", "objective", "assessment", "plan"].map((field) => (
-                        <div key={field}>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1 capitalize">
-                                {field}
-                            </label>
-                            <textarea
-                                className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-400"
-                                rows={3}
-                                value={soapNotes[field]}
-                                onChange={(e) => handleSoapChange(field, e.target.value)}
-                                placeholder={`Enter ${field} details...`}
-                                disabled={!isConsultationStarted || isCompleted}
-                            />
+                        <div key={field} className="relative group">
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-sm font-semibold text-gray-700 capitalize">
+                                    {field}
+                                </label>
+                                {pendingAiDraft?.[field] && !soapNotes[field] && (
+                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 uppercase tracking-wider animate-pulse">
+                                        <Sparkles className="h-3 w-3" />
+                                        AI Draft Available
+                                    </div>
+                                )}
+                            </div>
+                            <div className="relative">
+                                <textarea
+                                    className={`w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-400 transition-all ${pendingAiDraft?.[field] && !soapNotes[field]
+                                            ? 'border-blue-200 bg-blue-50/30'
+                                            : 'border-gray-200'
+                                        }`}
+                                    rows={4}
+                                    value={soapNotes[field]}
+                                    onChange={(e) => handleSoapChange(field, e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (pendingAiDraft?.[field] && !soapNotes[field]) {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleSoapChange(field, pendingAiDraft[field]);
+                                                toast.success(`${field} accepted`);
+                                            } else if (e.key === 'Escape') {
+                                                const newDraft = { ...pendingAiDraft };
+                                                delete newDraft[field];
+                                                setPendingAiDraft(newDraft);
+                                                toast("Suggestion discarded");
+                                            }
+                                        }
+                                    }}
+                                    placeholder={pendingAiDraft?.[field] && !soapNotes[field] ? pendingAiDraft[field] : `Enter ${field} details...`}
+                                    disabled={!isConsultationStarted || isCompleted}
+                                />
+                                {pendingAiDraft?.[field] && !soapNotes[field] && (
+                                    <button
+                                        onClick={() => handleSoapChange(field, pendingAiDraft[field])}
+                                        className="absolute right-2 top-2 p-1.5 bg-white shadow-sm border border-blue-100 rounded-md text-blue-600 hover:bg-blue-600 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                                        title="Apply AI suggestion"
+                                    >
+                                        <Sparkles className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -654,7 +714,7 @@ const DoctorConsultation = () => {
                         </button>
                     )}
                 </div>
-                
+
                 {uploadedSessions.length > 0 ? (
                     <div className="space-y-2">
                         {uploadedSessions.map((session, idx) => (
@@ -797,16 +857,16 @@ const DoctorConsultation = () => {
 
             {/* Bottom Action Buttons */}
             <div className="flex justify-end gap-3">
-                <button 
+                <button
                     className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
                     onClick={() => window.history.back()}
                     disabled={isSaving}
                 >
                     {isCompleted || isCancelled ? 'Close' : 'Back'}
                 </button>
-                
+
                 {canEndConsultation && (
-                    <button 
+                    <button
                         onClick={handleEndConsultation}
                         disabled={isSaving}
                         className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"

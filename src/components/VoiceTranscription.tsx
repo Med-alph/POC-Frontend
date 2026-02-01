@@ -5,7 +5,7 @@ import { voiceProcessingSocketUrl } from '../constants/Constant';
 interface VoiceTranscriptionProps {
   userId: string;
   appointmentId?: string;
-  onTranscriptionComplete?: () => void;
+  onTranscriptionComplete?: (fullText: string) => void;
   onError?: (error: string) => void;
   showTranscription?: boolean;
   onStartRecording?: () => void;
@@ -22,10 +22,10 @@ interface TranscriptionData {
   error?: string;
 }
 
-const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({ 
-  userId, 
-  appointmentId, 
-  onTranscriptionComplete, 
+const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
+  userId,
+  appointmentId,
+  onTranscriptionComplete,
   onError,
   showTranscription = false,
   onStartRecording,
@@ -47,6 +47,8 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const completionCalledRef = useRef<boolean>(false);
   const isStoppingRef = useRef<boolean>(false);
+  const isErrorRef = useRef<boolean>(false);
+  const fullTextRef = useRef<string>('');
 
   // Use voice processing socket URL from constants
   // It automatically handles ws:// for local and wss:// for production
@@ -54,9 +56,12 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
 
   useImperativeHandle(ref, () => ({
     handleStartRecording,
-    handleStopRecording,
+    handleStopRecording: () => handleStopRecording(true),
     isConnected,
   }));
+
+  // Sync internal state removed to prevent infinite loops / race conditions
+  // The parent controls the recording via the useImperativeHandle ref methods
 
   useEffect(() => {
     // Build query params matching the required format
@@ -64,7 +69,7 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
     const queryParams: Record<string, string> = {
       userId,
     };
-    
+
     // Always include appointmentId if provided
     if (appointmentId) {
       queryParams.appointmentId = appointmentId;
@@ -103,6 +108,10 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
     });
 
     socket.on('transcription', (data: TranscriptionData) => {
+      if (data.text) {
+        console.log(`📝 Transcription Received: "${data.text}" (isFinal: ${data.isFinal})`);
+      }
+
       if (data.error) {
         setError(data.error);
         if (onError) {
@@ -111,21 +120,24 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
         return;
       }
 
-      if (data.isFinal) {
+      if (data.text) {
         setFinalText((prev) => {
           const newText = prev ? `${prev} ${data.text}` : data.text;
+          fullTextRef.current = newText;
           return newText;
         });
-        setInterimText('');
-      } else {
-        setInterimText(data.text);
+        setInterimText(''); // Clear interim since we've "finalized" this segment in the UI
       }
 
       if (data.end) {
-        handleStopRecording();
+        // Server signaled end of stream - just do cleanup, don't emit 'end' back
+        handleStopRecording(false);
         if (onTranscriptionComplete && !completionCalledRef.current) {
-          completionCalledRef.current = true;
-          onTranscriptionComplete();
+          // Only trigger completion if we actually have some text
+          if (fullTextRef.current.trim()) {
+            completionCalledRef.current = true;
+            onTranscriptionComplete(fullTextRef.current);
+          }
         }
       }
     });
@@ -136,6 +148,7 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
       if (isStoppingRef.current) {
         return;
       }
+      isErrorRef.current = true;
       setError(errorMsg);
       if (onError) {
         onError(errorMsg);
@@ -146,10 +159,14 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
     });
 
     socket.on('ended', () => {
-      handleStopRecording();
+      // Server confirmed end - just do cleanup
+      handleStopRecording(false);
       if (onTranscriptionComplete && !completionCalledRef.current) {
-        completionCalledRef.current = true;
-        onTranscriptionComplete();
+        // Only trigger completion if we actually have some text
+        if (fullTextRef.current.trim()) {
+          completionCalledRef.current = true;
+          onTranscriptionComplete(fullTextRef.current);
+        }
       }
     });
 
@@ -192,6 +209,9 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
       return;
     }
 
+    // Tell backend to prepare a new transcription session
+    socketRef.current.emit('start');
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -221,12 +241,14 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = async (event) => {
-        if (event.data && event.data.size > 0 && socketRef.current?.connected) {
+        if (event.data && event.data.size > 0 && socketRef.current?.connected && !isErrorRef.current && !isStoppingRef.current) {
           try {
             const base64Audio = await convertAudioToBase64(event.data);
+            console.log(`📤 Emitting Audio Chunk: ${event.data.size} bytes`);
             socketRef.current.emit('audio', { audio: base64Audio });
           } catch (err) {
             console.error('Error converting audio to base64:', err);
+            isErrorRef.current = true;
             setError('Failed to process audio chunk');
           }
         }
@@ -241,8 +263,10 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
       mediaRecorder.start(1000);
       setIsRecording(true);
       setError(null);
+      isErrorRef.current = false;
       setInterimText('');
       setFinalText('');
+      fullTextRef.current = '';
       completionCalledRef.current = false;
       isStoppingRef.current = false;
       if (onStartRecording) {
@@ -264,11 +288,20 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
     }
   };
 
-  const handleStopRecording = () => {
+  const handleStopRecording = (emitEnd = true) => {
+    // Only stop if we are actually recording or a stop is not already in progress
+    if (!isRecording && !isStoppingRef.current) return;
+
+    console.log(`⏹️ Stopping recording (emitEnd: ${emitEnd})`);
     isStoppingRef.current = true;
-    
+    setIsRecording(false);
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (err) {
+        console.error('Error stopping MediaRecorder:', err);
+      }
     }
 
     if (streamRef.current) {
@@ -277,24 +310,25 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
     }
 
     if (audioContextRef.current) {
-      audioContextRef.current.close();
+      audioContextRef.current.close().catch(() => { });
       audioContextRef.current = null;
     }
 
-    if (socketRef.current?.connected) {
+    // Only emit 'end' if this was triggered by the user (not by the 'ended' server msg)
+    if (emitEnd && socketRef.current?.connected) {
       socketRef.current.emit('end');
     }
 
-    setIsRecording(false);
     if (onStopRecording) {
       onStopRecording();
     }
-    
-    // Reset stopping flag after a delay to allow any pending error messages to be ignored
+
+    // Reset stopping flag after a delay to prevent immediate re-triggering
     setTimeout(() => {
       isStoppingRef.current = false;
     }, 1000);
   };
+
 
   const handleCopyTranscription = () => {
     const textToCopy = finalText || interimText;
@@ -352,7 +386,7 @@ const VoiceTranscription = forwardRef<any, VoiceTranscriptionProps>(({
       ) : (
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
-            onClick={isRecording ? handleStopRecording : handleStartRecording}
+            onClick={() => isRecording ? handleStopRecording() : handleStartRecording()}
             disabled={!isConnected}
             style={{
               padding: '0.5rem 1rem',
