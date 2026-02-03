@@ -130,6 +130,16 @@ export default function Login() {
     }
   }
 
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      if (resetMode) {
+        handlePasswordReset()
+      } else {
+        handleLogin()
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md shadow-lg p-6 sm:p-8">
@@ -172,6 +182,7 @@ export default function Login() {
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   className="pl-11 py-5"
                 />
               </div>
@@ -184,6 +195,7 @@ export default function Login() {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   className="pl-11 pr-11 py-5"
                 />
                 <button
@@ -205,6 +217,7 @@ export default function Login() {
                   placeholder="New Password (min 8 chars)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   className="pl-11 pr-11 py-5"
                 />
                 <button
@@ -224,6 +237,7 @@ export default function Login() {
                   placeholder="Confirm New Password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   className="pl-11 pr-11 py-5"
                 />
               </div>
