@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote, FileText } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +32,7 @@ const navigationItems = [
   { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock, requiredModule: UI_MODULES.REMINDERS },
   { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS },
   { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote },
+  { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true },
 ];
 
 const doctorNavItems = [
@@ -142,6 +143,11 @@ export default function Navbar() {
 
   // Filter navigation items based on user permissions
   const visibleNavItems = filteredNavItems.filter(item => {
+    // If it's an admin-only item, check user role
+    if (item.isAdminOnly) {
+      return user?.role === 'Admin' || user?.designation_group === 'Admin';
+    }
+
     // If no required module specified, show the item
     if (!item.requiredModule) return true;
 
@@ -405,7 +411,7 @@ export default function Navbar() {
                 <Settings className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium">Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
                 onClick={() => setShowActiveSessions(true)}
               >
