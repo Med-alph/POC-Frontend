@@ -59,6 +59,7 @@ import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
 
 import BillingPage from "./Billing/BillingMainPage";
 import CashierDashboard from "./Billing/CashierDashboard";
+import InvoiceReports from "./Billing/InvoiceReports";
 import PatientDashboard from "./AppoinmentFlow/PatientDashboard";
 import AuthCallback from "./AppoinmentFlow/AuthCallback";
 
@@ -245,6 +246,14 @@ function HospitalApp() {
                 }
               />
               <Route path="/admin/attendance" element={<AdminAttendanceManagement />} />
+              <Route
+                path="/admin/invoice-reports"
+                element={
+                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                    <InvoiceReports />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Appointment Flow Routes */}
               <Route path="/landing" element={<LandingPage />} />

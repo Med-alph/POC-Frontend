@@ -75,6 +75,19 @@ const paymentsAPI = {
       body: JSON.stringify({ orderId, paymentId, signature, paymentMethod }),
     });
   },
+
+  // Get paginated and filterable invoice reports
+  getInvoiceReports: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/payments/invoice-reports?${queryString}` : '/payments/invoice-reports';
+    return apiRequest(endpoint);
+  },
 };
 
 export default paymentsAPI;
