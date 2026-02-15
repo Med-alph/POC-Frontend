@@ -136,8 +136,30 @@ export default function PatientDashboard() {
   const CALLS_PAGE_SIZE = 10;
 
   useEffect(() => {
-    const jwt = localStorage.getItem("auth_token");
-    if (!jwt) navigate("/landing", { replace: true });
+    // SOC 2: Check isAuthenticated flag, actual auth is via httpOnly cookie
+    const isAuth = localStorage.getItem("isAuthenticated");
+    if (!isAuth) {
+      navigate("/landing", { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      setLoading(true);
+      try {
+        // SOC 2: This call uses httpOnly cookie for authentication
+        const profile = await authAPI.getProfile();
+        setPatient(profile);
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+        // Clear auth state and redirect to landing
+        localStorage.removeItem("isAuthenticated");
+        navigate("/landing", { replace: true });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProfile();
   }, [navigate]);
 
   // Initialize Socket.IO connection for incoming calls
@@ -172,7 +194,7 @@ export default function PatientDashboard() {
         // WORKAROUND: If backend sent "Doctor", try to extract from meetingUrl
         if (!doctorName || doctorName === 'Doctor') {
           try {
-            const urlMatch = callData.meetingUrl?.match(/displayName="([^"]+)"/);
+            const urlMatch = callData.meetingUrl?.match(/displayName=\"([^\"]+)\"/);
             if (urlMatch && urlMatch[1]) {
               doctorName = decodeURIComponent(urlMatch[1]);
               console.log('🔔 Extracted doctor name from URL:', doctorName);
@@ -231,23 +253,6 @@ export default function PatientDashboard() {
       };
     }
   }, [patient]);
-
-  useEffect(() => {
-    async function fetchProfile() {
-      setLoading(true);
-      try {
-        const profile = await authAPI.getProfile();
-        setPatient(profile);
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
-        localStorage.removeItem("auth_token");
-        navigate("/landing", { replace: true });
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProfile();
-  }, [navigate]);
 
   useEffect(() => {
     if (!patient?.id) return;

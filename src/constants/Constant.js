@@ -14,14 +14,14 @@ const isLocal = false;   // Local development environment
 export const baseUrl = isProd
   ? "https://backend-emr.medalph.com/api"
   : isLocal
-    ? "http://localhost:9009/api"
+    ? "/api" // Relative path for Vite proxy
     : "";
 
-// Socket.IO URL (usually same as API base URL)
+// Socket.IO URL
 export const socketUrl = isProd
   ? "https://backend-emr.medalph.com"
   : isLocal
-    ? "http://localhost:9009"
+    ? "" // Relative path for Vite proxy
     : "";
 
 // Voice Processing Socket.IO URL
@@ -29,12 +29,17 @@ export const socketUrl = isProd
 // For transports: ['websocket'], it will use ws:// or wss:// automatically
 export const getVoiceProcessingSocketUrl = () => {
   const baseSocketUrl = socketUrl;
+
+  // If baseSocketUrl is empty (local proxy mode), return relative path
+  if (!baseSocketUrl && isLocal) {
+    return '/voice-processing';
+  }
+
   if (!baseSocketUrl) {
     return 'http://localhost:9009/voice-processing';
   }
-  
+
   // Socket.IO expects http/https, not ws/wss
-  // It will automatically upgrade to WebSocket when using transports: ['websocket']
   return `${baseSocketUrl}/voice-processing`;
 };
 
@@ -94,7 +99,8 @@ export const UI_MODULES = {
   AI_ANALYSIS: 'AI_ANALYSIS',
   REPORTS: 'REPORTS',
   CANCELLATION_REQUESTS: 'CANCELLATION_REQUESTS',
-  EMAIL_TEMPLATES: 'EMAIL_TEMPLATES'
+  EMAIL_TEMPLATES: 'EMAIL_TEMPLATES',
+  PROCEDURES: 'PROCEDURES'
 };
 
 export const UI_MODULE_LABELS = {
@@ -114,7 +120,8 @@ export const UI_MODULE_LABELS = {
   AI_ANALYSIS: 'AI Medical Analysis',
   REPORTS: 'Reports & Analytics',
   CANCELLATION_REQUESTS: 'Cancellation Requests',
-  EMAIL_TEMPLATES: 'Email Notifications'
+  EMAIL_TEMPLATES: 'Email Notifications',
+  PROCEDURES: 'Procedures'
 };
 
 // Plan Feature → UI Modules Mapping
@@ -138,6 +145,9 @@ export const PLAN_FEATURE_TO_MODULES = {
   ],
   'hospital_limit': [
     // Tenant-level feature, not user-level
+  ],
+  'procedures': [
+    UI_MODULES.PROCEDURES
   ],
 
   // Premium Features
@@ -170,6 +180,7 @@ export const MODULE_TO_PLAN_FEATURES = {
   [UI_MODULES.NOTIFICATIONS]: ['whatsapp_integration'],
   [UI_MODULES.EMAIL_TEMPLATES]: ['whatsapp_integration'],
   [UI_MODULES.AI_ANALYSIS]: ['ai_analysis'],
+  [UI_MODULES.PROCEDURES]: ['procedures'],
   [UI_MODULES.BILLING]: ['billing_management'], // Future
   [UI_MODULES.REPORTS]: ['reports_analytics'] // Future
 };

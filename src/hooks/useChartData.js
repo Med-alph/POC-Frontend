@@ -56,7 +56,10 @@ export function useChartData(endpoint, options = {}) {
           headers['X-Session-Id'] = sessionId;
         }
 
-        const response = await axios.get(url, { headers });
+        const response = await axios.get(url, {
+          headers,
+          withCredentials: true // SOC 2: Required for httpOnly cookies
+        });
 
         if (!isMounted) return;
         setData(response.data || null);

@@ -172,6 +172,11 @@ const LandingPage = () => {
                     placeholder="Enter 10-digit phone"
                     value={phone}
                     onChange={(e) => setPhone(phoneDigitsOnly(e.target.value))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !loading) {
+                        handleSendOTP();
+                      }
+                    }}
                     disabled={loading}
                     className="flex-1"
                   />

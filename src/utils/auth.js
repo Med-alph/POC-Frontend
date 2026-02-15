@@ -1,12 +1,13 @@
 // Authentication utility functions
+import { getSecureItem, SECURE_KEYS, setSecureItem, removeSecureItem } from './secureStorage'
 
 /**
- * Get the authentication token from localStorage
+ * Get the authentication token
+ * SOC 2: Tokens are now in httpOnly cookies, frontend can only access memory-cached token if available
  * @returns {string|null} The access token or null if not found
  */
 export const getAuthToken = () => {
-  // Check both 'auth_token' and 'access_token' for backward compatibility
-  return localStorage.getItem('auth_token') || localStorage.getItem('access_token')
+  return getSecureItem(SECURE_KEYS.JWT_TOKEN)
 }
 
 /**
@@ -33,24 +34,31 @@ export const getUserData = () => {
 }
 
 /**
- * Clear authentication data from localStorage
+ * Clear authentication data
  */
 export const clearAuthData = () => {
-  localStorage.removeItem('auth_token')
-  localStorage.removeItem('access_token')
+  removeSecureItem(SECURE_KEYS.JWT_TOKEN)
+  removeSecureItem(SECURE_KEYS.SESSION_ID)
   localStorage.removeItem('user')
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('loginResponse')
+  localStorage.removeItem('session_id')
+  sessionStorage.clear()
 }
 
 /**
- * Set authentication data in localStorage
+ * Set authentication data
+ * SOC 2: Token is in httpOnly cookie, we only cache in memory for immediate use
  * @param {string} token - Access token
  * @param {object} user - User data
  */
 export const setAuthData = (token, user) => {
-  // Store in both keys for backward compatibility
-  localStorage.setItem('auth_token', token)
-  localStorage.setItem('access_token', token)
-  localStorage.setItem('user', JSON.stringify(user))
+  if (token) {
+    setSecureItem(SECURE_KEYS.JWT_TOKEN, token)
+  }
+  if (user) {
+    localStorage.setItem('user', JSON.stringify(user))
+  }
 }
 
 /**
@@ -69,7 +77,7 @@ export const getAuthHeader = () => {
 export const isTokenExpired = () => {
   const token = getAuthToken()
   if (!token) return true
-  
+
   try {
     // Basic JWT token expiration check
     const payload = JSON.parse(atob(token.split('.')[1]))

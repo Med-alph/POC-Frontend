@@ -26,13 +26,13 @@ import toast from "react-hot-toast";
 import notificationsAPI from "../api/notifications";
 import socketService from "../services/socketService";
 import { useHospital } from "@/contexts/HospitalContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const patientNavItems = [
   { id: "patientDashboard", label: "Dashboard", path: "/patient-dashboard", icon: Home },
   //   { id: "profile", label: "Profile", path: "/patient-details-form", icon: UserCircle2 },
 ];
 
-// Tabs for patient flow
 const PATIENT_TABS = [
   { key: "appointments", label: "Appointments", icon: CalendarDays },
   { key: "reminders", label: "Reminders", icon: Bell },
@@ -44,6 +44,7 @@ const PATIENT_TABS = [
 export default function PatientNavbar({ patientName, patientRole, activeTab: activeTabProp, onTabChange, patientId }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { logout } = useAuth();
   const user = useSelector((state) => state.auth.user);
   const { hospitalInfo } = useHospital();
   const [activeNavTab, setActiveNavTab] = useState("");
@@ -144,8 +145,8 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
   //     });
   //   }, [notifications]);
 
-  const handleLogout = () => {
-    dispatch(clearCredentials());
+  const handleLogout = async () => {
+    await logout(true);
     navigate("/landing");
   };
 

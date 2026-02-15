@@ -7,7 +7,7 @@ export default function AuthCallback() {
 
   useEffect(() => {
     if (state?.token) {
-      localStorage.setItem("auth_token", state.token);
+      // SOC 2: Token is stored in httpOnly cookie by backend, no need for localStorage
       localStorage.setItem("isAuthenticated", "true");
       // Delay to ensure localStorage commits before route change
       setTimeout(() => {
