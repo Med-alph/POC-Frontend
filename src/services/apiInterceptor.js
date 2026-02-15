@@ -47,7 +47,7 @@ if (typeof window !== 'undefined' && originalFetch) {
   window.fetch = async function (url, options = {}) {
     // Skip interception for non-API requests or if URL is absolute external
     const isApiRequest = typeof url === 'string' && (
-      url.startsWith('/api') || 
+      url.startsWith('/api') ||
       url.includes('/api/') ||
       (url.startsWith('http') && url.includes('/api/'))
     );
@@ -56,84 +56,92 @@ if (typeof window !== 'undefined' && originalFetch) {
       return originalFetch.apply(this, arguments);
     }
 
-  // Get token and session ID from secure storage
-  const token = getSecureItem(SECURE_KEYS.JWT_TOKEN);
-  const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
+    // Get token and session ID from secure storage
+    const token = getSecureItem(SECURE_KEYS.JWT_TOKEN);
+    const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
 
-  // Check if body is FormData - if so, don't set Content-Type (browser will set it with boundary)
-  const isFormData = options.body instanceof FormData;
+    // Check if body is FormData - if so, don't set Content-Type (browser will set it with boundary)
+    const isFormData = options.body instanceof FormData;
 
-  // Prepare headers (copy existing headers)
-  const headers = { ...options.headers };
+    // Prepare headers (copy existing headers)
+    const headers = { ...options.headers };
 
-  // For FormData, remove Content-Type if it exists (browser will set it with boundary)
-  if (isFormData) {
-    delete headers['Content-Type'];
-    delete headers['content-type'];
-  } else if (!headers['Content-Type'] && !headers['content-type']) {
-    // Only set Content-Type for non-FormData requests if not already set
-    headers['Content-Type'] = 'application/json';
-  }
-
-  // Attach JWT token
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  // Attach session ID
-  if (sessionId) {
-    headers['X-Session-Id'] = sessionId;
-  }
-
-  // Merge with existing headers
-  const config = {
-    ...options,
-    headers,
-  };
-
-  try {
-    // Make the request
-    const response = await originalFetch(url, config);
-
-    // Handle session-related errors
-    if (response.status === 401) {
-      const errorData = await response.clone().json().catch(() => ({}));
-      
-      // Check if it's a session-specific error
-      const isSessionError = 
-        errorData.code === 'SESSION_INVALID' ||
-        errorData.code === 'SESSION_EXPIRED' ||
-        errorData.code === 'SESSION_REVOKED' ||
-        errorData.message?.toLowerCase().includes('session') ||
-        response.headers.get('X-Session-Status') === 'invalid';
-
-      if (isSessionError && sessionInvalidationHandler) {
-        const reason = errorData.message || 'Your session has expired or been revoked';
-        sessionInvalidationHandler(reason);
-        
-        // Return a rejected promise to prevent further processing
-        return Promise.reject(new Error(reason));
-      }
-      
-      // Regular 401 (invalid token, etc.)
-      if (sessionInvalidationHandler) {
-        sessionInvalidationHandler('Authentication failed. Please login again.');
-        return Promise.reject(new Error('Authentication failed'));
-      }
+    // For FormData, remove Content-Type if it exists (browser will set it with boundary)
+    if (isFormData) {
+      delete headers['Content-Type'];
+      delete headers['content-type'];
+    } else if (!headers['Content-Type'] && !headers['content-type']) {
+      // Only set Content-Type for non-FormData requests if not already set
+      headers['Content-Type'] = 'application/json';
     }
 
-    // Handle other error statuses
-    if (!response.ok && response.status >= 400) {
-      // Log error for debugging (in development)
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`[API Interceptor] Request failed: ${url}`, {
-          status: response.status,
-          statusText: response.statusText,
-        });
-      }
+    // Attach JWT token
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
-    return response;
+    // Attach session ID
+    if (sessionId) {
+      headers['X-Session-Id'] = sessionId;
+    }
+
+    // Merge with existing headers
+    const config = {
+      ...options,
+      credentials: 'include', // SOC 2: Required for httpOnly cookies
+      headers,
+    };
+
+    try {
+      // Make the request
+      const response = await originalFetch(url, config);
+
+      // Handle session-related errors
+      if (response.status === 401) {
+        const errorData = await response.clone().json().catch(() => ({}));
+
+        // Check if it's a session-specific error
+        const isSessionError =
+          errorData.code === 'SESSION_INVALID' ||
+          errorData.code === 'SESSION_EXPIRED' ||
+          errorData.code === 'SESSION_REVOKED' ||
+          errorData.message?.toLowerCase().includes('session') ||
+          response.headers.get('X-Session-Status') === 'invalid';
+
+        if (isSessionError && sessionInvalidationHandler) {
+          // SOC 2: Skip global logout trigger for the initial handshake itself
+          // if /auth/me fails, we handle it in AuthContext/authSlice without a redirect loop
+          const isHandshake = url.includes('/auth/me');
+          if (isHandshake) {
+            return Promise.reject(new Error('Session validation failed'));
+          }
+
+          const reason = errorData.message || 'Your session has expired or been revoked';
+          sessionInvalidationHandler(reason);
+
+          // Return a rejected promise to prevent further processing
+          return Promise.reject(new Error(reason));
+        }
+
+        // Regular 401 (invalid token, etc.)
+        if (sessionInvalidationHandler) {
+          sessionInvalidationHandler('Authentication failed. Please login again.');
+          return Promise.reject(new Error('Authentication failed'));
+        }
+      }
+
+      // Handle other error statuses
+      if (!response.ok && response.status >= 400) {
+        // Log error for debugging (in development)
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[API Interceptor] Request failed: ${url}`, {
+            status: response.status,
+            statusText: response.statusText,
+          });
+        }
+      }
+
+      return response;
     } catch (error) {
       // Network errors, etc.
       console.error('[API Interceptor] Request error:', error);

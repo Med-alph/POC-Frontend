@@ -1,5 +1,5 @@
 import React from "react"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,30 +9,33 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Shield, 
-  Users, 
-  Settings, 
-  BarChart3, 
-  UserCheck, 
+import {
+  Shield,
+  Users,
+  Settings,
+  BarChart3,
+  UserCheck,
   Key,
   ArrowLeft,
   LogOut
 } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 
+import { useAuth } from "../contexts/AuthContext";
+
 export default function AdminDashboard() {
   const { user } = useSelector((state) => state.auth)
+  const dispatch = useDispatch()
   const navigate = useNavigate()
   const { addToast: toast } = useToast()
+  const { logout } = useAuth();
 
   const isSuperAdmin = user?.permissions?.includes('roles:manage') || user?.role === 'super_admin'
   const isAdmin = user?.permissions?.includes('staff:assign_roles') || user?.role === 'admin'
 
-  const handleLogout = () => {
-    // Clear auth state and redirect to admin login
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('user')
+  const handleLogout = async () => {
+    // Clear auth state via central logout (SOC 2 compliant)
+    await logout(true);
     navigate('/admin/login')
     toast({
       title: "Logged Out",
@@ -127,7 +130,7 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -139,7 +142,7 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -158,11 +161,10 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {adminCards.map((card, index) => (
-              <Card 
-                key={index} 
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                  !card.available ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                }`}
+              <Card
+                key={index}
+                className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${!card.available ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                  }`}
                 onClick={() => card.available ? navigate(card.path) : null}
               >
                 <CardContent className="p-6">

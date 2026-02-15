@@ -23,6 +23,7 @@ class AppAdminAuthService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // SOC 2: Required for httpOnly cookies
         body: JSON.stringify({ email, password }),
       });
 
@@ -52,6 +53,7 @@ class AppAdminAuthService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // SOC 2: Required for httpOnly cookies
         body: JSON.stringify(userData),
       });
 
@@ -74,6 +76,7 @@ class AppAdminAuthService {
       const response = await fetch(`${API_BASE}/profile`, {
         method: 'GET',
         headers: this.getAuthHeaders(),
+        credentials: 'include', // SOC 2: Required for httpOnly cookies
       });
 
       const data = await response.json();
@@ -96,6 +99,7 @@ class AppAdminAuthService {
         await fetch(`${API_BASE}/logout`, {
           method: 'POST',
           headers: this.getAuthHeaders(),
+          credentials: 'include', // SOC 2: Required for httpOnly cookies
         });
       }
     } catch (error) {

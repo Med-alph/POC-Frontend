@@ -23,12 +23,14 @@ const handleResponse = async (response) => {
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_CONFIG.baseURL}${endpoint}`
   const token = getAuthToken()
-  
+
+  console.log(`[AuthAPI] Requesting: ${url}`);
   // Get session ID from secure storage
   const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID)
 
   const config = {
     ...options,
+    credentials: 'include', // SOC 2: Required for httpOnly cookies
     headers: {
       ...API_CONFIG.headers,
       ...(token && { Authorization: `Bearer ${token}` }),

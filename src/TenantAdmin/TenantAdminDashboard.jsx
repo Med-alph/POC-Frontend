@@ -18,11 +18,11 @@ import UsersRolesTab from "./StaffRoles/StaffsRolesTab";
 import StaffsRolesTab from "./StaffRoles/StaffsRolesTab";
 import HospitalPatinets from "./Patients/HospitalPatients";
 import RoleManagement from "./RoleManagement/RoleManagement";
-import HospitalConsentManagement from "@/components/compliance/HospitalConsentManagement";
-
+import { useAuth } from "../contexts/AuthContext";
 
 export default function TenantAdminDashboard() {
   const NAVBAR_HEIGHT = 84; // height of navbar in px
+  const { logout } = useAuth();
 
   const [activeTab, setActiveTab] = useState("overview");
   const [tenantInfo, setTenantInfo] = useState(null);
@@ -54,9 +54,8 @@ export default function TenantAdminDashboard() {
     fetchTenantInfo();
   }, [tenantId]);
 
-  const handleLogout = () => {
-    dispatch(clearCredentials());
-    navigate("/");
+  const handleLogout = async () => {
+    await logout(true);
   };
 
   const Navbar = () => (

@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-const InputOtp = ({ 
-  length = 6, 
-  value, 
-  onChange, 
-  disabled, 
+const InputOtp = ({
+  length = 6,
+  value,
+  onChange,
+  onComplete,
+  disabled,
   className,
-  autoFocus = true 
+  autoFocus = true
 }) => {
   const [digits, setDigits] = useState(Array(length).fill(""));
   const inputRefs = useRef([]);
@@ -42,9 +43,23 @@ const InputOtp = ({
     if (newValue && index < length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
+
+    // Trigger onComplete if all digits are filled
+    if (newValue && index === length - 1 && newDigits.every(d => d)) {
+      onComplete?.();
+    }
   };
 
   const handleKeyDown = (index, e) => {
+    // Handle Enter key - trigger onComplete if OTP is complete
+    if (e.key === "Enter") {
+      const otpValue = digits.join("");
+      if (otpValue.length === length) {
+        onComplete?.();
+      }
+      return;
+    }
+
     // Handle backspace
     if (e.key === "Backspace" && !digits[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
@@ -71,7 +86,7 @@ const InputOtp = ({
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text");
     const pastedDigits = pastedData.slice(0, length).split("").filter(d => /^\d$/.test(d));
-    
+
     const newDigits = [...digits];
     pastedDigits.forEach((digit, i) => {
       if (i < length) {
@@ -90,7 +105,7 @@ const InputOtp = ({
   };
 
   return (
-    <div 
+    <div
       className={cn("flex gap-2 justify-center", className)}
       role="group"
       aria-label="One-time password input"

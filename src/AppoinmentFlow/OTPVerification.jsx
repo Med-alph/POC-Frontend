@@ -67,7 +67,7 @@ const OTPVerification = () => {
       console.log("OTP verification API response:", res);
       if (res.success && res.token) {
         toast.success("OTP verified successfully");
-        localStorage.setItem("auth_token", res.token);
+        // SOC 2: Token is stored in httpOnly cookie by backend, no need for localStorage
 
         if (res.isNewPatient) {
           setUserId(res.patient?.id || null);
@@ -126,8 +126,8 @@ const OTPVerification = () => {
 
   const handleRegistrationComplete = (patient) => {
     // After creation AND consent, handle login/navigation
-    if (patient?.token) {
-      localStorage.setItem("auth_token", patient.token);
+    // SOC 2: Token is stored in httpOnly cookie by backend, no need for localStorage
+    if (patient) {
       localStorage.setItem("isAuthenticated", "true");
       navigate("/patient-dashboard", { replace: true });
       toast.success("Registration complete!");
@@ -193,6 +193,7 @@ const OTPVerification = () => {
                   length={6}
                   value={otp}
                   onChange={setOtp}
+                  onComplete={handleVerifyOtp}
                   disabled={loading}
                   autoFocus={true}
                 />

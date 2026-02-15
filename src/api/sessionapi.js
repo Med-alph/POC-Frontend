@@ -42,6 +42,7 @@ const apiRequest = async (endpoint, options = {}) => {
 
   const config = {
     ...options,
+    credentials: 'include', // SOC 2: Required for httpOnly cookies
     headers: {
       ...API_CONFIG.headers,
       ...(token && { Authorization: `Bearer ${token}` }),

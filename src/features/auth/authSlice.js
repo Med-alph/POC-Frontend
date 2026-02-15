@@ -1,22 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { getSecureItem, setSecureItem, removeSecureItem, SECURE_KEYS } from '../../utils/secureStorage'
+import { baseUrl } from '../../constants/Constant'
 
 // Initial state - check secure storage first, then localStorage for backward compatibility
 const getInitialToken = () => {
-  const secureToken = getSecureItem(SECURE_KEYS.JWT_TOKEN)
-  if (secureToken) return secureToken
-  // Fallback to localStorage - restore to memory storage if found
-  const localStorageToken = localStorage.getItem('access_token')
-  if (localStorageToken) {
-    // Restore to memory storage for consistency
-    setSecureItem(SECURE_KEYS.JWT_TOKEN, localStorageToken)
-    // Also restore session_id if available
-    const localStorageSessionId = localStorage.getItem('session_id')
-    if (localStorageSessionId) {
-      setSecureItem(SECURE_KEYS.SESSION_ID, localStorageSessionId)
-    }
-    return localStorageToken
-  }
+  // SOC 2: Tokens are now in httpOnly cookies, frontend doesn't manage them
   return null
 }
 
@@ -32,7 +20,7 @@ const getInitialUser = () => {
 const initialState = {
   token: getInitialToken(),
   user: getInitialUser(),
-  isAuthenticated: !!getInitialToken(),
+  isAuthenticated: !!localStorage.getItem('user'), // Use existence of user as indicator
   loading: false,
   error: null,
 }
@@ -42,11 +30,12 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${baseUrl}/auth/staff/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // SOC 2: Required for httpOnly cookies
         body: JSON.stringify(credentials),
       })
 
@@ -66,18 +55,51 @@ export const loginUser = createAsyncThunk(
 // Async thunk for logout
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
-  async (_, { getState }) => {
-    const { token } = getState().auth
+  async (_, { dispatch }) => {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch(`${baseUrl}/auth/logout`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // SOC 2: Required for httpOnly cookies
       })
+      dispatch(clearCredentials())
     } catch (error) {
       console.error('Logout API error:', error)
+      // Still clear credentials on frontend even if backend fails
+      dispatch(clearCredentials())
+    }
+  }
+)
+
+// Async thunk to check auth status on app load
+export const checkAuth = createAsyncThunk(
+  'auth/checkAuth',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${baseUrl}/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // SOC 2: Required for httpOnly cookies
+      })
+
+      if (!response.ok) {
+        throw new Error('Session expired')
+      }
+
+      const data = await response.json()
+
+      // Side effects belong in the thunk, not the reducer
+      if (data.access_token) {
+        setSecureItem(SECURE_KEYS.JWT_TOKEN, data.access_token)
+      }
+
+      return data
+    } catch (error) {
+      return rejectWithValue(error.message)
     }
   }
 )
@@ -92,21 +114,19 @@ const authSlice = createSlice({
       state.user = user
       state.isAuthenticated = true
       state.error = null
-      
-      // Store in secure storage (memory) - primary storage
+
+      // Store in memory for immediate use
       setSecureItem(SECURE_KEYS.JWT_TOKEN, access_token)
       if (session_id) {
         setSecureItem(SECURE_KEYS.SESSION_ID, session_id)
       }
-      
-      // Store in localStorage for persistence across page refreshes
-      localStorage.setItem('access_token', access_token)
+
+      // SOC 2: Token is in httpOnly cookie, don't store in localStorage
       localStorage.setItem('user', JSON.stringify(user))
-      localStorage.setItem('loginResponse', JSON.stringify(action.payload))
       if (session_id) {
         localStorage.setItem('session_id', session_id)
       }
-      
+
       // Extract tenant/hospital IDs from token and store securely
       try {
         const base64Url = access_token.split('.')[1]
@@ -127,15 +147,14 @@ const authSlice = createSlice({
       state.user = null
       state.isAuthenticated = false
       state.error = null
-      
+
       // Clear secure storage
       removeSecureItem(SECURE_KEYS.JWT_TOKEN)
       removeSecureItem(SECURE_KEYS.SESSION_ID)
       removeSecureItem(SECURE_KEYS.TENANT_ID)
       removeSecureItem(SECURE_KEYS.HOSPITAL_ID)
-      
+
       // Clear localStorage
-      localStorage.removeItem('access_token')
       localStorage.removeItem('user')
       localStorage.removeItem('auth_token')
       localStorage.removeItem('loginResponse')
@@ -162,21 +181,20 @@ const authSlice = createSlice({
         state.user = user
         state.isAuthenticated = true
         state.error = null
-        
+
         // Store in secure storage (memory) - primary storage
         setSecureItem(SECURE_KEYS.JWT_TOKEN, access_token)
         if (session_id) {
           setSecureItem(SECURE_KEYS.SESSION_ID, session_id)
         }
-        
+
         // Store in localStorage for persistence across page refreshes
-        localStorage.setItem('access_token', access_token)
         localStorage.setItem('user', JSON.stringify(user))
         localStorage.setItem('loginResponse', JSON.stringify(action.payload))
         if (session_id) {
           localStorage.setItem('session_id', session_id)
         }
-        
+
         // Extract tenant/hospital IDs from token
         try {
           const base64Url = access_token.split('.')[1]
@@ -197,24 +215,33 @@ const authSlice = createSlice({
         state.error = action.payload
         state.isAuthenticated = false
       })
+      // Check Auth
+      .addCase(checkAuth.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(checkAuth.fulfilled, (state, action) => {
+        const { user, access_token } = action.payload
+        state.loading = false
+        state.user = user
+        state.token = access_token
+        state.isAuthenticated = true
+        state.error = null
+
+        // localStorage sync for user profile (non-sensitive)
+        localStorage.setItem('user', JSON.stringify(user))
+      })
+      .addCase(checkAuth.rejected, (state, action) => {
+        state.loading = false
+        state.isAuthenticated = false
+        state.user = null
+        localStorage.removeItem('user')
+      })
       // Logout
       .addCase(logoutUser.fulfilled, (state) => {
         state.token = null
         state.user = null
         state.isAuthenticated = false
         state.error = null
-        
-        // Clear secure storage
-        removeSecureItem(SECURE_KEYS.JWT_TOKEN)
-        removeSecureItem(SECURE_KEYS.SESSION_ID)
-        removeSecureItem(SECURE_KEYS.TENANT_ID)
-        removeSecureItem(SECURE_KEYS.HOSPITAL_ID)
-        
-        // Clear localStorage
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('user')
-        localStorage.removeItem('loginResponse')
-        localStorage.removeItem('session_id')
       })
   },
 })

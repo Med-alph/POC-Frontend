@@ -1,4 +1,5 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote, FileText } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote, FileText, Clipboard } from "lucide-react"
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,7 +41,9 @@ const doctorNavItems = [
   { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "FulfilledRecords", label: "Fulfilled Patient Records", path: "/fulfilled-records", icon: Users, requiredModule: UI_MODULES.PATIENTS },
   { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
-  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles }, { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
+  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles },
+  { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
+  { id: "Procedures", label: "Procedures", path: "/procedures", icon: Clipboard, requiredModule: UI_MODULES.PROCEDURES },
 ];
 
 export default function Navbar() {

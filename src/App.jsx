@@ -54,6 +54,7 @@ import TenantAdminLogin from "./TenantAdmin/TenantAdminLogin";
 import TenantAdminDashboard from "./TenantAdmin/TenantAdminDashboard";
 import Notifications from "./Dashboard/Notifications";
 import DoctorCancellationRequests from "./Doctors/DoctorCancellationRequests";
+import ProceduresPage from "./Doctors/ProceduresPage";
 import LeaveManagement from "./Admin/LeaveManagement";
 import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
 
@@ -99,7 +100,7 @@ function HospitalApp() {
   ];
 
   const patientRoutes = [
-    "/landing", "/otp-verification", "/appointment", "/confirmation", "/patient-details", "/patient-details-form"
+    "/landing", "/otp-verification", "/appointment", "/confirmation", "/patient-details", "/patient-details-form", "/patient-dashboard"
   ];
 
   // Compliance pages should not show navbar or be wrapped by TermsGuard
@@ -122,10 +123,11 @@ function HospitalApp() {
   const shouldShowFooter = shouldShowNavbar; // Show footer wherever navbar is shown
 
   // Check if current route should be wrapped by TermsGuard
+  // Exclude patient routes since they use cookie-based auth without Redux user state
   const shouldUseTermsGuard =
     !authRoutes.includes(location.pathname) &&
-    !complianceRoutes.includes(location.pathname);
-  // !location.pathname.startsWith('/app-admin'); // Removed
+    !complianceRoutes.includes(location.pathname) &&
+    !patientRoutes.includes(location.pathname);
 
   const { hospitalInfo, loading } = useHospital();
   const subdomain = getSubdomain();
@@ -164,6 +166,7 @@ function HospitalApp() {
               <Route path="/reminders" element={<Reminders />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
+              <Route path="/procedures" element={<ProceduresPage />} />
               <Route path="/TenantListPage" element={<TenantListPage />} />
               <Route path="/Staffs" element={<StaffListPage />} />
               <Route
@@ -279,6 +282,16 @@ function HospitalApp() {
             <Route path="/" element={<Login />} />
             <Route path="/forgotpassword" element={<ForgotPassword />} />
             <Route path="/change-password" element={<ChangePassword />} />
+
+            {/* Patient Routes - No TermsGuard (cookie-based auth) */}
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/patient-details" element={<PatientDetails />} />
+            <Route path="/otp-verification" element={<OTPVerification />} />
+            <Route path="/appointment" element={<AppointmentPage />} />
+            <Route path="/confirmation" element={<ConfirmationPage />} />
+            <Route path="/patient-details-form" element={<PatientDetailsForm />} />
+            <Route path="/patient-dashboard" element={<PatientDashboard />} />
+            <Route path="/auth-callback" element={<AuthCallback />} />
 
             {/* Compliance Routes - No TermsGuard, No Navbar */}
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
