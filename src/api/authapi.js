@@ -83,7 +83,15 @@ export const authAPI = {
 
   // Get current user profile
   getProfile: async () => {
-    return apiRequest('/auth/profile')
+    const token = getAuthToken()
+    if (!token) {
+      throw new Error('Authentication token is required for profile access')
+    }
+    return apiRequest('/auth/profile', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
   },
 
   // Update user profile

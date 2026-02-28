@@ -10,6 +10,7 @@ import authAPI from "@/api/authapi";
 import InputOtp from "@/components/InputOtp";
 import AddPatientDialog from "@/Patients/AddPatient";
 import patientsAPI from "../api/patientsapi";
+import { setAuthData } from "@/utils/auth";
 
 const OTPVerification = () => {
   const navigate = useNavigate();
@@ -67,7 +68,9 @@ const OTPVerification = () => {
       console.log("OTP verification API response:", res);
       if (res.success && res.token) {
         toast.success("OTP verified successfully");
-        // SOC 2: Token is stored in httpOnly cookie by backend, no need for localStorage
+        // SOC 2: Token is stored in httpOnly cookie by backend via Set-Cookie header
+        // Also store in secure storage (memory) for immediate use by frontend
+        setAuthData(res.token, res.user || res.patient);
 
         if (res.isNewPatient) {
           setUserId(res.patient?.id || null);

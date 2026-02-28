@@ -101,11 +101,137 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const formatInsights = (insights) => {
+  const formatInsights = (insights, intent = null) => {
     if (!insights) return '';
     
     let formatted = '';
     
+    // Handle visit_comparison intent structure
+    if (intent === 'visit_comparison' || insights.currentVisitSoapSummary || insights.previousVisitSoapSummary) {
+      // Summary
+      if (insights.summary) {
+        formatted += `📋 ${insights.summary}\n\n`;
+      }
+      
+      // Clinical Trends - prominently displayed
+      if (insights.clinicalTrends) {
+        formatted += `🔍 Clinical Trends:\n${insights.clinicalTrends}\n\n`;
+      }
+      
+      // Current Visit SOAP Summary
+      if (insights.currentVisitSoapSummary) {
+        const current = insights.currentVisitSoapSummary;
+        formatted += '📝 Current Visit Summary:\n';
+        
+        if (current.subjective && current.subjective !== 'No previous visit data available for comparison.') {
+          formatted += `\nSubjective:\n${current.subjective}\n`;
+        }
+        if (current.objective && current.objective !== 'No previous visit data available for comparison.') {
+          formatted += `\nObjective:\n${current.objective}\n`;
+        }
+        if (current.assessment && current.assessment !== 'No previous visit data available for comparison.') {
+          formatted += `\nAssessment:\n${current.assessment}\n`;
+        }
+        if (current.plan && current.plan !== 'No previous visit data available for comparison.') {
+          formatted += `\nPlan:\n${current.plan}\n`;
+        }
+        formatted += '\n';
+      }
+      
+      // Previous Visit SOAP Summary (if available)
+      if (insights.previousVisitSoapSummary) {
+        const previous = insights.previousVisitSoapSummary;
+        const hasPreviousData = previous.subjective && previous.subjective !== 'No previous visit data available for comparison.';
+        
+        if (hasPreviousData) {
+          formatted += '📋 Previous Visit Summary:\n';
+          if (previous.subjective) {
+            formatted += `\nSubjective:\n${previous.subjective}\n`;
+          }
+          if (previous.objective) {
+            formatted += `\nObjective:\n${previous.objective}\n`;
+          }
+          if (previous.assessment) {
+            formatted += `\nAssessment:\n${previous.assessment}\n`;
+          }
+          if (previous.plan) {
+            formatted += `\nPlan:\n${previous.plan}\n`;
+          }
+          formatted += '\n';
+        }
+      }
+      
+      // Changes
+      if (insights.symptomChanges && Array.isArray(insights.symptomChanges) && 
+          insights.symptomChanges.length > 0 && 
+          !insights.symptomChanges[0].includes('No previous visit data')) {
+        formatted += '🔄 Symptom Changes:\n';
+        insights.symptomChanges.forEach(change => {
+          formatted += `• ${change}\n`;
+        });
+        formatted += '\n';
+      }
+      
+      if (insights.vitalSignChanges && 
+          insights.vitalSignChanges !== 'No previous visit data to compare vital signs.') {
+        formatted += `📊 Vital Sign Changes:\n${insights.vitalSignChanges}\n\n`;
+      }
+      
+      if (insights.medicationChanges && Array.isArray(insights.medicationChanges) && 
+          insights.medicationChanges.length > 0 && 
+          !insights.medicationChanges[0].includes('No previous visit data')) {
+        formatted += '💊 Medication Changes:\n';
+        insights.medicationChanges.forEach(change => {
+          formatted += `• ${change}\n`;
+        });
+        formatted += '\n';
+      }
+      
+      if (insights.labChanges && Array.isArray(insights.labChanges) && 
+          insights.labChanges.length > 0 && 
+          !insights.labChanges[0].includes('No previous visit data')) {
+        formatted += '🧪 Lab Changes:\n';
+        insights.labChanges.forEach(change => {
+          formatted += `• ${change}\n`;
+        });
+        formatted += '\n';
+      }
+      
+      // Improvements
+      if (insights.improvements && Array.isArray(insights.improvements) && 
+          insights.improvements.length > 0 && 
+          !insights.improvements[0].includes('No previous visit data')) {
+        formatted += '✅ Improvements:\n';
+        insights.improvements.forEach(improvement => {
+          formatted += `• ${improvement}\n`;
+        });
+        formatted += '\n';
+      }
+      
+      // Worsening
+      if (insights.worsening && Array.isArray(insights.worsening) && 
+          insights.worsening.length > 0 && 
+          !insights.worsening[0].includes('No previous visit data')) {
+        formatted += '⚠️ Worsening:\n';
+        insights.worsening.forEach(item => {
+          formatted += `• ${item}\n`;
+        });
+        formatted += '\n';
+      }
+      
+      // Warnings
+      if (insights.warnings && Array.isArray(insights.warnings) && insights.warnings.length > 0) {
+        formatted += '🚨 Warnings:\n';
+        insights.warnings.forEach(warning => {
+          formatted += `• ${warning}\n`;
+        });
+        formatted += '\n';
+      }
+      
+      return formatted.trim();
+    }
+    
+    // Handle other intents (existing logic)
     if (insights.summary) {
       formatted += insights.summary + '\n\n';
     }
@@ -244,7 +370,9 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
       let suggestedActions = null;
 
       if (response.insights) {
-        assistantContent = formatInsights(response.insights);
+        // Pass intent from response to formatInsights for proper formatting
+        const intent = response.intent || intentHint;
+        assistantContent = formatInsights(response.insights, intent);
       } else if (response.message) {
         assistantContent = response.message;
       } else {
@@ -301,7 +429,9 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
       'review_labs': 'Lab Results',
       'review_medications': 'Medications',
       'review_allergies': 'Allergies & Notes',
-      'review_insights': 'Appointments' // Default tab
+      'review_insights': 'Appointments', // Default tab
+      'review_medication_changes': 'Medications', // Visit comparison action
+      'review_lab_changes': 'Lab Results' // Visit comparison action
     };
     
     const targetTab = tabMap[actionType];
