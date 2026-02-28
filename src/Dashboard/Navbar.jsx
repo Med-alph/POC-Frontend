@@ -34,6 +34,7 @@ const navigationItems = [
   { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS },
   { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote },
   { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true },
+  { id: "master-procedures", label: "Master Procedures", path: "/admin/master-procedures", icon: Clipboard, isAdminOnly: true, requiredModule: UI_MODULES.PROCEDURES },
 ];
 
 const doctorNavItems = [
@@ -43,7 +44,6 @@ const doctorNavItems = [
   { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
   { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles },
   { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
-  { id: "Procedures", label: "Procedures", path: "/procedures", icon: Clipboard, requiredModule: UI_MODULES.PROCEDURES },
 ];
 
 export default function Navbar() {
@@ -146,21 +146,20 @@ export default function Navbar() {
 
   // Filter navigation items based on user permissions
   const visibleNavItems = filteredNavItems.filter(item => {
-    // If it's an admin-only item, check user role
+    // 1. Check Admin Only restriction
     if (item.isAdminOnly) {
-      return user?.role === 'Admin' || user?.designation_group === 'Admin';
+      const isAdmin = user?.role === 'Admin' || user?.designation_group === 'Admin' || user?.role === 'tenant_admin' || user?.role === 'HOSPITAL_ADMIN';
+      if (!isAdmin) return false;
     }
 
-    // If no required module specified, show the item
+    // 2. Check Module restriction
     if (!item.requiredModule) return true;
 
-    // If permissions are still loading, don't show items that require permissions
+    // If permissions are still loading, wait
     if (permissionsLoading) return false;
 
     // Check if user has permission for this module
-    const hasPermission = hasModule(item.requiredModule);
-    console.log(`Navigation item: ${item.label}, Required: ${item.requiredModule}, Has Permission: ${hasPermission}`);
-    return hasPermission;
+    return hasModule(item.requiredModule);
   });
 
   console.log('All filtered nav items:', filteredNavItems.map(item => item.label));

@@ -14,10 +14,10 @@ import {
 import { Input } from "@/components/ui/input";
 import tenantsuperadminapi from "../api/tenantsuperadminapi"
 import HospitalListTable from "./Hospitals/HospitalListTable";
-import UsersRolesTab from "./StaffRoles/StaffsRolesTab";
 import StaffsRolesTab from "./StaffRoles/StaffsRolesTab";
 import HospitalPatinets from "./Patients/HospitalPatients";
 import RoleManagement from "./RoleManagement/RoleManagement";
+import ProcedureList from "./Procedures/ProcedureList";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function TenantAdminDashboard() {
@@ -80,17 +80,6 @@ export default function TenantAdminDashboard() {
 
         {/* Right side */}
         <div className="flex items-center space-x-4">
-          {/* Search */}
-          {/* <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
-            <Input
-              type="text"
-              placeholder="Search patients, doctors..."
-              className="pl-10 pr-4 py-2 w-80 bg-white/10 border-white/20 text-white placeholder-gray-300 focus:bg-white focus:text-gray-900 focus:placeholder-gray-500 transition duration-200"
-            />
-          </div> */}
-
-          {/* Notification */}
           <button className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition duration-200 group">
             <Bell className="h-5 w-5 text-white group-hover:scale-110 transition-transform duration-200" />
             <span className="absolute top-1 right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-blue-700"></span>
@@ -149,13 +138,9 @@ export default function TenantAdminDashboard() {
           {[
             { id: "overview", label: "Tenant Overview" },
             { id: "hospitals", label: "Hospitals" },
-            { id: "hospitals-staffs", label: "Hospitals Staffs" },           // New tab: Operational metrics & health stats per hospital
-            { id: "roles-access", label: "Roles & Access" },                // New tab: Role-based access control
-            // { id: "patient-consent", label: "Patient Consent" },            // New tab: Hospital consent management
-            // { id: "hospital-staff", label: "Hospital Staff" },           // New tab: Manage hospital staff & departments
-            // { id: "compliance", label: "Compliance & Documents" },       // New tab: Licensing, certifications, document management
-            // { id: "notifications", label: "Notifications & Alerts" },    // New tab: Admin alerts & warnings
-            // { id: "audit-logs", label: "Audit Logs" },                   // New tab: Activity logs and change tracking
+            { id: "procedures", label: "Master Procedures" },
+            { id: "hospitals-staffs", label: "Hospitals Staffs" },
+            { id: "roles-access", label: "Roles & Access" },
             { id: "hospitals-patients", label: "Hospitals Patients" },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
@@ -177,7 +162,6 @@ export default function TenantAdminDashboard() {
     </div>
   );
 
-  // Tenant overview content with neat left-aligned layout
   const renderTenantOverview = () => {
     if (loadingTenant) {
       return (
@@ -262,7 +246,6 @@ export default function TenantAdminDashboard() {
     );
   };
 
-  // Components for improved info presentation
   const InfoItem = ({ label, value }) => (
     <div className="flex flex-col">
       <span className="text-sm font-semibold text-gray-500 mb-1">{label}</span>
@@ -283,6 +266,8 @@ export default function TenantAdminDashboard() {
         return renderTenantOverview();
       case "hospitals":
         return <HospitalListTable />;
+      case "procedures":
+        return <ProcedureList />;
       case "hospitals-staffs":
         return <StaffsRolesTab />;
       case "roles-access":
