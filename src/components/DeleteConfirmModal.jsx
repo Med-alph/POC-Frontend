@@ -2,16 +2,7 @@ import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const DeleteConfirmModal = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  title,
-  message,
-  itemName,
-  isDeleting = false,
-  confirmLabel = 'Delete Session',
-}) => {
+const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, message, itemName, isDeleting = false }) => {
   if (!isOpen) return null;
 
   return (
@@ -84,7 +75,7 @@ const DeleteConfirmModal = ({
                 Deleting...
               </>
             ) : (
-              confirmLabel
+              'Delete Session'
             )}
           </Button>
         </div>

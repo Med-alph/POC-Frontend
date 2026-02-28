@@ -55,9 +55,6 @@ import TenantAdminDashboard from "./TenantAdmin/TenantAdminDashboard";
 import Notifications from "./Dashboard/Notifications";
 import DoctorCancellationRequests from "./Doctors/DoctorCancellationRequests";
 import ProceduresPage from "./Doctors/ProceduresPage";
-import ProcedureDashboard from "./modules/procedure/pages/ProcedureDashboard";
-import CreateProcedure from "./modules/procedure/pages/CreateProcedure";
-import ProcedureDetails from "./modules/procedure/pages/ProcedureDetails";
 import LeaveManagement from "./Admin/LeaveManagement";
 import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
 
@@ -169,9 +166,7 @@ function HospitalApp() {
               <Route path="/reminders" element={<Reminders />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
-              <Route path="/procedures" element={<ProcedureDashboard />} />
-              <Route path="/procedures/create" element={<CreateProcedure />} />
-              <Route path="/procedures/:id" element={<ProcedureDetails />} />
+              <Route path="/procedures" element={<ProceduresPage />} />
               <Route path="/TenantListPage" element={<TenantListPage />} />
               <Route path="/Staffs" element={<StaffListPage />} />
               <Route

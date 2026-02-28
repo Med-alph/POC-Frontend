@@ -8,9 +8,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import consultationsAPI from "../../api/consultationsapi";
 import CopilotPanel from "@/components/CopilotPanel";
-import { PatientProcedures } from "../../modules/procedure/pages/PatientProcedures";
 
-const tabs = ["Appointments", "SOAP Notes", "Medications", "Lab Results", "Allergies & Notes", 'Gallery', 'Procedures'];
+const tabs = ["Appointments", "SOAP Notes", "Medications", "Lab Results", "Allergies & Notes", 'Gallery'];
 
 const DoctorPatientRecord = () => {
     const { patientId } = useParams();
@@ -399,7 +398,6 @@ const DoctorPatientRecord = () => {
                                     "Lab Results": FlaskConical,
                                     "Allergies & Notes": AlertCircle,
                                     "Gallery": GalleryThumbnails,
-                                    "Procedures": Stethoscope,
                                 };
                                 const Icon = tabIcons[tab] || FileText;
                                 return (
@@ -676,10 +674,6 @@ const DoctorPatientRecord = () => {
                                     </CardContent>
                                 </Card>
                             </div>
-                        )}
-
-                        {activeTab === "Procedures" && (
-                            <PatientProcedures patientId={patientId} />
                         )}
 
 
