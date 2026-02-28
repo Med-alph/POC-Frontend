@@ -495,14 +495,6 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
                   >
                     Start Consultation
                   </Button>
-                  {(selectedAppointment.status?.toLowerCase() === "fulfilled" || selectedAppointment.status?.toLowerCase() === "completed") && (
-                    <Button
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 text-sm font-medium rounded-md"
-                      onClick={() => navigate(`/billing/${selectedAppointment.id}`)}
-                    >
-                      Billing 💳
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>

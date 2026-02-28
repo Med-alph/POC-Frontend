@@ -57,6 +57,7 @@ import DoctorCancellationRequests from "./Doctors/DoctorCancellationRequests";
 import ProceduresPage from "./Doctors/ProceduresPage";
 import LeaveManagement from "./Admin/LeaveManagement";
 import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
+import MasterProcedures from "./Admin/MasterProcedures";
 
 import BillingPage from "./Billing/BillingMainPage";
 import CashierDashboard from "./Billing/CashierDashboard";
@@ -254,6 +255,14 @@ function HospitalApp() {
                 element={
                   <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
                     <InvoiceReports />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/master-procedures"
+                element={
+                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                    <MasterProcedures />
                   </ProtectedRoute>
                 }
               />

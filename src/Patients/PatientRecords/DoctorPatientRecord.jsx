@@ -9,14 +9,14 @@ import 'jspdf-autotable';
 import consultationsAPI from "../../api/consultationsapi";
 import CopilotPanel from "@/components/CopilotPanel";
 
-const tabs = ["Appointments", "SOAP Notes", "Medications", "Lab Results", "Allergies & Notes", 'Gallery'];
+const tabs = ["Appointments", "SOAP Notes", "Procedures", "Medications", "Lab Results", "Allergies & Notes", 'Gallery'];
 
 const DoctorPatientRecord = () => {
     const { patientId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const [activeTab, setActiveTab] = useState(tabs[0]);
-    
+
     // Check if navigation state contains activeTab
     useEffect(() => {
         if (location.state?.activeTab && tabs.includes(location.state.activeTab)) {
@@ -244,6 +244,31 @@ const DoctorPatientRecord = () => {
                 yPosition += 5;
             }
 
+            if (consultation.procedures && consultation.procedures.length > 0) {
+                if (yPosition > contentBottomLimit - 20) {
+                    doc.addPage();
+                    addFooter(doc, doctorDisplayName, department);
+                    yPosition = 20;
+                }
+                doc.setFont(undefined, 'bold');
+                doc.text('Procedures Performed:', 14, yPosition);
+                yPosition += 7;
+                consultation.procedures.forEach((proc) => {
+                    doc.setFont(undefined, 'normal');
+                    doc.text(
+                        `• ${proc.procedure?.name || 'Procedure'} - ₹${proc.actual_price_charged}`,
+                        20, yPosition
+                    );
+                    yPosition += 5;
+                    if (proc.doctor_notes) {
+                        const noteLines = doc.splitTextToSize(`Notes: ${proc.doctor_notes}`, 160);
+                        doc.text(noteLines, 25, yPosition);
+                        yPosition += (noteLines.length * 5);
+                    }
+                });
+                yPosition += 5;
+            }
+
             doc.setDrawColor(200, 200, 200);
             doc.line(14, yPosition, 196, yPosition);
             yPosition += 10;
@@ -394,6 +419,7 @@ const DoctorPatientRecord = () => {
                                 const tabIcons = {
                                     "Appointments": CalendarDays,
                                     "SOAP Notes": FileText,
+                                    "Procedures": Activity,
                                     "Medications": Pill,
                                     "Lab Results": FlaskConical,
                                     "Allergies & Notes": AlertCircle,
@@ -521,6 +547,51 @@ const DoctorPatientRecord = () => {
                                     <div className="text-center py-12">
                                         <FileText className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                                         <p className="text-gray-500 dark:text-gray-400">No SOAP notes found</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === "Procedures" && (
+                            <div className="space-y-4">
+                                {consultations.flatMap(c => c.procedures || []).length > 0 ? (
+                                    consultations.map((consultation) =>
+                                        consultation.procedures?.map((proc, i) => (
+                                            <Card key={`${consultation.id}-${i}`} className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20">
+                                                <CardContent className="p-5">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                                            <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between">
+                                                                <p className="font-bold text-lg text-gray-900 dark:text-white mb-1">{proc.procedure?.name || 'Unknown Procedure'}</p>
+                                                                <p className="font-mono text-blue-700 dark:text-blue-400 font-bold">₹{proc.actual_price_charged}</p>
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs font-semibold">
+                                                                    {proc.procedure?.category}
+                                                                </span>
+                                                            </div>
+                                                            {proc.doctor_notes && (
+                                                                <div className="mt-2 text-sm text-gray-700 dark:text-gray-300 p-2 bg-white/50 dark:bg-gray-800/50 rounded-lg border border-blue-100 dark:border-blue-900">
+                                                                    <span className="font-semibold block mb-1">Doctor's Notes:</span>
+                                                                    {proc.doctor_notes}
+                                                                </div>
+                                                            )}
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                                                Performed on {formatDate(consultation.consultation_date)} by Dr. {consultation.staff?.staff_name}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))
+                                    )
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <Activity className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                                        <p className="text-gray-500 dark:text-gray-400">No procedures recorded</p>
                                     </div>
                                 )}
                             </div>

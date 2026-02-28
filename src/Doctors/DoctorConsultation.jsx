@@ -10,8 +10,11 @@ import cancellationRequestAPI from "../api/cancellationrequestapi";
 import UploadSessionModal from "../components/UploadSessionModal";
 import MedicationAutocomplete from "../components/MedicationAutocomplete";
 import VoiceTranscription from "../components/VoiceTranscription";
+import proceduresAPI from "../api/proceduresapi";
+import ProcedureAutocomplete from "../components/ProcedureAutocomplete";
 import { baseUrl } from "../constants/Constant";
 import { getAuthToken } from "../utils/auth";
+import { PlusCircle, Trash2 } from "lucide-react";
 
 const DoctorConsultation = () => {
     const { appointmentId } = useParams();
@@ -45,6 +48,10 @@ const DoctorConsultation = () => {
 
     const [labOrders, setLabOrders] = useState([
         { test_name: "", instructions: "" }
+    ]);
+
+    const [procedures, setProcedures] = useState([
+        { procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "" }
     ]);
 
     // AI SOAP generation state
@@ -180,6 +187,13 @@ const DoctorConsultation = () => {
                     .map(l => ({
                         test_name: l.test_name,
                         instructions: l.instructions || null,
+                    })),
+                procedures: procedures
+                    .filter(p => p.procedure_id)
+                    .map(p => ({
+                        procedure_id: p.procedure_id,
+                        actual_price_charged: Number(p.price) || 0,
+                        doctor_notes: p.clinical_notes || null,
                     })),
             };
 
@@ -344,6 +358,24 @@ const DoctorConsultation = () => {
 
     const addLabOrder = () =>
         setLabOrders([...labOrders, { test_name: "", instructions: "" }]);
+
+    const addProcedure = () =>
+        setProcedures([...procedures, { procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "" }]);
+
+    const handleProcedureSelect = (index, procedure) => {
+        const updated = [...procedures];
+        updated[index].procedure_id = procedure.id;
+        updated[index].procedure_name = procedure.name;
+        updated[index].price = Number(procedure.price) || 0;
+        updated[index].category = procedure.category;
+        setProcedures(updated);
+        toast.success(`Procedure selected: ${procedure.name}`);
+    };
+
+    const removeProcedure = (index) => {
+        const updated = procedures.filter((_, i) => i !== index);
+        setProcedures(updated.length ? updated : [{ procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "" }]);
+    };
 
     const handleMedicationSelect = (index, medication) => {
         const updated = [...prescriptions];
@@ -657,8 +689,8 @@ const DoctorConsultation = () => {
                             <div className="relative">
                                 <textarea
                                     className={`w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-400 transition-all ${pendingAiDraft?.[field] && !soapNotes[field]
-                                            ? 'border-blue-200 bg-blue-50/30'
-                                            : 'border-gray-200'
+                                        ? 'border-blue-200 bg-blue-50/30'
+                                        : 'border-gray-200'
                                         }`}
                                     rows={4}
                                     value={soapNotes[field]}
@@ -851,6 +883,92 @@ const DoctorConsultation = () => {
                         disabled={!isConsultationStarted}
                     >
                         + Add Lab Order
+                    </button>
+                )}
+            </div>
+
+            {/* Procedures Section */}
+            <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+                <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-3">
+                    <Activity className="h-5 w-5 text-blue-500" /> Procedures Performed
+                </h2>
+
+                {procedures.map((proc, index) => (
+                    <div key={index} className="grid md:grid-cols-12 gap-3 mb-3 items-start border-b pb-3 border-gray-100 last:border-0">
+                        <div className="md:col-span-4">
+                            <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Procedure Name</label>
+                            <ProcedureAutocomplete
+                                hospitalId={appointmentData?.hospital_id}
+                                value={proc.procedure_name}
+                                onSelect={(p) => handleProcedureSelect(index, p)}
+                                disabled={!isConsultationStarted || isCompleted}
+                                placeholder="Search or select procedure"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Category</label>
+                            <input
+                                type="text"
+                                className="border p-2 rounded-md text-sm w-full bg-gray-50 text-gray-500 italic"
+                                placeholder="Category"
+                                value={proc.category || ""}
+                                readOnly
+                                disabled
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Charge (₹)</label>
+                            <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                                <input
+                                    type="number"
+                                    className="border p-2 pl-6 rounded-md text-sm w-full"
+                                    placeholder="Price"
+                                    value={proc.price}
+                                    onChange={(e) => {
+                                        const updated = [...procedures];
+                                        updated[index].price = parseFloat(e.target.value) || 0;
+                                        setProcedures(updated);
+                                    }}
+                                    disabled={!isConsultationStarted || isCompleted}
+                                />
+                            </div>
+                        </div>
+                        <div className="md:col-span-3">
+                            <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Notes</label>
+                            <input
+                                type="text"
+                                placeholder="Clinical Notes / Findings"
+                                className="border p-2 rounded-md text-sm w-full"
+                                value={proc.clinical_notes}
+                                onChange={(e) => {
+                                    const updated = [...procedures];
+                                    updated[index].clinical_notes = e.target.value;
+                                    setProcedures(updated);
+                                }}
+                                disabled={!isConsultationStarted || isCompleted}
+                            />
+                        </div>
+                        <div className="md:col-span-1 flex justify-center pt-2">
+                            <button
+                                onClick={() => removeProcedure(index)}
+                                className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
+                                title="Remove Procedure"
+                                disabled={!isConsultationStarted || isCompleted}
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
+
+                {!isCompleted && (
+                    <button
+                        onClick={addProcedure}
+                        className="mt-2 text-blue-500 text-sm font-semibold hover:underline flex items-center gap-1"
+                        disabled={!isConsultationStarted}
+                    >
+                        <PlusCircle size={14} /> Add Another Procedure
                     </button>
                 )}
             </div>
