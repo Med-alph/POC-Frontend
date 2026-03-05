@@ -436,6 +436,7 @@ export default function AppointmentForm() {
 
   // Regular appointment booking (when doctor is selected)
   const handleConfirm = async () => {
+    if (loading) return;
     if (!reason.trim()) return toast.error("Enter reason for visit");
     if (!registeredPatient) return toast.error("Patient info missing");
     if (!selectedDate) return toast.error("Select a date");

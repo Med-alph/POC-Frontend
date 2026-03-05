@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { baseUrl } from '../constants/Constant';
+import { baseUrl, socketUrl } from '../constants/Constant';
 import toast from 'react-hot-toast';
 import notificationAPI from '../api/notificationapi';
 import { getAuthToken } from '../utils/auth';
 
-const SOCKET_SERVER_URL = baseUrl;
+const SOCKET_SERVER_URL = socketUrl;
 
 function useAdminNotifications(adminUserId, hospitalId) {
   const [notifications, setNotifications] = useState([]);
@@ -86,16 +86,21 @@ function useAdminNotifications(adminUserId, hospitalId) {
       return;
     }
 
-    console.log('🔌 Connecting to notifications socket...', {
-      url: `${SOCKET_SERVER_URL}/notifications`,
-      userId: adminUserId,
-      hospitalId: hospitalId
-    });
+    const token = getAuthToken();
 
-    const socket = io(`${SOCKET_SERVER_URL}/notifications`, {
+    // Ensure URL doesn't have duplicate slashes and handles relative paths
+    const namespaceUrl = SOCKET_SERVER_URL
+      ? `${SOCKET_SERVER_URL.replace(/\/$/, '')}/notifications`
+      : '/notifications';
+
+    const socket = io(namespaceUrl, {
       query: {
         userId: adminUserId,
         hospitalId: hospitalId
+      },
+      auth: {
+        token: token,
+        userId: adminUserId
       },
       transports: ['websocket', 'polling']
     });

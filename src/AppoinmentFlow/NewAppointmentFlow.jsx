@@ -183,6 +183,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
   };
 
   const handleBooking = async () => {
+    if (submitting) return;
     if (!reason.trim()) return toast.error("Please enter a reason for visit");
     try {
       setSubmitting(true);
@@ -401,15 +402,26 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                   {slots.map((slot, idx) => (
                     <button
                       key={idx}
+                      disabled={slot.status === 'unavailable'}
                       onClick={() => {
                         setSelectedSlot(slot.time);
                         setStep(4);
                       }}
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition-all ${selectedSlot === slot.time ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-100 hover:border-blue-300 shadow-sm"}`}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition-all ${slot.status === 'unavailable'
+                          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                          : selectedSlot === slot.time
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-700 border-gray-100 hover:border-blue-300 shadow-sm"
+                        }`}
                     >
                       <span className="font-bold">{slot.display_time || to12Hour(slot.time)}</span>
-                      {slot.doctors_available && (
-                        <span className={`text-[9px] ${selectedSlot === slot.time ? "text-blue-100" : "text-blue-500"}`}>
+                      {slot.doctors_available !== undefined && (
+                        <span className={`text-[9px] ${slot.status === 'unavailable'
+                            ? "text-gray-400"
+                            : selectedSlot === slot.time
+                              ? "text-blue-100"
+                              : "text-blue-500"
+                          }`}>
                           {slot.doctors_available} {slot.doctors_available === 1 ? 'doc' : 'docs'} avail.
                         </span>
                       )}
@@ -444,11 +456,17 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
                       {slots.map((slot, idx) => (
                         <button
                           key={idx}
+                          disabled={slot.status === 'unavailable'}
                           onClick={() => {
                             setSelectedSlot(slot.time);
                             setStep(5);
                           }}
-                          className={`p-3 rounded-xl border font-bold h-12 transition-all ${selectedSlot === slot.time ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-100 hover:border-blue-300"}`}
+                          className={`p-3 rounded-xl border font-bold h-12 transition-all ${slot.status === 'unavailable'
+                              ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                              : selectedSlot === slot.time
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "bg-white text-gray-700 border-gray-100 hover:border-blue-300"
+                            }`}
                         >
                           {slot.display_time || to12Hour(slot.time)}
                         </button>

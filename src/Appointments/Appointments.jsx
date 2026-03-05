@@ -274,7 +274,6 @@ export default function Appointments() {
       toast.success("Appointment cancelled")
       setCancelModalOpen(false)
       fetchAppointments()
-      fetchStats()
     } catch {
       toast.error("Failed to cancel appointment")
     } finally {
@@ -283,6 +282,7 @@ export default function Appointments() {
   }
 
   const handleCreateConfirm = async () => {
+    if (formLoading) return;
     setFormLoading(true)
     try {
       await appointmentsAPI.create({
@@ -298,8 +298,8 @@ export default function Appointments() {
       });
       toast.success("Appointment created!")
       setOpen(false)
+      resetModal()
       fetchAppointments()
-      fetchStats()
     } catch {
       toast.error("Failed to book appointment")
     } finally {
@@ -449,12 +449,16 @@ export default function Appointments() {
               {step === 3 && (
                 <div className="space-y-4">
                   <Input type="date" value={selectedDate} min={new Date().toISOString().split('T')[0]} onChange={e => setSelectedDate(e.target.value)} className="h-10" />
-                  <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                    {loadingSlots ? <Loader2 className="h-5 w-5 animate-spin mx-auto" colSpan={3} /> :
-                      slots.map(s => (
-                        <Button key={s.time} variant={selectedSlot === s.time ? "default" : "outline"} disabled={s.status !== 'available'} size="sm" onClick={() => setSelectedSlot(s.time)}>{s.display_time}</Button>
-                      ))}
-                  </div>
+                  {selectedDate ? (
+                    <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                      {loadingSlots ? <Loader2 className="h-5 w-5 animate-spin mx-auto" colSpan={3} /> :
+                        slots.map(s => (
+                          <Button key={s.time} variant={selectedSlot === s.time ? "default" : "outline"} disabled={s.status !== 'available'} size="sm" onClick={() => setSelectedSlot(s.time)}>{s.display_time}</Button>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-sm text-gray-500 py-8">Please select a date to view time slots.</p>
+                  )}
                   <div className="flex gap-2 pt-2">
                     <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
                     <Button className="flex-1" disabled={!selectedSlot} onClick={() => setStep(4)}>Next</Button>
@@ -794,13 +798,17 @@ export default function Appointments() {
                 {step === 3 && (
                   <div className="space-y-4">
                     <Input type="date" value={selectedDate} min={new Date().toISOString().split('T')[0]} onChange={e => setSelectedDate(e.target.value)} className="h-11" />
-                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                      {loadingSlots ? <div className="col-span-3 py-10 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" /></div> :
-                        slots.length > 0 ? slots.map(s => (
-                          <Button key={s.time} variant={selectedSlot === s.time ? "default" : "outline"} disabled={s.status !== 'available'} onClick={() => setSelectedSlot(s.time)} className="h-10">{s.display_time}</Button>
-                        )) : <p className="col-span-3 text-center text-sm text-gray-500 py-10">No slots available for this date</p>
-                      }
-                    </div>
+                    {selectedDate ? (
+                      <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                        {loadingSlots ? <div className="col-span-3 py-10 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" /></div> :
+                          slots.length > 0 ? slots.map(s => (
+                            <Button key={s.time} variant={selectedSlot === s.time ? "default" : "outline"} disabled={s.status !== 'available'} onClick={() => setSelectedSlot(s.time)} className="h-10">{s.display_time}</Button>
+                          )) : <p className="col-span-3 text-center text-sm text-gray-500 py-10">No slots available for this date</p>
+                        }
+                      </div>
+                    ) : (
+                      <p className="text-center text-sm text-gray-500 py-10">Please select a date to view available time slots.</p>
+                    )}
                     <div className="flex gap-3 pt-2">
                       <Button variant="outline" className="h-11 px-6" onClick={() => setStep(2)}>Back</Button>
                       <Button className="flex-1 h-11" disabled={!selectedSlot} onClick={() => setStep(4)}>Next</Button>

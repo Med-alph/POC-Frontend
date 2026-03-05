@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, Smartphone, Stethoscope, Moon, Sun, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import authAPI from "@/api/authapi";
+import { setAuthData } from "@/utils/auth";
 import InputOtp from "@/components/InputOtp";
 import AddPatientDialog from "@/Patients/AddPatient";
 import patientsAPI from "../api/patientsapi";
@@ -64,22 +65,22 @@ const OTPVerification = () => {
     setLoading(true);
     try {
       const res = await authAPI.verifyOtp({ phone, otp, hospitalId: HOSPITAL_ID });
-      console.log("OTP verification API response:", res);
+      console.log('OTP verification API response:', res);
       if (res.success && res.token) {
-        toast.success("OTP verified successfully");
-        // SOC 2: Token is stored in httpOnly cookie by backend, no need for localStorage
-
+        toast.success('OTP verified successfully');
+        // Store token securely for subsequent API calls
+        setAuthData(res.token, res.user || {});
+        localStorage.setItem('isAuthenticated', 'true');
         if (res.isNewPatient) {
           setUserId(res.patient?.id || null);
           setShowAddPatientDialog(true);
         } else {
-          localStorage.setItem("isAuthenticated", "true");
-          navigate("/patient-dashboard", { replace: true });
+          navigate('/patient-dashboard', { replace: true });
         }
       } else if (res.isNewPatient) {
         setShowAddPatientDialog(true);
       } else {
-        toast.error("Invalid OTP or token, please try again");
+        toast.error('Invalid OTP or token, please try again');
       }
     } catch (err) {
       toast.error("Error verifying OTP");
