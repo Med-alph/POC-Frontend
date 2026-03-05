@@ -14,7 +14,8 @@ import proceduresAPI from "../api/proceduresapi";
 import ProcedureAutocomplete from "../components/ProcedureAutocomplete";
 import { baseUrl } from "../constants/Constant";
 import { getAuthToken } from "../utils/auth";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Calendar, Clock as ClockIcon, CalendarCheck } from "lucide-react";
+
 
 const DoctorConsultation = () => {
     const { appointmentId } = useParams();
@@ -63,6 +64,15 @@ const DoctorConsultation = () => {
     // Voice transcription state
     const [isVoiceRecording, setIsVoiceRecording] = useState(false);
     const voiceTranscriptionRef = useRef(null);
+
+    // Follow-up state
+    const [isFollowUpRequired, setIsFollowUpRequired] = useState(false);
+    const [followUpDate, setFollowUpDate] = useState("");
+    const [followUpNote, setFollowUpNote] = useState("");
+    const [followUpSlot, setFollowUpSlot] = useState("");
+    const [availableSlots, setAvailableSlots] = useState([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
+
 
 
     async function checkCancellationRequest() {
@@ -152,7 +162,45 @@ const DoctorConsultation = () => {
         }
     };
 
+    const handleQuickDate = (days) => {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        setFollowUpDate(date.toISOString().split("T")[0]);
+    };
+
+    useEffect(() => {
+        const fetchSlots = async () => {
+            if (!followUpDate || !appointmentData?.staff_id) return;
+
+            try {
+                setLoadingSlots(true);
+                const response = await appointmentsAPI.getAvailableSlots(
+                    appointmentData.staff_id,
+                    followUpDate
+                );
+
+                const slots = Array.isArray(response) ? response : (response.slots || []);
+                setAvailableSlots(slots);
+
+                if (response.on_leave) {
+                    toast.warning(`Doctor is on ${response.leave_type || ''} leave on this date`);
+                }
+            } catch (error) {
+                console.error("Error fetching slots:", error);
+                toast.error("Failed to fetch slots");
+                setAvailableSlots([]);
+            } finally {
+                setLoadingSlots(false);
+            }
+        };
+
+        if (isFollowUpRequired && followUpDate) {
+            fetchSlots();
+        }
+    }, [followUpDate, isFollowUpRequired, appointmentData?.staff_id]);
+
     const handleEndConsultation = async () => {
+
         if (!soapNotes.subjective && !soapNotes.objective && !soapNotes.assessment && !soapNotes.plan) {
             toast.error("Please fill in at least one SOAP note section");
             return;
@@ -195,7 +243,16 @@ const DoctorConsultation = () => {
                         actual_price_charged: Number(p.price) || 0,
                         doctor_notes: p.clinical_notes || null,
                     })),
+                is_follow_up_required: isFollowUpRequired,
+                follow_up: isFollowUpRequired ? {
+                    appointment_date: followUpDate || null,
+                    appointment_time: followUpSlot || null,
+                    reason: followUpNote || "Follow-up visit",
+                    root_visit_id: appointmentData.root_visit_id || appointmentId,
+                    visit_category: "Follow-up"
+                } : null
             };
+
 
             await consultationsAPI.create(consultationData);
 
@@ -970,6 +1027,115 @@ const DoctorConsultation = () => {
                     >
                         <PlusCircle size={14} /> Add Another Procedure
                     </button>
+                )}
+            </div>
+
+            {/* Follow-up Section */}
+            <div className={`bg-white shadow rounded-lg p-5 border-l-4 border-indigo-500 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                        <CalendarCheck className="h-5 w-5 text-indigo-500" /> Plan Next Visit (Follow-Up)
+                    </h2>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700">Follow-up Required?</span>
+                        <button
+                            onClick={() => setIsFollowUpRequired(!isFollowUpRequired)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isFollowUpRequired ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                            disabled={!isConsultationStarted || isCompleted}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isFollowUpRequired ? 'translate-x-6' : 'translate-x-1'}`}
+                            />
+                        </button>
+                    </div>
+                </div>
+
+                {isFollowUpRequired && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Select Date</label>
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        {[
+                                            { label: '+3 Days', days: 3 },
+                                            { label: '+1 Week', days: 7 },
+                                            { label: '+2 Weeks', days: 14 },
+                                            { label: '+1 Month', days: 30 }
+                                        ].map((opt) => (
+                                            <button
+                                                key={opt.label}
+                                                onClick={() => handleQuickDate(opt.days)}
+                                                className="px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 rounded-md hover:bg-indigo-100 border border-indigo-100 transition-colors"
+                                                disabled={isCompleted}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                        <input
+                                            type="date"
+                                            className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
+                                            value={followUpDate}
+                                            min={new Date().toISOString().split("T")[0]}
+                                            onChange={(e) => setFollowUpDate(e.target.value)}
+                                            disabled={isCompleted}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Instructions for Visit</label>
+                                    <textarea
+                                        className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
+                                        rows={2}
+                                        placeholder="e.g., Review lab results, Check stitches recovery..."
+                                        value={followUpNote}
+                                        onChange={(e) => setFollowUpNote(e.target.value)}
+                                        disabled={isCompleted}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Available Time Slots</label>
+                                {loadingSlots ? (
+                                    <div className="flex items-center justify-center p-8 bg-gray-50 rounded-lg">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                                    </div>
+                                ) : !followUpDate ? (
+                                    <div className="p-8 text-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                                        <ClockIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                                        <p className="text-sm text-gray-500">Pick a date to see available slots</p>
+                                    </div>
+                                ) : availableSlots.length === 0 ? (
+                                    <div className="p-8 text-center bg-red-50 rounded-lg border border-red-100">
+                                        <XCircle className="h-8 w-8 text-red-300 mx-auto mb-2" />
+                                        <p className="text-sm text-red-600 font-medium">No slots available for this date</p>
+                                        <p className="text-xs text-red-500 mt-1">Try another date or check doctor schedule</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-3 gap-2 max-h-[180px] overflow-y-auto pr-2">
+                                        {availableSlots.map((slot) => (
+                                            <button
+                                                key={slot.time}
+                                                onClick={() => setFollowUpSlot(slot.time)}
+                                                className={`p-2 text-xs font-bold rounded-md border transition-all ${followUpSlot === slot.time
+                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                        : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50'
+                                                    }`}
+                                                disabled={isCompleted}
+                                            >
+                                                {slot.display_time || slot.time.substring(0, 5)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
 
