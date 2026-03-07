@@ -3,12 +3,10 @@ import { baseUrl } from '../constants/Constant';
 const API_BASE = `${baseUrl}`;
 
 class SubscriptionsApiService {
-  // Get authorization headers
-  getAuthHeaders() {
-    const token = localStorage.getItem('appAdminToken');
+  // Get standard headers
+  getHeaders() {
     return {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
     };
   }
 
@@ -17,7 +15,8 @@ class SubscriptionsApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/subscriptions`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -37,7 +36,8 @@ class SubscriptionsApiService {
     try {
       const response = await fetch(`${API_BASE}/tenants/${tenantId}/subscribe/${planId}`, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -57,7 +57,8 @@ class SubscriptionsApiService {
     try {
       const response = await fetch(`${API_BASE}/tenants/${tenantId}/subscription`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -77,7 +78,8 @@ class SubscriptionsApiService {
     try {
       const response = await fetch(`${API_BASE}/tenants/${tenantId}/subscriptions`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -97,7 +99,8 @@ class SubscriptionsApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/subscriptions/${subscriptionId}/cancel`, {
         method: 'PATCH',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -117,7 +120,8 @@ class SubscriptionsApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/subscriptions/${subscriptionId}/payment-status`, {
         method: 'PATCH',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
         body: JSON.stringify({ payment_status: paymentStatus }),
       });
 
