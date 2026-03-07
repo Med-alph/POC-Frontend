@@ -13,6 +13,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { isAppAdmin } from '../utils/subdomain';
 import {
   setSecureItem,
   getSecureItem,
@@ -74,6 +75,9 @@ export const AuthProvider = ({ children }) => {
 
   const [sessionId, setSessionId] = useState(null);
   const [isInitialized, setIsInitialized] = useState(() => {
+    // If we're on a SuperAdmin subdomain, skip general user auth initialization
+    if (isAppAdmin()) return true;
+
     const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
     const currentPath = window.location.pathname;
     return publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard');
@@ -86,12 +90,12 @@ export const AuthProvider = ({ children }) => {
    */
   useEffect(() => {
     const validateSession = async () => {
-      // Skip validation for public routes and patient routes
-      const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
+      // Skip validation for superadmin, public routes, and patient routes
       const currentPath = window.location.pathname;
+      const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
 
-      if (publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard')) {
-        console.log('[AuthContext] Skipping validation for public/patient route:', currentPath);
+      if (isAppAdmin() || publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard')) {
+        console.log('[AuthContext] Skipping validation for route/appmode:', currentPath);
         setIsInitialized(true);
         return;
       }

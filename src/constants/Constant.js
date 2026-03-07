@@ -4,10 +4,14 @@
 // Toggle these flags to switch between environments
 
 
-// Set ONLY ONE to true at a time
-// Automatically detect environment using Vite's built-in flags
-const isLocal = false;
-const isProd = !isLocal;   // If not dev, it's production (or staging)
+// Set environment dynamically based on hostname
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.endsWith('.localhost') ||
+  window.location.hostname.includes('superadmin') && window.location.hostname.includes('localhost')
+);
+const isProd = !isLocal;
 
 // ============================================
 // API CONFIGURATION

@@ -88,6 +88,7 @@ class AppAdminAuthService {
       // Re-hydrate memory token if returned (restores session after refresh)
       if (data.access_token) {
         setAuthData(data.access_token, data.admin || data);
+        // console.log('[AppAdmin] Token re-hydrated from profile');
       }
 
       return data;
@@ -131,10 +132,12 @@ class AppAdminAuthService {
 
     try {
       await this.getProfile();
+      // console.log('[AppAdmin] verifyToken successful');
       return true;
     } catch (error) {
-      // Session is invalid, clear intent
-      this.logout();
+      // DEBUG: console.warn('[AppAdmin] verifyToken failed (potential backend cookie issue):', error.message);
+      // We no longer call this.logout() here.
+      // The calling context (AppAdminAuthContext) will decide based on the return value.
       return false;
     }
   }
