@@ -73,8 +73,13 @@ export const AuthProvider = ({ children }) => {
   const reduxUser = useSelector((state) => state.auth.user);
 
   const [sessionId, setSessionId] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(() => {
+    const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
+    const currentPath = window.location.pathname;
+    return publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard');
+  });
   const [isSessionValid, setIsSessionValid] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   /**
    * Initialize auth state and check session status via cookies
@@ -160,6 +165,7 @@ export const AuthProvider = ({ children }) => {
    */
   const logout = useCallback(async (redirectToLogin = true) => {
     try {
+      setIsLoggingOut(true);
       // 1. Attempt to call logout API (to clear httpOnly cookie on backend)
       // SOC 2: Always try to notify backend for session invalidation
       await authAPI.logout().catch(err => {
@@ -203,6 +209,8 @@ export const AuthProvider = ({ children }) => {
         } else {
           window.location.href = '/';
         }
+      } else {
+        setIsLoggingOut(false);
       }
     }
   }, [dispatch]);
@@ -325,12 +333,14 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isInitialized]);
 
-  if (!isInitialized) {
+  if (!isInitialized || isLoggingOut) {
     return (
       <div id="auth-loading-screen" className="flex items-center justify-center min-h-screen bg-white">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="text-gray-500 font-medium animate-pulse">Restoring your secure session...</p>
+          <p className="text-gray-500 font-medium animate-pulse">
+            {isLoggingOut ? "Logging out securely..." : "Restoring your secure session..."}
+          </p>
         </div>
       </div>
     );
