@@ -80,44 +80,34 @@ export default function TenantAdminDashboard() {
 
         {/* Right side */}
         <div className="flex items-center space-x-4">
-          <button className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition duration-200 group">
-            <Bell className="h-5 w-5 text-white group-hover:scale-110 transition-transform duration-200" />
-            <span className="absolute top-1 right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-blue-700"></span>
-          </button>
-
           {/* Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-white/10 transition duration-200 group select-none">
-                <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-sm border-2 border-white/30 group-hover:border-white/50 transition duration-200">
+                <div className="h-10 w-10 shrink-0 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-sm border-2 border-white/30 group-hover:border-white/50 transition duration-200">
                   {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                 </div>
-                <div className="hidden lg:block">
-                  <div className="text-sm font-semibold text-white">{user?.name || "User"}</div>
-                  <div className="text-xs text-blue-100 capitalize">{user?.role || "Staff"}</div>
+                <div className="hidden lg:block text-left max-w-[150px]">
+                  <div className="text-sm font-semibold text-white truncate">{user?.name || "User"}</div>
+                  <div className="text-xs text-blue-100 capitalize truncate">{user?.role || "Staff"}</div>
                 </div>
-                <ChevronDown className="h-4 w-4 text-white group-hover:rotate-180 transition duration-200" />
+                <ChevronDown className="h-4 w-4 shrink-0 text-white group-hover:rotate-180 transition duration-200" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 mt-2">
-              <div className="px-4 py-3 border-b border-gray-100">
+            <DropdownMenuContent align="end" className="w-[280px] mt-2">
+              <div className="px-4 py-4 border-b border-gray-100">
                 <div className="flex items-center space-x-3">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+                  <div className="h-12 w-12 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg border border-blue-200">
                     {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
                   </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-gray-900">{user?.name || "User"}</div>
-                    <div className="text-xs text-gray-500">{user?.email || "user@example.com"}</div>
-                    <div className="text-xs text-blue-600 font-medium capitalize">{user?.role || "Staff"}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-900 truncate">{user?.name || "User"}</div>
+                    <div className="text-xs text-gray-500 truncate mt-0.5">{user?.email || "user@example.com"}</div>
+                    <div className="text-[11px] text-blue-700 font-semibold uppercase tracking-wide mt-1.5">{user?.role || "Staff"}</div>
                   </div>
                 </div>
               </div>
-              <DropdownMenuItem className="px-4 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center">
-                <Settings className="h-4 w-4 mr-3" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="px-4 py-2 text-red-600 hover:bg-red-50 cursor-pointer flex items-center">
+              <DropdownMenuItem onClick={handleLogout} className="px-4 py-3 text-red-600 hover:bg-red-50 cursor-pointer flex items-center m-1 rounded-md">
                 <LogOut className="h-4 w-4 mr-3" />
                 Logout
               </DropdownMenuItem>

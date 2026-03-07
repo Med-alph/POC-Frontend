@@ -16,6 +16,7 @@ export const AppAdminAuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Initialize auth state
   useEffect(() => {
@@ -25,11 +26,11 @@ export const AppAdminAuthProvider = ({ children }) => {
   const initializeAuth = async () => {
     try {
       setLoading(true);
-      
+
       // Check if token exists and is valid
       if (appAdminAuthService.isAuthenticated()) {
         const isValid = await appAdminAuthService.verifyToken();
-        
+
         if (isValid) {
           const adminData = appAdminAuthService.getAdminData();
           setAdmin(adminData);
@@ -56,10 +57,10 @@ export const AppAdminAuthProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await appAdminAuthService.login(email, password);
-      
+
       setAdmin(response.admin);
       setIsAuthenticated(true);
-      
+
       toast.success('Login successful!');
       return response;
     } catch (error) {
@@ -74,7 +75,7 @@ export const AppAdminAuthProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await appAdminAuthService.register(userData);
-      
+
       toast.success('Registration successful!');
       return response;
     } catch (error) {
@@ -87,16 +88,20 @@ export const AppAdminAuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      setIsLoggingOut(true);
       setLoading(true);
       await appAdminAuthService.logout();
-      
+
       setAdmin(null);
       setIsAuthenticated(false);
-      
+
       toast.success('Logged out successfully');
+      // Using window location here instead of react router just to bypass React unmounting flickers
+      window.location.href = '/admin/login';
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Logout failed');
+      setIsLoggingOut(false);
     } finally {
       setLoading(false);
     }
@@ -122,6 +127,17 @@ export const AppAdminAuthProvider = ({ children }) => {
     logout,
     refreshProfile,
   };
+
+  if (isLoggingOut) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-gray-500 font-medium animate-pulse">Logging out securely...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AppAdminAuthContext.Provider value={value}>
