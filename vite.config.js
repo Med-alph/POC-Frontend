@@ -10,7 +10,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        // Use 127.0.0.1 to avoid IPv6 resolution issues
+        // Use your local backend for development
         target: 'http://127.0.0.1:9009',
         changeOrigin: true,
         secure: false,
@@ -23,9 +23,20 @@ export default defineConfig({
             // console.log('[Vite Proxy Request]:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
+            // COOKIE STRIPPING LOGIC:
+            // The backend sends cookies like 'domain=.medalph.com'.
+            // Browsers on localhost REJECT these. We strip the domain so the 
+            // browser treats them as 'host-only' for whatever domain you're on.
+            // Also strip 'Secure' attribute from cookies for local development.
+            const cookies = proxyRes.headers['set-cookie'];
+            if (cookies) {
+              proxyRes.headers['set-cookie'] = cookies.map(cookie =>
+                cookie.replace(/Domain=[^;]+;?/, '').replace(/Secure;?/i, '')
+              );
+            }
+
             if (req.url.includes('/auth/login') || req.url.includes('/auth/me')) {
               console.log('[Vite Proxy Response]:', req.url, proxyRes.statusCode);
-              console.log('[Vite Proxy Cookies]:', proxyRes.headers['set-cookie']);
             }
           });
         },

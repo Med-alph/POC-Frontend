@@ -4,7 +4,7 @@ import { useHospital } from "@/contexts/HospitalContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Stethoscope, Sun, Moon } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import AddPatientDialog from "@/Patients/AddPatient";
 import { patientsAPI } from "@/api/patientsapi";
 import NewAppointmentFlow from "./NewAppointmentFlow";

@@ -18,7 +18,7 @@ import {
   Moon,
   Sun,
 } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 
 import AddPatientDialog from "@/Patients/AddPatient";

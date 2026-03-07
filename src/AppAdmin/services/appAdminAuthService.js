@@ -4,14 +4,15 @@ const API_BASE = `${baseUrl}/app-admin`;
 
 class AppAdminAuthService {
   constructor() {
-    this.token = localStorage.getItem('appAdminToken');
+    this.token = null; // No longer storing JWT in this.token from localStorage
   }
 
   // Set authorization header
   getAuthHeaders() {
     return {
       'Content-Type': 'application/json',
-      ...(this.token && { 'Authorization': `Bearer ${this.token}` })
+      // SOC 2: We no longer manually attach the Authorization header.
+      // The browser automatically attaches the 'access_token' cookie via credentials: 'include'.
     };
   }
 
@@ -33,9 +34,8 @@ class AppAdminAuthService {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Store token and admin data
-      this.token = data.access_token;
-      localStorage.setItem('appAdminToken', this.token);
+      // Store non-sensitive flag and admin data
+      localStorage.setItem('appAdminAuthenticated', 'true');
       localStorage.setItem('appAdminData', JSON.stringify(data.admin));
 
       return data;
@@ -95,26 +95,24 @@ class AppAdminAuthService {
   // Logout
   async logout() {
     try {
-      if (this.token) {
-        await fetch(`${API_BASE}/logout`, {
-          method: 'POST',
-          headers: this.getAuthHeaders(),
-          credentials: 'include', // SOC 2: Required for httpOnly cookies
-        });
-      }
+      await fetch(`${API_BASE}/logout`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        credentials: 'include', // SOC 2: Required for httpOnly cookies
+      });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       // Clear local storage regardless of API call success
-      this.token = null;
-      localStorage.removeItem('appAdminToken');
+      localStorage.removeItem('appAdminAuthenticated');
       localStorage.removeItem('appAdminData');
+      localStorage.removeItem('appAdminToken');
     }
   }
 
-  // Check if user is authenticated
+  // Check if user is authenticated (Intent check)
   isAuthenticated() {
-    return !!this.token;
+    return localStorage.getItem('appAdminAuthenticated') === 'true';
   }
 
   // Get stored admin data
@@ -125,13 +123,14 @@ class AppAdminAuthService {
 
   // Verify token validity
   async verifyToken() {
-    if (!this.token) return false;
+    // If we have an intent flag, we verify it with the profile call
+    if (!this.isAuthenticated()) return false;
 
     try {
       await this.getProfile();
       return true;
     } catch (error) {
-      // Token is invalid, clear it
+      // Session is invalid, clear intent
       this.logout();
       return false;
     }

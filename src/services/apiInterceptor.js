@@ -75,7 +75,7 @@ if (typeof window !== 'undefined' && originalFetch) {
       headers['Content-Type'] = 'application/json';
     }
 
-    // Attach JWT token
+    // Attach JWT token as a fallback for httpOnly cookies (essential for local dev)
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }

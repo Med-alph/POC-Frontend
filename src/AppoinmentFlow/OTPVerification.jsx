@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, Smartphone, Stethoscope, Moon, Sun, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import authAPI from "@/api/authapi";
 import { setAuthData } from "@/utils/auth";
 import InputOtp from "@/components/InputOtp";
@@ -56,15 +56,22 @@ const OTPVerification = () => {
   }, [timer]);
 
   // Handle OTP Verification and conditionally show AddPatientDialog or navigate to dashboard
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
-      console.warn("Attempted OTP verify with invalid OTP:", otp);
+  const handleVerifyOtp = async (otpFromArg = null) => {
+    // Determine the current OTP to use: either from argument (if called from onComplete) or from state
+    const currentOtp = typeof otpFromArg === "string" ? otpFromArg : otp;
+
+    // Check if the current OTP is fully formed (6 digits)
+    if (!currentOtp || currentOtp.length !== 6) {
+      // If manually clicked or something went wrong - toast error
+      if (!otpFromArg) { // only show error if NOT an automated onComplete trigger
+        toast.error("Please enter a valid 6-digit OTP");
+      }
+      console.warn("Attempted OTP verify with invalid OTP:", currentOtp);
       return;
     }
     setLoading(true);
     try {
-      const res = await authAPI.verifyOtp({ phone, otp, hospitalId: HOSPITAL_ID });
+      const res = await authAPI.verifyOtp({ phone, otp: currentOtp, hospitalId: HOSPITAL_ID });
       console.log('OTP verification API response:', res);
       if (res.success && res.token) {
         toast.success('OTP verified successfully');
@@ -83,7 +90,7 @@ const OTPVerification = () => {
         toast.error('Invalid OTP or token, please try again');
       }
     } catch (err) {
-      toast.error("Error verifying OTP");
+      toast.error(err.message || "Error verifying OTP");
       console.error("Error in OTP verification:", err);
     } finally {
       setLoading(false);
@@ -98,7 +105,7 @@ const OTPVerification = () => {
       setTimer(30);
       toast.success("OTP resent successfully");
     } catch (err) {
-      toast.error("Failed to resend OTP");
+      toast.error(err.message || "Failed to resend OTP");
       console.error("Failed to resend OTP:", err);
     }
   };
@@ -118,7 +125,7 @@ const OTPVerification = () => {
       return newPatient;
     } catch (error) {
       console.error("Error creating new patient:", error);
-      toast.error("Failed to register patient");
+      toast.error(error.message || "Failed to register patient");
       throw error;
     } finally {
       setLoading(false);
