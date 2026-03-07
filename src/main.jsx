@@ -1,16 +1,5 @@
+import './utils/logger-silencer';
 import { StrictMode } from 'react'
-
-// Disable console logs on production domains (non-localhost)
-const isLocal = window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1" ||
-  window.location.hostname.endsWith(".localhost");
-
-if (!isLocal) {
-  console.log = () => { };
-  console.debug = () => { };
-  console.info = () => { };
-  console.warn = () => { };
-}
 
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'

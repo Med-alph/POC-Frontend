@@ -1,4 +1,5 @@
 import { baseUrl } from '../../constants/Constant';
+import { setAuthData, clearAuthData } from '../../utils/auth';
 
 const API_BASE = `${baseUrl}/app-admin`;
 
@@ -7,12 +8,10 @@ class AppAdminAuthService {
     this.token = null; // No longer storing JWT in this.token from localStorage
   }
 
-  // Set authorization header
+  // Get authorization header (delegated to interceptor)
   getAuthHeaders() {
     return {
       'Content-Type': 'application/json',
-      // SOC 2: We no longer manually attach the Authorization header.
-      // The browser automatically attaches the 'access_token' cookie via credentials: 'include'.
     };
   }
 
@@ -30,13 +29,14 @@ class AppAdminAuthService {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      // Store non-sensitive flag and admin data
+      // Store non-sensitive flag and admin data for frontend UI
       localStorage.setItem('appAdminAuthenticated', 'true');
       localStorage.setItem('appAdminData', JSON.stringify(data.admin));
+
+      // SOC 2: Store JWT in memory only (fast fallback if cookie fails)
+      if (data.access_token) {
+        setAuthData(data.access_token, data.admin);
+      }
 
       return data;
     } catch (error) {
@@ -85,6 +85,11 @@ class AppAdminAuthService {
         throw new Error(data.message || 'Failed to fetch profile');
       }
 
+      // Re-hydrate memory token if returned (restores session after refresh)
+      if (data.access_token) {
+        setAuthData(data.access_token, data.admin || data);
+      }
+
       return data;
     } catch (error) {
       console.error('Get profile error:', error);
@@ -103,10 +108,8 @@ class AppAdminAuthService {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local storage regardless of API call success
-      localStorage.removeItem('appAdminAuthenticated');
-      localStorage.removeItem('appAdminData');
-      localStorage.removeItem('appAdminToken');
+      // Clear all local and memory storage
+      clearAuthData();
     }
   }
 
