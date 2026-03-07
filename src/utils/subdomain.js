@@ -12,12 +12,19 @@ export const getSubdomain = () => {
 
     const parts = hostname.split('.');
 
-    // Handle something.localhost (length is 2)
-    if (hostname.endsWith('.localhost') && parts.length >= 2) {
+    // For localhost development, we often use nested subdomains like:
+    // superadmin.tenant.localhost
+    if (hostname.endsWith('.localhost')) {
+        // Find if superadmin or admin exists in the parts
+        if (parts.includes('superadmin')) return 'superadmin';
+        if (parts.includes('admin')) return 'admin';
+
+        // Default to first part if it's not just localhost
         return parts[0].toLowerCase();
     }
 
-    // Handle production domains like apollo.emr.medalph.com (length >= 3)
+    // Production: handle production domains (e.g., apollo.emr.medalph.com)
+    // Always treat the first part as the subdomain for production patterns
     if (parts.length >= 3) {
         return parts[0].toLowerCase();
     }
@@ -31,8 +38,9 @@ export const isTenantAdmin = () => {
 };
 
 export const isAppAdmin = () => {
-    const subdomain = getSubdomain();
-    return subdomain === 'superadmin';
+    const hostname = window.location.hostname.toLowerCase();
+    // Match superadmin.medalph-hospital.localhost or superadmin.medalph.com
+    return hostname.startsWith('superadmin.') || hostname.includes('.superadmin.');
 };
 
 export const isHospitalSubdomain = () => {

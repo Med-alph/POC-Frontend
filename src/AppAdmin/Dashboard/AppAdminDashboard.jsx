@@ -315,13 +315,13 @@ const StatCard = ({ title, value, icon, loading, color }) => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium opacity-75">{title}</p>
-          <p className="text-2xl font-bold mt-1">
+          <div className="text-2xl font-bold mt-1">
             {loading ? (
               <div className="animate-pulse bg-current opacity-25 rounded w-8 h-8"></div>
             ) : (
               value
             )}
-          </p>
+          </div>
         </div>
         <div className="text-current opacity-80">{icon}</div>
       </div>

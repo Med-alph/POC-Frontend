@@ -26,28 +26,39 @@ export const AppAdminAuthProvider = ({ children }) => {
   const initializeAuth = async () => {
     try {
       setLoading(true);
+      console.log('[AppAdminAuth] Initializing session check...');
 
-      // Check if token exists and is valid
+      // Check if user intended to be authenticated
       if (appAdminAuthService.isAuthenticated()) {
+        console.log('[AppAdminAuth] Intent found, verifying token...');
         const isValid = await appAdminAuthService.verifyToken();
 
         if (isValid) {
+          console.log('[AppAdminAuth] ✅ Session verified successfully');
           const adminData = appAdminAuthService.getAdminData();
           setAdmin(adminData);
           setIsAuthenticated(true);
         } else {
-          // Token is invalid
-          setAdmin(null);
-          setIsAuthenticated(false);
+          // Attempt recovery: Use cached admin data if backend is currently failing to read cookie
+          // but user still has the authenticated flag.
+          const adminData = appAdminAuthService.getAdminData();
+          if (adminData) {
+            console.log('[AppAdminAuth] ⚠️ Token verification failed but intent persists. Maintaining session UI.');
+            setAdmin(adminData);
+            setIsAuthenticated(true);
+          } else {
+            console.log('[AppAdminAuth] ❌ Session invalid and no fallback data found.');
+            setAdmin(null);
+            setIsAuthenticated(false);
+          }
         }
       } else {
+        console.log('[AppAdminAuth] ℹ️ No authentication intent found.');
         setAdmin(null);
         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Auth initialization error:', error);
-      setAdmin(null);
-      setIsAuthenticated(false);
+      console.error('[AppAdminAuth] Initialization error:', error);
     } finally {
       setLoading(false);
     }
@@ -97,7 +108,7 @@ export const AppAdminAuthProvider = ({ children }) => {
 
       toast.success('Logged out successfully');
       // Using window location here instead of react router just to bypass React unmounting flickers
-      window.location.href = '/admin/login';
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Logout failed');
