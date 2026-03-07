@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar, Clock, Stethoscope, User, Video, ArrowLeft } from "lucide-react"
 import { appointmentsAPI } from "@/api/appointmentsapi"
 import { patientsAPI } from "@/api/patientsapi"
-import { toast } from "sonner"
+import toast from "react-hot-toast";
 import VideoCallPreview from "@/Consultation/VideoCallPreview"
 import VideoRoom from "@/Consultation/VideoRoom"
 

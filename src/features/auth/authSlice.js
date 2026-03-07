@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { getSecureItem, setSecureItem, removeSecureItem, SECURE_KEYS } from '../../utils/secureStorage'
 import { baseUrl } from '../../constants/Constant'
-import { getAuthToken, setAuthData, clearAuthData } from '../../utils/auth'
+import { getAuthToken, setAuthData, clearAuthData, isAuthenticated } from '../../utils/auth'
 
 // Initial state - check secure storage first, then localStorage for backward compatibility
 const getInitialToken = () => {
@@ -18,9 +18,10 @@ const getInitialUser = () => {
 }
 
 const initialState = {
-  token: getInitialToken(),
+  token: getInitialToken(), // Will be null now for httpOnly cookies
   user: getInitialUser(),
-  isAuthenticated: !!getInitialToken() && !!getInitialUser(),
+  // Use the intent check logic to prevent flickering on refresh
+  isAuthenticated: isAuthenticated() && !!getInitialUser(),
   loading: false,
   error: null,
 }
@@ -78,10 +79,12 @@ export const checkAuth = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
+      const token = getAuthToken();
       const response = await fetch(`${baseUrl}/auth/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include', // SOC 2: Required for httpOnly cookies
       })

@@ -310,7 +310,9 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     // State
-    isAuthenticated: !!getToken() && isSessionValid,
+    // Use the intent flag + session validity to determine auth status
+    // since the actual token is now hidden in an httpOnly cookie
+    isAuthenticated: (localStorage.getItem('isAuthenticated') === 'true' || !!getToken()) && isSessionValid,
     isInitialized,
     isSessionValid,
     sessionId: getCurrentSessionId(),

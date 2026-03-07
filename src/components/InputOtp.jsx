@@ -46,7 +46,7 @@ const InputOtp = ({
 
     // Trigger onComplete if all digits are filled
     if (newValue && index === length - 1 && newDigits.every(d => d)) {
-      onComplete?.();
+      onComplete?.(otpValue);
     }
   };
 
@@ -55,7 +55,7 @@ const InputOtp = ({
     if (e.key === "Enter") {
       const otpValue = digits.join("");
       if (otpValue.length === length) {
-        onComplete?.();
+        onComplete?.(otpValue);
       }
       return;
     }
@@ -102,6 +102,11 @@ const InputOtp = ({
     // Focus the next empty input
     const nextIndex = Math.min(pastedDigits.length, length - 1);
     inputRefs.current[nextIndex]?.focus();
+
+    // Trigger onComplete if full OTP is pasted
+    if (otpValue.length === length) {
+      onComplete?.(otpValue);
+    }
   };
 
   return (

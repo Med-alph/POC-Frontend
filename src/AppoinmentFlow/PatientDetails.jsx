@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useHospital } from "@/contexts/HospitalContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import { Stethoscope, User, Calendar, Phone, Mail, FileText, Edit, PlusCircle, Moon, Sun } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
 

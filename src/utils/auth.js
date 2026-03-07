@@ -1,33 +1,28 @@
-// Authentication utility functions
-import { getSecureItem, SECURE_KEYS, setSecureItem, removeSecureItem } from './secureStorage'
+import { getSecureItem, SECURE_KEYS, setSecureItem, removeSecureItem } from './secureStorage';
+import { isProduction } from '../constants/Constant';
 
 /**
  * Get the authentication token
- * SOC 2: Tokens are now in httpOnly cookies, frontend can only access memory-cached token if available
+ * SOC 2 COMPLIANT: Tokens are only accessible from secure memory (RAM).
+ * This function NEVER reads from localStorage or document.cookie in production.
  * @returns {string|null} The access token or null if not found
  */
 export const getAuthToken = () => {
-  // Try secure memory first
-  let token = getSecureItem(SECURE_KEYS.JWT_TOKEN);
-  if (token) return token;
-  // Fallback to cookie (persisted across refresh)
-  const match = document.cookie.match(/(?:^|; )auth_token=([^;]*)/);
-  if (match && match[1]) {
-    token = decodeURIComponent(match[1]);
-    // Populate secure storage for future fast access
-    setSecureItem(SECURE_KEYS.JWT_TOKEN, token);
-    return token;
-  }
-  return null;
+  // Try secure memory first (Fastest/Safe)
+  return getSecureItem(SECURE_KEYS.JWT_TOKEN);
 };
 
 /**
- * Check if user is authenticated
- * @returns {boolean} True if user has a valid token
+ * Check if user is authenticated (Intent check)
+ * SOC 2: This only checks if the user *intended* to be logged in.
+ * The actual validity is handled by the backend /auth/me call.
+ * @returns {boolean} True if user has a valid session intent
  */
 export const isAuthenticated = () => {
-  const token = getAuthToken()
-  return !!token && token !== 'null' && token !== 'undefined'
+  // Check memory token first
+  if (getAuthToken()) return true;
+  // Check non-sensitive intent flag
+  return localStorage.getItem('isAuthenticated') === 'true';
 }
 
 /**
@@ -36,11 +31,12 @@ export const isAuthenticated = () => {
  */
 export const getUserData = () => {
   const userData = localStorage.getItem('user')
+  if (!userData || userData === 'undefined' || userData === 'null') return null;
   try {
-    return userData ? JSON.parse(userData) : null
+    return JSON.parse(userData);
   } catch (error) {
-    console.error('Error parsing user data:', error)
-    return null
+    console.error('[Auth] Error parsing user data:', error);
+    return null;
   }
 }
 
@@ -54,47 +50,31 @@ export const clearAuthData = () => {
   removeSecureItem(SECURE_KEYS.HOSPITAL_ID);
 
   localStorage.removeItem('user');
-  localStorage.removeItem('access_token');
   localStorage.removeItem('loginResponse');
   localStorage.removeItem('session_id');
   localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('appAdminAuthenticated');
+  localStorage.removeItem('appAdminData');
+  localStorage.removeItem('appAdminToken');
 
-  // Clear the auth cookie
-  const isHttps = window.location.protocol === 'https:';
-  document.cookie = `auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax${isHttps ? '; Secure' : ''}`;
+  // Clear legacy tokens if any
+  document.cookie = `auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
 
   sessionStorage.clear();
 };
 
 /**
  * Set authentication data
- * SOC 2: Token is in httpOnly cookie, we only cache in memory for immediate use
+ * SOC 2 COMPLIANT: We ONLY store the token in memory (setSecureItem).
+ * We NEVER store the JWT in localStorage or cookies from the frontend.
  * @param {string} token - Access token
  * @param {object} user - User data
  */
 export const setAuthData = (token, user) => {
   if (token) {
+    // RAM-only storage
     setSecureItem(SECURE_KEYS.JWT_TOKEN, token);
-    // Also store token in a cookie for persistence across refreshes
-    const expires = (() => {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload && payload.exp) {
-          const maxAge = payload.exp - Math.floor(Date.now() / 1000);
-          return maxAge > 0 ? maxAge : 0;
-        }
-      } catch (e) {
-        console.warn('Failed to parse JWT for expiry:', e);
-      }
-      // Default 1 day
-      return 24 * 60 * 60;
-    })();
-
-    // SOC 2: Only use Secure flag on HTTPS
-    const isHttps = window.location.protocol === 'https:';
-    const cookieString = `auth_token=${token}; path=/; max-age=${expires}; SameSite=Lax${isHttps ? '; Secure' : ''}`;
-    document.cookie = cookieString;
-    console.log('[Auth] Token persisted via cookie');
+    localStorage.setItem('isAuthenticated', 'true');
   }
   if (user) {
     localStorage.setItem('user', JSON.stringify(user));

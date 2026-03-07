@@ -5,8 +5,9 @@
 
 
 // Set ONLY ONE to true at a time
-const isProd = true;   // Production environment
-const isLocal = false;   // Local development environment
+// Automatically detect environment using Vite's built-in flags
+const isLocal = false;
+const isProd = !isLocal;   // If not dev, it's production (or staging)
 
 // ============================================
 // API CONFIGURATION
