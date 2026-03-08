@@ -291,7 +291,7 @@ export default function AppointmentForm() {
       setAvailableDoctors(mappedDoctors);
 
       if (mappedDoctors.length === 0) {
-        toast.info("No doctors available for this time slot");
+        toast("No doctors available for this time slot");
       }
 
     } catch (error) {

@@ -232,7 +232,7 @@ export default function PatientPortal() {
                           <Button className="bg-green-600 hover:bg-green-700 w-full md:w-auto" onClick={() => handleJoinCall(appt)}>
                             <Video className="h-4 w-4 mr-2" /> Join Call
                           </Button>
-                          <Button variant="outline" className="w-full md:w-auto" onClick={() => toast.info('Details coming soon')}>Details</Button>
+                          <Button variant="outline" className="w-full md:w-auto" onClick={() => toast('Details coming soon')}>Details</Button>
                         </div>
                       </div>
                     </CardContent>
@@ -264,7 +264,7 @@ export default function PatientPortal() {
                           </div>
                         </div>
                         <div className="flex gap-2 md:w-auto w-full">
-                          <Button variant="outline" className="w-full md:w-auto" onClick={() => toast.info('Details coming soon')}>Details</Button>
+                          <Button variant="outline" className="w-full md:w-auto" onClick={() => toast('Details coming soon')}>Details</Button>
                         </div>
                       </div>
                     </CardContent>
