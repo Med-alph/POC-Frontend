@@ -68,7 +68,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
         setShowCall(false);
         setActiveCallId(null);
         setActiveRoomName(null);
-        toast.info('Call ended');
+        toast('Call ended');
       });
 
       return () => {
@@ -231,8 +231,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
   const closeCallHandler = () => {
     setShowCall(false);
     // Keep activeCallId and activeRoomName so we can rejoin
-    // Don't clear existingActiveCall
-    toast.info('Call is still active. You can rejoin anytime.');
+    toast('Call is still active. You can rejoin anytime.');
   };
 
   // End call handler

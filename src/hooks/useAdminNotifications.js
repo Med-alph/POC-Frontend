@@ -242,12 +242,12 @@ function useAdminNotifications(adminUserId, hospitalId) {
       const isSessionReview = payload.type === 'session_reviewed' || payload.type === 'SESSION_REVIEWED';
 
       if (isImageUpload) {
-        toast.info(payload.body || payload.message, {
+        toast(payload.body || payload.message, {
           duration: 5000,
           icon: '📸',
         });
       } else if (isSessionReview) {
-        toast.info(payload.body || payload.message, {
+        toast(payload.body || payload.message, {
           duration: 5000,
           icon: '✅',
         });

@@ -230,11 +230,7 @@ export default function PatientDashboard() {
         });
         setShowCallNotification(true);
 
-        try {
-          toast.info(`${doctorName} started the call`);
-        } catch (error) {
-          console.error('Toast error:', error);
-        }
+        toast(`${doctorName} started the call`);
       });
 
       // Listen for call ended events
@@ -246,9 +242,7 @@ export default function PatientDashboard() {
         setActiveCallId(null);
         setActiveRoomName(null);
         setShowRejoinBanner(false);
-        toast.info('Call ended');
-
-        // Refresh call history if on calls tab
+        toast('Call ended');
         if (activeTab === 'calls') {
           fetchCallHistory();
         }
@@ -660,7 +654,7 @@ export default function PatientDashboard() {
     // Show rejoin banner if call is still active
     if (activeCallId && activeRoomName) {
       setShowRejoinBanner(true);
-      toast.info('You can rejoin the call anytime');
+      toast('You can rejoin the call anytime');
     }
   };
 

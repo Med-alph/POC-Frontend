@@ -94,7 +94,7 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
 
         // Show toast for image upload and session review notifications
         if (data.type === "IMAGE_UPLOADED") {
-          toast.info(data.message, {
+          toast(data.message, {
             duration: 5000,
             icon: "📸"
           });

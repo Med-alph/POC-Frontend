@@ -53,7 +53,7 @@ const DoctorPatientRecord = () => {
                     toast.success("Patient records loaded");
                 } else {
                     setConsultations([]); // no consultations but patient data present
-                    toast.info("No consultation records found");
+                    toast("No consultation records found");
                 }
             }
         } catch (err) {
