@@ -148,8 +148,15 @@ export default function PatientDashboard() {
     async function fetchProfile() {
       setLoading(true);
       try {
-        // SOC 2: This call uses httpOnly cookie for authentication
-        const profile = await authAPI.getProfile();
+        // Use the new Self-Identification endpoint
+        // This handles both the 'incomplete' and 'full' states automatically
+        const profile = await patientsAPI.getMe();
+
+        if (profile?.is_incomplete) {
+          console.log('[Dashboard] Patient registration incomplete, staying in restricted state');
+          // You could optionally redirect to registration here if not already handled
+        }
+
         setPatient(profile);
       } catch (error) {
         console.error('Failed to fetch profile:', error);
