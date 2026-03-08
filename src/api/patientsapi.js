@@ -92,6 +92,14 @@ export const patientsAPI = {
   },
 
   /**
+   * Get current patient profile (Self-identification)
+   * The backend identifies the patient from the JWT/session cookie.
+   */
+  getMe: async () => {
+    return apiRequest('/patients/me')
+  },
+
+  /**
    * Get patient by phone number and hospital ID
    * Returns patient object if found, null if not found
    */

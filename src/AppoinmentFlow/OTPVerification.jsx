@@ -73,21 +73,24 @@ const OTPVerification = () => {
     try {
       const res = await authAPI.verifyOtp({ phone, otp: currentOtp, hospitalId: HOSPITAL_ID });
       console.log('OTP verification API response:', res);
-      if (res.success && res.token) {
+
+      if (res.success) {
         toast.success('OTP verified successfully');
-        // Store token securely for subsequent API calls
-        setAuthData(res.token, res.user || {});
+
+        // Store token and user data (even if incomplete)
+        // This ensures the current session is tracked in memory
+        setAuthData(res.token, res.user || res.patient || { phone, role: 'patient_incomplete' });
         localStorage.setItem('isAuthenticated', 'true');
+
         if (res.isNewPatient) {
-          setUserId(res.patient?.id || null);
+          // Store the underlying user ID if provided, used for linking during registration
+          setUserId(res.user?.id || res.patient?.id || null);
           setShowAddPatientDialog(true);
         } else {
           navigate('/patient-dashboard', { replace: true });
         }
-      } else if (res.isNewPatient) {
-        setShowAddPatientDialog(true);
       } else {
-        toast.error('Invalid OTP or token, please try again');
+        toast.error(res.message || 'Invalid OTP, please try again');
       }
     } catch (err) {
       toast.error(err.message || "Error verifying OTP");
@@ -132,13 +135,19 @@ const OTPVerification = () => {
     }
   };
 
-  const handleRegistrationComplete = (patient) => {
+  const handleRegistrationComplete = (response) => {
     // After creation AND consent, handle login/navigation
-    // SOC 2: Token is stored in httpOnly cookie by backend, no need for localStorage
-    if (patient) {
+    // response now contains normalized patient info and potentially a new session token
+    if (response) {
+      const patient = response.patient || response.data || response;
+      const token = response.token; // Upgrade to full token returned by backend
+
+      // Update local auth data with the new ID and Token
+      setAuthData(token, patient);
       localStorage.setItem("isAuthenticated", "true");
-      navigate("/patient-dashboard", { replace: true });
+
       toast.success("Registration complete!");
+      navigate("/patient-dashboard", { replace: true });
     } else {
       navigate("/landing");
     }
