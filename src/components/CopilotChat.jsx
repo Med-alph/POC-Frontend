@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Sparkles, X, Search, User } from 'lucide-react';
+import { Send, Loader2, Sparkles, X, Search, User, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSelector } from 'react-redux';
@@ -101,11 +101,18 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const formatInsights = (insights) => {
+  const formatInsights = (insights, intent = null) => {
     if (!insights) return '';
     
     let formatted = '';
     
+    // For visit_comparison we render a rich panel instead of long text,
+    // so we skip text formatting here and let the UI component handle it.
+    if (intent === 'visit_comparison') {
+      return '';
+    }
+    
+    // Handle other intents (existing logic)
     if (insights.summary) {
       formatted += insights.summary + '\n\n';
     }
@@ -243,8 +250,10 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
       let assistantContent = '';
       let suggestedActions = null;
 
+      let intent = response.intent || intentHint;
+
       if (response.insights) {
-        assistantContent = formatInsights(response.insights);
+        assistantContent = formatInsights(response.insights, intent);
       } else if (response.message) {
         assistantContent = response.message;
       } else {
@@ -252,13 +261,28 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
       }
 
       if (response.suggestedActions && response.suggestedActions.length > 0) {
-        // Limit to 2 suggested actions
-        suggestedActions = response.suggestedActions.slice(0, 2);
+        // Show all suggested actions for richer UI
+        suggestedActions = response.suggestedActions;
+      }
+
+      // Filter out non-clinical generic warnings (e.g. prescription disclaimers)
+      let insightsForMessage = response.insights;
+      if (insightsForMessage?.warnings && Array.isArray(insightsForMessage.warnings)) {
+        insightsForMessage = {
+          ...insightsForMessage,
+          warnings: insightsForMessage.warnings.filter(
+            (w) =>
+              !w.toLowerCase().includes('prescription suggestions') &&
+              !w.toLowerCase().includes('review carefully')
+          ),
+        };
       }
 
       const assistantMessage = {
         role: 'assistant',
         content: assistantContent,
+        intent,
+        insights: insightsForMessage,
         suggestedActions,
         timestamp: new Date().toISOString()
       };
@@ -289,6 +313,226 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
     }
   };
 
+  const AIVisitComparisonPanel = ({ insights, suggestedActions, onActionClick }) => {
+    if (!insights) return null;
+
+    const { clinical_summary, key_changes, documentation_gaps, clinical_trend } = insights;
+
+    const parseCurrentPreviousList = (items = []) => {
+      // Try to split "Current: ...; Previous: ..." into lines
+      return items.map((text) => {
+        const parts = text.split(';').map((p) => p.trim());
+        const current = parts.find((p) => p.toLowerCase().startsWith('current'));
+        const previous = parts.find((p) => p.toLowerCase().startsWith('previous'));
+        return { raw: text, current, previous };
+      });
+    };
+
+    const symptomChanges = parseCurrentPreviousList(key_changes?.symptoms || []);
+    const vitalChanges = parseCurrentPreviousList(key_changes?.vitals || []);
+    const medicationChanges = parseCurrentPreviousList(key_changes?.medications || []);
+    const investigationChanges = parseCurrentPreviousList(key_changes?.investigations || []);
+
+    const trend = (clinical_trend || 'unclear').toLowerCase();
+    const trendConfig = {
+      persistent: 'bg-orange-100 text-orange-800 border-orange-200',
+      improving: 'bg-green-100 text-green-800 border-green-200',
+      worsening: 'bg-red-100 text-red-800 border-red-200',
+      unclear: 'bg-gray-100 text-gray-800 border-gray-200',
+    };
+    const trendClass = trendConfig[trend] || trendConfig.unclear;
+
+    return (
+      <div className="space-y-3 text-xs md:text-sm">
+        {/* Clinical Summary */}
+        {clinical_summary && (
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/80 dark:bg-indigo-900/20 dark:border-indigo-800 px-3 py-2.5">
+            <p className="text-[11px] md:text-xs font-semibold text-indigo-900 dark:text-indigo-200 mb-1">
+              Clinical Summary
+            </p>
+            <p className="text-xs md:text-sm text-indigo-950 dark:text-indigo-50 leading-snug line-clamp-2">
+              {clinical_summary}
+            </p>
+          </div>
+        )}
+
+        {/* Key Changes */}
+        {(symptomChanges.length ||
+          vitalChanges.length ||
+          medicationChanges.length ||
+          investigationChanges.length) && (
+          <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 px-3 py-2.5">
+            <p className="text-[11px] md:text-xs font-semibold text-gray-800 dark:text-gray-100 mb-1.5 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              Key Changes
+            </p>
+
+            <div className="space-y-2">
+              {/* Symptoms */}
+              {symptomChanges.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 mb-0.5">
+                    Symptoms
+                  </p>
+                  {symptomChanges.map((item, idx) => (
+                    <div key={idx} className="space-y-0.5">
+                      {item.current && (
+                        <p className="text-xs text-gray-800 dark:text-gray-100">
+                          • <span className="font-medium">Current:</span>{' '}
+                          {item.current.replace(/^current:\s*/i, '')}
+                        </p>
+                      )}
+                      {item.previous && (
+                        <p className="text-xs text-gray-700 dark:text-gray-300">
+                          • <span className="font-medium">Previous:</span>{' '}
+                          {item.previous.replace(/^previous:\s*/i, '')}
+                        </p>
+                      )}
+                      {!item.current && !item.previous && (
+                        <p className="text-xs text-gray-700 dark:text-gray-300">• {item.raw}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Vitals */}
+              {vitalChanges.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 mb-0.5">
+                    Vitals
+                  </p>
+                  {vitalChanges.map((item, idx) => (
+                    <div key={idx} className="space-y-0.5">
+                      {item.current && (
+                        <p className="text-xs text-gray-800 dark:text-gray-100">
+                          {item.current.toLowerCase().includes('not recorded') && '⚠ '}
+                          <span className="font-medium">Current:</span>{' '}
+                          {item.current.replace(/^current:\s*/i, '')}
+                        </p>
+                      )}
+                      {item.previous && (
+                        <p className="text-xs text-gray-700 dark:text-gray-300">
+                          <span className="font-medium">Previous:</span>{' '}
+                          {item.previous.replace(/^previous:\s*/i, '')}
+                        </p>
+                      )}
+                      {!item.current && !item.previous && (
+                        <p className="text-xs text-gray-700 dark:text-gray-300">• {item.raw}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Medications */}
+              {medicationChanges.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 mb-0.5">
+                    Medications
+                  </p>
+                  {medicationChanges.map((item, idx) => (
+                    <div key={idx} className="space-y-0.5">
+                      {item.current && (
+                        <p className="text-xs text-gray-800 dark:text-gray-100">
+                          <span className="font-medium">Current:</span>{' '}
+                          {item.current.replace(/^current:\s*/i, '')}
+                        </p>
+                      )}
+                      {item.previous && (
+                        <p className="text-xs text-gray-700 dark:text-gray-300">
+                          <span className="font-medium">Previous:</span>{' '}
+                          {item.previous.replace(/^previous:\s*/i, '')}
+                        </p>
+                      )}
+                      {!item.current && !item.previous && (
+                        <p className="text-xs text-gray-700 dark:text-gray-300">• {item.raw}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Investigations */}
+              {investigationChanges.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 mb-0.5">
+                    Investigations
+                  </p>
+                  {investigationChanges.map((item, idx) => (
+                    <p key={idx} className="text-xs text-gray-700 dark:text-gray-300">
+                      • {item.raw}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Documentation Gaps + Trend */}
+        {(documentation_gaps?.length || trend) && (
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+            {/* Documentation Gaps */}
+            {documentation_gaps?.length > 0 && (
+              <div className="flex-1">
+                <p className="text-[11px] md:text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-orange-500" />
+                  Documentation Gaps
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {documentation_gaps.map((gap, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] text-orange-800 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-100"
+                    >
+                      ⚠ {gap.replace(/^missing\s*/i, 'Missing ')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trend */}
+            <div className="md:self-start">
+              <p className="text-[11px] md:text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
+                Trend
+              </p>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${trendClass}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                {trend.charAt(0).toUpperCase() + trend.slice(1)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Suggested Actions */}
+        {suggestedActions && suggestedActions.length > 0 && (
+          <div className="pt-1 border-t border-dashed border-gray-200 dark:border-gray-700 mt-1.5">
+            <p className="text-[11px] md:text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
+              Suggested Actions
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {suggestedActions.map((action, idx) => (
+                <Button
+                  key={idx}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onActionClick(action)}
+                  className="h-7 md:h-8 px-2 md:px-3 text-[11px] md:text-xs bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 border-gray-200 dark:border-gray-600 rounded-full"
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const handleActionClick = (action) => {
     if (!activePatientId) return;
     
@@ -301,7 +545,13 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
       'review_labs': 'Lab Results',
       'review_medications': 'Medications',
       'review_allergies': 'Allergies & Notes',
-      'review_insights': 'Appointments' // Default tab
+      'review_insights': 'Appointments', // Default tab
+      'review_medication_changes': 'Medications', // Visit comparison action
+      'review_lab_changes': 'Lab Results', // Visit comparison action
+      'record_vitals': 'Vitals',
+      'add_followup_plan': 'Appointments',
+      'complete_exam': 'Appointments',
+      'view_imaging_orders': 'Investigations',
     };
     
     const targetTab = tabMap[actionType];
@@ -507,33 +757,54 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
 
           const isUser = message.role === 'user';
 
+          const isVisitComparison =
+            !isUser && message.intent === 'visit_comparison' && message.insights;
+
           return (
             <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] sm:max-w-[80%] ${isUser ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'} rounded-lg p-2.5 md:p-3`}>
-                <p className="text-xs md:text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                
-                {/* Suggested Actions */}
-                {!isUser && message.suggestedActions && message.suggestedActions.length > 0 && (
-                  <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-gray-300 dark:border-gray-600 space-y-1.5 md:space-y-2">
-                    {message.suggestedActions.map((action, actionIndex) => (
-                      <Button
-                        key={actionIndex}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleActionClick(action)}
-                        className="w-full justify-start text-left h-auto py-1.5 md:py-2 px-2 md:px-3 text-xs bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{action.label}</p>
-                          {action.description && (
-                            <p className="text-gray-600 dark:text-gray-400 text-[10px] md:text-xs mt-0.5 line-clamp-2">
-                              {action.description}
-                            </p>
-                          )}
-                        </div>
-                      </Button>
-                    ))}
-                  </div>
+              <div
+                className={`max-w-[85%] sm:max-w-[80%] ${
+                  isUser
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
+                } rounded-lg p-2.5 md:p-3`}
+              >
+                {isVisitComparison ? (
+                  <AIVisitComparisonPanel
+                    insights={message.insights}
+                    suggestedActions={message.suggestedActions}
+                    onActionClick={handleActionClick}
+                  />
+                ) : (
+                  <>
+                    <p className="text-xs md:text-sm whitespace-pre-wrap leading-relaxed">
+                      {message.content}
+                    </p>
+
+                    {/* Suggested Actions (non-visit-comparison fallback) */}
+                    {!isUser && message.suggestedActions && message.suggestedActions.length > 0 && (
+                      <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-gray-300 dark:border-gray-600 space-y-1.5 md:space-y-2">
+                        {message.suggestedActions.map((action, actionIndex) => (
+                          <Button
+                            key={actionIndex}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleActionClick(action)}
+                            className="w-full justify-start text-left h-auto py-1.5 md:py-2 px-2 md:px-3 text-xs bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{action.label}</p>
+                              {action.description && (
+                                <p className="text-gray-600 dark:text-gray-400 text-[10px] md:text-xs mt-0.5 line-clamp-2">
+                                  {action.description}
+                                </p>
+                              )}
+                            </div>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
