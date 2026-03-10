@@ -11,7 +11,6 @@ import { setAuthData } from "@/utils/auth";
 import InputOtp from "@/components/InputOtp";
 import AddPatientDialog from "@/Patients/AddPatient";
 import patientsAPI from "../api/patientsapi";
-import { setAuthData } from "@/utils/auth";
 
 const OTPVerification = () => {
   const navigate = useNavigate();
