@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { getSecureItem, setSecureItem, removeSecureItem, SECURE_KEYS } from '../../utils/secureStorage'
 import { baseUrl } from '../../constants/Constant'
+import { getAuthToken, setAuthData, clearAuthData, isAuthenticated } from '../../utils/auth'
 
 // Initial state - check secure storage first, then localStorage for backward compatibility
 const getInitialToken = () => {
-  // SOC 2: Tokens are now in httpOnly cookies, frontend doesn't manage them
-  return null
+  return getAuthToken()
 }
 
 const getInitialUser = () => {
@@ -18,9 +18,10 @@ const getInitialUser = () => {
 }
 
 const initialState = {
-  token: getInitialToken(),
+  token: getInitialToken(), // Will be null now for httpOnly cookies
   user: getInitialUser(),
-  isAuthenticated: !!localStorage.getItem('user'), // Use existence of user as indicator
+  // Use the intent check logic to prevent flickering on refresh
+  isAuthenticated: isAuthenticated() && !!getInitialUser(),
   loading: false,
   error: null,
 }
@@ -78,10 +79,12 @@ export const checkAuth = createAsyncThunk(
   'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
+      const token = getAuthToken();
       const response = await fetch(`${baseUrl}/auth/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include', // SOC 2: Required for httpOnly cookies
       })
@@ -109,22 +112,19 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const { access_token, session_id, user, uiModules } = action.payload
+      const { access_token, user } = action.payload
       state.token = access_token
       state.user = user
       state.isAuthenticated = true
       state.error = null
 
-      // Store in memory for immediate use
-      setSecureItem(SECURE_KEYS.JWT_TOKEN, access_token)
-      if (session_id) {
-        setSecureItem(SECURE_KEYS.SESSION_ID, session_id)
-      }
+      // Use unified auth utility for persistence (cookie + memory + localStorage)
+      setAuthData(access_token, user)
 
-      // SOC 2: Token is in httpOnly cookie, don't store in localStorage
-      localStorage.setItem('user', JSON.stringify(user))
-      if (session_id) {
-        localStorage.setItem('session_id', session_id)
+      // Sync specific pieces needed by other parts of the app
+      if (action.payload.session_id) {
+        setSecureItem(SECURE_KEYS.SESSION_ID, action.payload.session_id)
+        localStorage.setItem('session_id', action.payload.session_id)
       }
 
       // Extract tenant/hospital IDs from token and store securely
@@ -148,17 +148,8 @@ const authSlice = createSlice({
       state.isAuthenticated = false
       state.error = null
 
-      // Clear secure storage
-      removeSecureItem(SECURE_KEYS.JWT_TOKEN)
-      removeSecureItem(SECURE_KEYS.SESSION_ID)
-      removeSecureItem(SECURE_KEYS.TENANT_ID)
-      removeSecureItem(SECURE_KEYS.HOSPITAL_ID)
-
-      // Clear localStorage
-      localStorage.removeItem('user')
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('loginResponse')
-      localStorage.removeItem('session_id')
+      // Use unified auth utility to clear everything
+      clearAuthData()
     },
     clearError: (state) => {
       state.error = null
@@ -176,23 +167,21 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false
-        const { access_token, session_id, user, uiModules } = action.payload
+        const { access_token, user } = action.payload
         state.token = access_token
         state.user = user
         state.isAuthenticated = true
         state.error = null
 
-        // Store in secure storage (memory) - primary storage
-        setSecureItem(SECURE_KEYS.JWT_TOKEN, access_token)
-        if (session_id) {
-          setSecureItem(SECURE_KEYS.SESSION_ID, session_id)
-        }
+        // Use unified auth utility for persistence
+        setAuthData(access_token, user)
 
-        // Store in localStorage for persistence across page refreshes
-        localStorage.setItem('user', JSON.stringify(user))
+        // Save full response for context if needed
         localStorage.setItem('loginResponse', JSON.stringify(action.payload))
-        if (session_id) {
-          localStorage.setItem('session_id', session_id)
+
+        if (action.payload.session_id) {
+          setSecureItem(SECURE_KEYS.SESSION_ID, action.payload.session_id)
+          localStorage.setItem('session_id', action.payload.session_id)
         }
 
         // Extract tenant/hospital IDs from token

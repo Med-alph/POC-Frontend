@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useHospital } from "@/contexts/HospitalContext";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import { Stethoscope, ArrowLeft, Moon, Sun, User, Calendar, Phone, Mail, FileText, Heart, Pill } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
 import { PHONE_REGEX } from "@/constants/Constant";

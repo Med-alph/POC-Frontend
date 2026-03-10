@@ -94,7 +94,7 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
 
         // Show toast for image upload and session review notifications
         if (data.type === "IMAGE_UPLOADED") {
-          toast.info(data.message, {
+          toast(data.message, {
             duration: 5000,
             icon: "📸"
           });
@@ -363,11 +363,11 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 mt-2 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
-                <DropdownMenuItem className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors">
+                {/* <DropdownMenuItem className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors">
                   <Settings className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
                   <span className="text-sm font-medium">Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1" />
+                </DropdownMenuItem> */}
+                {/* <DropdownMenuSeparator className="my-1" /> */}
                 <DropdownMenuItem
                   onClick={handleLogout}
                   className="px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md cursor-pointer transition-colors"

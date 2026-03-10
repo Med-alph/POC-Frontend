@@ -4,9 +4,14 @@
 // Toggle these flags to switch between environments
 
 
-// Set ONLY ONE to true at a time
-const isProd = true;   // Production environment
-const isLocal = false;   // Local development environment
+// Set environment dynamically based on hostname
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.endsWith('.localhost') ||
+  window.location.hostname.includes('superadmin') && window.location.hostname.includes('localhost')
+);
+const isProd = !isLocal;
 
 // ============================================
 // API CONFIGURATION

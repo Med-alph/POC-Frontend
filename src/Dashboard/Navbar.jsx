@@ -34,6 +34,7 @@ const navigationItems = [
   { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS },
   { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote },
   { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true },
+  { id: "master-procedures", label: "Master Procedures", path: "/admin/master-procedures", icon: Clipboard, isAdminOnly: true, requiredModule: UI_MODULES.PROCEDURES },
 ];
 
 const doctorNavItems = [
@@ -43,7 +44,6 @@ const doctorNavItems = [
   { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
   { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles },
   { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
-  { id: "Procedures", label: "Procedures", path: "/procedures", icon: Clipboard, requiredModule: UI_MODULES.PROCEDURES },
 ];
 
 export default function Navbar() {
@@ -146,21 +146,20 @@ export default function Navbar() {
 
   // Filter navigation items based on user permissions
   const visibleNavItems = filteredNavItems.filter(item => {
-    // If it's an admin-only item, check user role
+    // 1. Check Admin Only restriction
     if (item.isAdminOnly) {
-      return user?.role === 'Admin' || user?.designation_group === 'Admin';
+      const isAdmin = user?.role === 'Admin' || user?.designation_group === 'Admin' || user?.role === 'tenant_admin' || user?.role === 'HOSPITAL_ADMIN';
+      if (!isAdmin) return false;
     }
 
-    // If no required module specified, show the item
+    // 2. Check Module restriction
     if (!item.requiredModule) return true;
 
-    // If permissions are still loading, don't show items that require permissions
+    // If permissions are still loading, wait
     if (permissionsLoading) return false;
 
     // Check if user has permission for this module
-    const hasPermission = hasModule(item.requiredModule);
-    console.log(`Navigation item: ${item.label}, Required: ${item.requiredModule}, Has Permission: ${hasPermission}`);
-    return hasPermission;
+    return hasModule(item.requiredModule);
   });
 
   console.log('All filtered nav items:', filteredNavItems.map(item => item.label));
@@ -253,17 +252,19 @@ export default function Navbar() {
         </div>
         <div className="flex items-center gap-4">
           {/* Copilot Chat Button */}
-          <button
-            className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            onClick={() => setShowCopilotChat(!showCopilotChat)}
-            aria-label="Clinical Copilot"
-            title={currentPatientId ? "Clinical Copilot" : "Open a patient to use Copilot"}
-          >
-            <MessageSquare className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-            {!currentPatientId && (
-              <span className="absolute -top-0.5 -right-0.5 text-xs font-semibold bg-gray-400 rounded-full h-3 w-3 flex items-center justify-center" title="No patient selected" />
-            )}
-          </button>
+          {isDoctor && (
+            <button
+              className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => setShowCopilotChat(!showCopilotChat)}
+              aria-label="Clinical Copilot"
+              title={currentPatientId ? "Clinical Copilot" : "Open a patient to use Copilot"}
+            >
+              <MessageSquare className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              {!currentPatientId && (
+                <span className="absolute -top-0.5 -right-0.5 text-xs font-semibold bg-gray-400 rounded-full h-3 w-3 flex items-center justify-center" title="No patient selected" />
+              )}
+            </button>
+          )}
 
           <div className="relative">
             <button
@@ -410,10 +411,10 @@ export default function Navbar() {
                   </div>
                 </div>
               </div>
-              <DropdownMenuItem className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors">
+              {/* <DropdownMenuItem className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors">
                 <Settings className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium">Settings</span>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuItem
                 className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
                 onClick={() => setShowActiveSessions(true)}
@@ -459,40 +460,52 @@ export default function Navbar() {
         </div>
       </nav >
 
-      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="px-6 lg:px-8">
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-            {visibleNavItems.map((item) => {
-              const IconComponent = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabClick(item.path)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-md font-medium text-sm transition-colors whitespace-nowrap ${isActive
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                    }`}
-                >
-                  <IconComponent className={`h-4 w-4 ${isActive
-                    ? "text-white"
-                    : "text-gray-500 dark:text-gray-400"
-                    }`} />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center">
+        <div className="px-6 lg:px-8 w-full">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide py-1">
+            {permissionsLoading ? (
+              // Show skeleton loaders while permissions are being fetched
+              Array(6).fill(0).map((_, i) => (
+                <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-md bg-gray-200/50 dark:bg-gray-800/50 animate-pulse min-w-[120px] h-9">
+                  <div className="h-4 w-4 bg-gray-300 dark:bg-gray-700 rounded-full" />
+                  <div className="h-3.5 w-16 bg-gray-300 dark:bg-gray-700 rounded" />
+                </div>
+              ))
+            ) : (
+              visibleNavItems.map((item) => {
+                const IconComponent = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabClick(item.path)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors whitespace-nowrap h-9 ${isActive
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                  >
+                    <IconComponent className={`h-4 w-4 ${isActive
+                      ? "text-white"
+                      : "text-gray-500 dark:text-gray-400"
+                      }`} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
 
       {/* Copilot Chat */}
-      <CopilotChat
-        patientId={currentPatientId}
-        visitId={null}
-        isOpen={showCopilotChat}
-        onClose={() => setShowCopilotChat(false)}
-      />
+      {isDoctor && (
+        <CopilotChat
+          patientId={currentPatientId}
+          visitId={null}
+          isOpen={showCopilotChat}
+          onClose={() => setShowCopilotChat(false)}
+        />
+      )}
 
       {/* Active Sessions Dialog */}
       <ActiveSessions

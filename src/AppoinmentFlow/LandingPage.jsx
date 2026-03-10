@@ -5,7 +5,7 @@ import { useHospital } from "@/contexts/HospitalContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import authAPI from "@/api/authapi";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 

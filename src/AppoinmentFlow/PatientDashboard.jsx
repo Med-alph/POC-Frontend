@@ -10,6 +10,7 @@ import {
   Clock, PhoneCall, PhoneIncoming, PhoneOutgoing, PhoneMissed, Download,
   AlertCircle, Droplet, FileText, Users, X, Bell, CheckCircle, Camera
 } from "lucide-react";
+import { getUserData } from "@/utils/auth";
 import PatientNavbar from "./PatientNavbar";
 import NewAppointmentFlow from "./NewAppointmentFlow";
 import appointmentsAPI from "@/api/appointmentsapi";
@@ -29,7 +30,7 @@ import socketService from "@/services/socketService";
 import { videoCallAPI } from "@/api/videocallapi";
 import { generateRoomName } from "@/utils/callUtils";
 
-const user = JSON.parse(localStorage.getItem('user') || '{}');
+const user = getUserData() || {};
 const PAGE_SIZE = 10;
 
 const TABS = [
@@ -147,8 +148,15 @@ export default function PatientDashboard() {
     async function fetchProfile() {
       setLoading(true);
       try {
-        // SOC 2: This call uses httpOnly cookie for authentication
-        const profile = await authAPI.getProfile();
+        // Use the new Self-Identification endpoint
+        // This handles both the 'incomplete' and 'full' states automatically
+        const profile = await patientsAPI.getMe();
+
+        if (profile?.is_incomplete) {
+          console.log('[Dashboard] Patient registration incomplete, staying in restricted state');
+          // You could optionally redirect to registration here if not already handled
+        }
+
         setPatient(profile);
       } catch (error) {
         console.error('Failed to fetch profile:', error);
@@ -222,11 +230,7 @@ export default function PatientDashboard() {
         });
         setShowCallNotification(true);
 
-        try {
-          toast.info(`${doctorName} started the call`);
-        } catch (error) {
-          console.error('Toast error:', error);
-        }
+        toast(`${doctorName} started the call`);
       });
 
       // Listen for call ended events
@@ -238,9 +242,7 @@ export default function PatientDashboard() {
         setActiveCallId(null);
         setActiveRoomName(null);
         setShowRejoinBanner(false);
-        toast.info('Call ended');
-
-        // Refresh call history if on calls tab
+        toast('Call ended');
         if (activeTab === 'calls') {
           fetchCallHistory();
         }
@@ -483,6 +485,22 @@ export default function PatientDashboard() {
     return <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${styles[status?.toLowerCase()] || styles.pending}`}>{status || "Pending"}</span>;
   };
 
+  const getVisitTypeBadge = (category) => {
+    if (category === "Follow-up") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-tight">
+          <RefreshCw className="w-3 h-3" /> Follow-up
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 uppercase tracking-tight">
+        Fresh Visit
+      </span>
+    );
+  };
+
+
   const handleLoadSlots = async () => {
     if (!selectedDoctor || !selectedDate) return;
     setLoadingSlots(true);
@@ -499,6 +517,7 @@ export default function PatientDashboard() {
   };
 
   const handleConfirmBooking = async () => {
+    if (bookingLoading) return;
     if (!reason.trim()) return toast.error("Enter reason for visit");
     setBookingLoading(true);
     try {
@@ -635,7 +654,7 @@ export default function PatientDashboard() {
     // Show rejoin banner if call is still active
     if (activeCallId && activeRoomName) {
       setShowRejoinBanner(true);
-      toast.info('You can rejoin the call anytime');
+      toast('You can rejoin the call anytime');
     }
   };
 
@@ -685,7 +704,6 @@ export default function PatientDashboard() {
                 if (appointment) {
                   // Appointment was successfully booked
                   fetchAppointments();
-                  toast.success("Appointment booked successfully!");
                 }
                 // If appointment is null, user just went back
               }}
@@ -729,7 +747,13 @@ export default function PatientDashboard() {
                           <td className="py-4 px-4 font-medium">{formatDate(apt.appointment_date)}</td>
                           <td className="py-4 px-4">{formatTime(apt.appointment_time)}</td>
                           <td className="py-4 px-4"><p className="font-medium">{apt.staff_name || apt.staff?.staff_name || "N/A"}</p><p className="text-xs text-gray-500">{apt.staff?.department || "General"}</p></td>
-                          <td className="py-4 px-4 capitalize">{apt.appointment_type || "Consultation"}</td>
+                          <td className="py-4 px-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="capitalize">{apt.appointment_type || "Consultation"}</span>
+                              {getVisitTypeBadge(apt.visit_category)}
+                            </div>
+                          </td>
+
                           <td className="py-4 px-4">{getStatusBadge(apt.status)}</td>
                           <td className="py-4 px-4">{canModifyAppointment(apt) ? <div className="flex gap-2"><Button size="sm" variant="outline" className="text-blue-600 border-blue-600" onClick={() => openRescheduleModal(apt)}>Reschedule</Button><Button size="sm" variant="destructive" onClick={() => openCancelModal(apt)}>Cancel</Button></div> : <span className="text-gray-400 text-sm">-</span>}</td>
                         </tr>
@@ -1410,7 +1434,7 @@ export default function PatientDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Toast Notifications */}
-      <Toaster position="top-right" />
+
 
       {/* Loading Overlay while joining call */}
       {isJoiningCall && (

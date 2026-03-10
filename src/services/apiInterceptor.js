@@ -12,6 +12,7 @@
  */
 
 import { getSecureItem, SECURE_KEYS } from '../utils/secureStorage';
+import { isAppAdmin } from '../utils/subdomain';
 
 // Global reference to auth context logout handler
 let sessionInvalidationHandler = null;
@@ -56,8 +57,8 @@ if (typeof window !== 'undefined' && originalFetch) {
       return originalFetch.apply(this, arguments);
     }
 
-    // Get token and session ID from secure storage
-    const token = getSecureItem(SECURE_KEYS.JWT_TOKEN);
+    // Get token and session ID from secure storage (RAM only)
+    let token = getSecureItem(SECURE_KEYS.JWT_TOKEN);
     const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
 
     // Check if body is FormData - if so, don't set Content-Type (browser will set it with boundary)
@@ -75,7 +76,7 @@ if (typeof window !== 'undefined' && originalFetch) {
       headers['Content-Type'] = 'application/json';
     }
 
-    // Attach JWT token
+    // Attach JWT token as a fallback for httpOnly cookies (essential for local dev)
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -111,8 +112,9 @@ if (typeof window !== 'undefined' && originalFetch) {
         if (isSessionError && sessionInvalidationHandler) {
           // SOC 2: Skip global logout trigger for the initial handshake itself
           // if /auth/me fails, we handle it in AuthContext/authSlice without a redirect loop
+          // ALSO SKIP if we're on a SuperAdmin subdomain (don't nuke the admin session from here)
           const isHandshake = url.includes('/auth/me');
-          if (isHandshake) {
+          if (isHandshake || isAppAdmin()) {
             return Promise.reject(new Error('Session validation failed'));
           }
 
@@ -124,7 +126,7 @@ if (typeof window !== 'undefined' && originalFetch) {
         }
 
         // Regular 401 (invalid token, etc.)
-        if (sessionInvalidationHandler) {
+        if (sessionInvalidationHandler && !isAppAdmin()) {
           sessionInvalidationHandler('Authentication failed. Please login again.');
           return Promise.reject(new Error('Authentication failed'));
         }

@@ -13,6 +13,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { isAppAdmin } from '../utils/subdomain';
 import {
   setSecureItem,
   getSecureItem,
@@ -73,20 +74,28 @@ export const AuthProvider = ({ children }) => {
   const reduxUser = useSelector((state) => state.auth.user);
 
   const [sessionId, setSessionId] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(() => {
+    // If we're on a SuperAdmin subdomain, skip general user auth initialization
+    if (isAppAdmin()) return true;
+
+    const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
+    const currentPath = window.location.pathname;
+    return publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard');
+  });
   const [isSessionValid, setIsSessionValid] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   /**
    * Initialize auth state and check session status via cookies
    */
   useEffect(() => {
     const validateSession = async () => {
-      // Skip validation for public routes and patient routes
-      const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
+      // Skip validation for superadmin, public routes, and patient routes
       const currentPath = window.location.pathname;
+      const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
 
-      if (publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard')) {
-        console.log('[AuthContext] Skipping validation for public/patient route:', currentPath);
+      if (isAppAdmin() || publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard')) {
+        console.log('[AuthContext] Skipping validation for route/appmode:', currentPath);
         setIsInitialized(true);
         return;
       }
@@ -160,6 +169,7 @@ export const AuthProvider = ({ children }) => {
    */
   const logout = useCallback(async (redirectToLogin = true) => {
     try {
+      setIsLoggingOut(true);
       // 1. Attempt to call logout API (to clear httpOnly cookie on backend)
       // SOC 2: Always try to notify backend for session invalidation
       await authAPI.logout().catch(err => {
@@ -203,6 +213,8 @@ export const AuthProvider = ({ children }) => {
         } else {
           window.location.href = '/';
         }
+      } else {
+        setIsLoggingOut(false);
       }
     }
   }, [dispatch]);
@@ -302,7 +314,9 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     // State
-    isAuthenticated: !!getToken() && isSessionValid,
+    // Use the intent flag + session validity to determine auth status
+    // since the actual token is now hidden in an httpOnly cookie
+    isAuthenticated: (localStorage.getItem('isAuthenticated') === 'true' || !!getToken()) && isSessionValid,
     isInitialized,
     isSessionValid,
     sessionId: getCurrentSessionId(),
@@ -325,12 +339,14 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isInitialized]);
 
-  if (!isInitialized) {
+  if (!isInitialized || isLoggingOut) {
     return (
       <div id="auth-loading-screen" className="flex items-center justify-center min-h-screen bg-white">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="text-gray-500 font-medium animate-pulse">Restoring your secure session...</p>
+          <p className="text-gray-500 font-medium animate-pulse">
+            {isLoggingOut ? "Logging out securely..." : "Restoring your secure session..."}
+          </p>
         </div>
       </div>
     );

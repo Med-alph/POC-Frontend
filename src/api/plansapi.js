@@ -4,12 +4,10 @@ import appAdminAuthService from '../AppAdmin/services/appAdminAuthService';
 const API_BASE = `${baseUrl}`;
 
 class PlansApiService {
-  // Get authorization headers
-  getAuthHeaders() {
-    const token = localStorage.getItem('appAdminToken');
+  // Get standard headers
+  getHeaders() {
     return {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
     };
   }
 
@@ -18,7 +16,8 @@ class PlansApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/plans`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -38,7 +37,8 @@ class PlansApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/plans/${id}`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -58,7 +58,8 @@ class PlansApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/plans`, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
         body: JSON.stringify(planData),
       });
 
@@ -79,7 +80,8 @@ class PlansApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/plans/${id}`, {
         method: 'PATCH',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
         body: JSON.stringify(planData),
       });
 
@@ -100,7 +102,8 @@ class PlansApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/plans/${id}`, {
         method: 'DELETE',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -119,7 +122,8 @@ class PlansApiService {
     try {
       const response = await fetch(`${API_BASE}/app-admin/plans/${id}/toggle-status`, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       });
 
       const data = await response.json();

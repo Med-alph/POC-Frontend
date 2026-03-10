@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useHospital } from "@/contexts/HospitalContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import { Stethoscope, User, Calendar, Phone, Mail, FileText, Edit, PlusCircle, Moon, Sun } from "lucide-react";
 import { patientsAPI } from "@/api/patientsapi";
 
@@ -38,7 +38,7 @@ const PatientDetails = () => {
     // Fetch patient data
     useEffect(() => {
         const fetchPatient = async () => {
-            if (!phone) {
+            if (!localStorage.getItem("isAuthenticated")) {
                 toast.error("Please login to access your portal");
                 navigate("/landing");
                 return;
@@ -46,29 +46,30 @@ const PatientDetails = () => {
 
             try {
                 setLoading(true);
-                let p = null;
-                if (patientId) {
-                    p = await patientsAPI.getById(patientId);
-                } else {
-                    p = await patientsAPI.getByPhoneAndHospital(phone, HOSPITAL_ID);
-                }
+                // Use getMe() to identify the current patient from the session token/cookie
+                // This replaces the fragile logic of passing IDs in location.state
+                const p = await patientsAPI.getMe();
 
-                if (!p || !p.id) {
-                    // If patient not found, navigate to appointment flow
+                if (!p || p.is_incomplete) {
+                    // If patient not found or registration is incomplete, navigate to appointment/registration flow
                     navigate("/appointment", { state: { phone, isFirstTime: true } });
                     return;
                 }
                 setPatient(p);
             } catch (err) {
                 console.error(err);
-                toast.error("Failed to load patient details");
+                if (err.message?.includes('401')) {
+                    toast.error("Session expired. Please login again.");
+                } else {
+                    toast.error("Failed to load patient details");
+                }
                 navigate("/landing");
             } finally {
                 setLoading(false);
             }
         };
         fetchPatient();
-    }, [phone, patientId, navigate]);
+    }, [navigate, phone]);
 
     // Mock recent activity data
     const recentActivity = [

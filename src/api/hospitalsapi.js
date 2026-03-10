@@ -88,6 +88,26 @@ const hospitalsAPI = {
       body: JSON.stringify(timingsData),
     });
   },
+
+    uploadLogo: async (id, file) => {
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const token = getAuthToken();
+      const response = await fetch(`${baseUrl}/hospitals/${id}/logo`,{
+        method: 'PATCH',
+        headers: {
+          ...(token ? {Authorization: `Bearer ${token}`} : {}),
+        },
+        body: formData,
+      });
+
+      if (!response.ok){
+        const errorData = await response.json().catch(()=>({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
 };
 
 export default hospitalsAPI;

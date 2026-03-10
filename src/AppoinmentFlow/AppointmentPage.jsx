@@ -18,7 +18,7 @@ import {
   Moon,
   Sun,
 } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 
 import AddPatientDialog from "@/Patients/AddPatient";
@@ -291,7 +291,7 @@ export default function AppointmentForm() {
       setAvailableDoctors(mappedDoctors);
 
       if (mappedDoctors.length === 0) {
-        toast.info("No doctors available for this time slot");
+        toast("No doctors available for this time slot");
       }
 
     } catch (error) {
@@ -436,6 +436,7 @@ export default function AppointmentForm() {
 
   // Regular appointment booking (when doctor is selected)
   const handleConfirm = async () => {
+    if (loading) return;
     if (!reason.trim()) return toast.error("Enter reason for visit");
     if (!registeredPatient) return toast.error("Patient info missing");
     if (!selectedDate) return toast.error("Select a date");

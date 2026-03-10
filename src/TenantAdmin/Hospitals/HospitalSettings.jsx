@@ -116,6 +116,7 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
         // General
         name: "",
         logo: "",
+        logoFile: null,
         address: "",
         // Appointments
         avg_appointment_time: 30,
@@ -195,10 +196,10 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
         });
     };
 
-    const handleSave = async () => {
+        const handleSave = async () => {
         setSaving(true);
         try {
-            // Convert numeric fields to integers before sending
+            // Convert numeric fields...
             const payload = {
                 ...settings,
                 avg_appointment_time: parseInt(settings.avg_appointment_time, 10),
@@ -206,10 +207,18 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                 cancellation_policy_days: parseInt(settings.cancellation_policy_days, 10),
             };
 
-            // Save general settings
+            // Remove the file object from the JSON payload (it goes to a different endpoint)
+            delete payload.logoFile;
+
+            // 1. Save general settings
             await hospitalsapi.updateSettings(hospitalId, payload);
 
-            // Save timings
+            // 2. Upload logo if a new file was selected!
+            if (settings.logoFile) {
+                 await hospitalsapi.uploadLogo(hospitalId, settings.logoFile);
+            }
+
+            // 3. Save timings
             await hospitalsapi.updateTimings(hospitalId, timings);
 
             toast.success("All settings updated successfully!");
@@ -298,24 +307,36 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                                     className="bg-white"
                                 />
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="logo">Hospital Logo URL</Label>
-                                <div className="flex gap-4 items-center">
-                                    <Input
-                                        id="logo"
-                                        name="logo"
-                                        value={settings.logo}
-                                        onChange={handleChange}
-                                        placeholder="https://example.com/logo.png"
-                                        className="bg-white flex-1"
-                                    />
-                                    {settings.logo && (
-                                        <div className="h-10 w-10 rounded border overflow-hidden bg-white">
-                                            <img src={settings.logo} alt="Preview" className="h-full w-full object-contain" />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+    <div className="grid gap-2">
+        <Label htmlFor="logo">Hospital Logo (Max 2MB, JPG/PNG)</Label>
+        <div className="flex gap-4 items-center">
+            <Input
+                id="logo"
+                name="logo"
+                type="file"
+                accept="image/jpeg, image/png, image/webp"
+                onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        if (file.size > 2 * 1024 * 1024) { // 2MB Check
+                            toast.error("File size must be less than 2MB");
+                            return;
+                        }
+                        // Instant preview + saving file object to state
+                        const previewUrl = URL.createObjectURL(file);
+                        setSettings((prev) => ({ ...prev, logo: previewUrl, logoFile: file }));
+                    }
+                }}
+                className="bg-white flex-1"
+            />
+            {settings.logo && (
+                <div className="h-10 w-10 rounded border overflow-hidden bg-white shrink-0">
+                    <img src={settings.logo} alt="Preview" className="h-full w-full object-contain" />
+                </div>
+            )}
+        </div>
+    </div>
+
                             <div className="grid gap-2">
                                 <Label htmlFor="address">Address</Label>
                                 <Textarea

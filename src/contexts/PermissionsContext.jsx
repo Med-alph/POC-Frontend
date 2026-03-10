@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { uiModulesAPI } from '../api/uiModulesApi';
+import { isAppAdmin } from '../utils/subdomain';
 
 const PermissionsContext = createContext();
 
@@ -24,6 +25,12 @@ export const PermissionsProvider = ({ children }) => {
   const user = useSelector((state) => state.auth.user);
 
   useEffect(() => {
+    // Skip general UI modules logic for superadmin (it has its own system)
+    if (isAppAdmin()) {
+      setLoading(false);
+      return;
+    }
+
     if (isAuthenticated && user) {
       // Small delay to ensure login response is stored in localStorage
       const timer = setTimeout(() => {
@@ -43,11 +50,11 @@ export const PermissionsProvider = ({ children }) => {
     try {
       setLoading(true);
       console.log('🔄 Fetching UI modules...');
-      
+
       // Check if we have UI modules from login response first
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       console.log('User from localStorage:', user);
-      
+
       // Check for uiModules in user object first, then check root level
       let uiModules = user.uiModules;
       if (!uiModules) {
@@ -56,7 +63,7 @@ export const PermissionsProvider = ({ children }) => {
         uiModules = loginResponse.uiModules;
         console.log('Login response from localStorage:', loginResponse);
       }
-      
+
       if (uiModules) {
         console.log('✅ UI Modules found in localStorage:', uiModules);
         setAllowedModules(uiModules.allowedModules || []);

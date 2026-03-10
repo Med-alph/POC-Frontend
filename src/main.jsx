@@ -1,4 +1,6 @@
+import './utils/logger-silencer';
 import { StrictMode } from 'react'
+
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { store } from './app/store'
@@ -13,13 +15,13 @@ const rootElement = document.getElementById('root')
 
 if (rootElement) {
   createRoot(rootElement).render(
-      <Provider store={store}>
-        <ToastProvider>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </ToastProvider>
-      </Provider>
+    <Provider store={store}>
+      <ToastProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ToastProvider>
+    </Provider>
   )
 } else {
   throw new Error(

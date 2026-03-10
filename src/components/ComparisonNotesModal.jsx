@@ -51,20 +51,20 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
 
     try {
       const response = await imagesAPI.analyzeImages(leftImages, rightImages);
-      
+
       if (response.success) {
         const aiText = response.data.analysis;
         const plainText = markdownToPlainText(aiText);
         const htmlText = markdownToHtml(aiText);
-        
+
         // Set as suggestion instead of directly inserting
         const suggestionText = `AI Image Comparison (Testing Only)\n\n${plainText}\n\n`;
         const suggestionHtml = `<strong>AI Image Comparison (Testing Only)</strong><br><br>${htmlText}<br><br>`;
-        
+
         setAiSuggestion({ plain: suggestionText, html: suggestionHtml });
         setShowSuggestion(true);
         toast.success("AI analysis ready - Press Tab to accept");
-        
+
         // Focus textarea
         setTimeout(() => {
           if (textareaRef.current) {
@@ -123,7 +123,7 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
       // Reject the suggestion
       setShowSuggestion(false);
       setAiSuggestion({ plain: '', html: '' });
-      toast.info("AI analysis dismissed");
+      toast("AI analysis dismissed");
     }
   };
 
@@ -234,25 +234,24 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
               onFocus={handleTextareaFocus}
               onKeyDown={handleKeyDown}
               placeholder="Enter your clinical observations here...&#10;&#10;Examples:&#10;• Lesion size reduced from 5mm to 3mm&#10;• 20% improvement in redness&#10;• Recommend continuing current treatment&#10;• Patient reports reduced itching"
-              className={`w-full h-64 p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm bg-white ${
-                showSuggestion ? 'text-transparent caret-gray-900' : 'text-gray-900'
-              }`}
+              className={`w-full h-64 p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm bg-white ${showSuggestion ? 'text-transparent caret-gray-900' : 'text-gray-900'
+                }`}
               autoFocus
             />
-            
+
             {/* AI Suggestion Overlay */}
             {showSuggestion && (
-              <div 
+              <div
                 ref={overlayRef}
                 className="absolute top-0 left-0 w-full h-full p-4 pointer-events-none rounded-lg overflow-hidden"
-                style={{ 
+                style={{
                   fontFamily: 'inherit',
                   fontSize: '0.875rem',
                   lineHeight: '1.25rem'
                 }}
               >
                 {/* AI suggestion positioned first */}
-                <div 
+                <div
                   className="ai-suggestion-overlay"
                   style={{
                     color: 'rgb(156 163 175)',
@@ -260,7 +259,7 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
                   }}
                   dangerouslySetInnerHTML={{ __html: aiSuggestion.html }}
                 />
-                
+
                 {/* Existing notes positioned after AI suggestion */}
                 {notes && (
                   <>

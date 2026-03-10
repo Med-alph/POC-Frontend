@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, Smartphone, Stethoscope, Moon, Sun, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import authAPI from "@/api/authapi";
+import { setAuthData } from "@/utils/auth";
 import InputOtp from "@/components/InputOtp";
 import AddPatientDialog from "@/Patients/AddPatient";
 import patientsAPI from "../api/patientsapi";
@@ -56,36 +57,44 @@ const OTPVerification = () => {
   }, [timer]);
 
   // Handle OTP Verification and conditionally show AddPatientDialog or navigate to dashboard
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
-      console.warn("Attempted OTP verify with invalid OTP:", otp);
+  const handleVerifyOtp = async (otpFromArg = null) => {
+    // Determine the current OTP to use: either from argument (if called from onComplete) or from state
+    const currentOtp = typeof otpFromArg === "string" ? otpFromArg : otp;
+
+    // Check if the current OTP is fully formed (6 digits)
+    if (!currentOtp || currentOtp.length !== 6) {
+      // If manually clicked or something went wrong - toast error
+      if (!otpFromArg) { // only show error if NOT an automated onComplete trigger
+        toast.error("Please enter a valid 6-digit OTP");
+      }
+      console.warn("Attempted OTP verify with invalid OTP:", currentOtp);
       return;
     }
     setLoading(true);
     try {
-      const res = await authAPI.verifyOtp({ phone, otp, hospitalId: HOSPITAL_ID });
-      console.log("OTP verification API response:", res);
-      if (res.success && res.token) {
-        toast.success("OTP verified successfully");
-        // SOC 2: Token is stored in httpOnly cookie by backend via Set-Cookie header
-        // Also store in secure storage (memory) for immediate use by frontend
-        setAuthData(res.token, res.user || res.patient);
+      const res = await authAPI.verifyOtp({ phone, otp: currentOtp, hospitalId: HOSPITAL_ID });
+      console.log('OTP verification API response:', res);
+
+      if (res.success) {
+        toast.success('OTP verified successfully');
+
+        // Store token and user data (even if incomplete)
+        // This ensures the current session is tracked in memory
+        setAuthData(res.token, res.user || res.patient || { phone, role: 'patient_incomplete' });
+        localStorage.setItem('isAuthenticated', 'true');
 
         if (res.isNewPatient) {
-          setUserId(res.patient?.id || null);
+          // Store the underlying user ID if provided, used for linking during registration
+          setUserId(res.user?.id || res.patient?.id || null);
           setShowAddPatientDialog(true);
         } else {
-          localStorage.setItem("isAuthenticated", "true");
-          navigate("/patient-dashboard", { replace: true });
+          navigate('/patient-dashboard', { replace: true });
         }
-      } else if (res.isNewPatient) {
-        setShowAddPatientDialog(true);
       } else {
-        toast.error("Invalid OTP or token, please try again");
+        toast.error(res.message || 'Invalid OTP, please try again');
       }
     } catch (err) {
-      toast.error("Error verifying OTP");
+      toast.error(err.message || "Error verifying OTP");
       console.error("Error in OTP verification:", err);
     } finally {
       setLoading(false);
@@ -100,7 +109,7 @@ const OTPVerification = () => {
       setTimer(30);
       toast.success("OTP resent successfully");
     } catch (err) {
-      toast.error("Failed to resend OTP");
+      toast.error(err.message || "Failed to resend OTP");
       console.error("Failed to resend OTP:", err);
     }
   };
@@ -120,20 +129,26 @@ const OTPVerification = () => {
       return newPatient;
     } catch (error) {
       console.error("Error creating new patient:", error);
-      toast.error("Failed to register patient");
+      toast.error(error.message || "Failed to register patient");
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegistrationComplete = (patient) => {
+  const handleRegistrationComplete = (response) => {
     // After creation AND consent, handle login/navigation
-    // SOC 2: Token is stored in httpOnly cookie by backend, no need for localStorage
-    if (patient) {
+    // response now contains normalized patient info and potentially a new session token
+    if (response) {
+      const patient = response.patient || response.data || response;
+      const token = response.token; // Upgrade to full token returned by backend
+
+      // Update local auth data with the new ID and Token
+      setAuthData(token, patient);
       localStorage.setItem("isAuthenticated", "true");
-      navigate("/patient-dashboard", { replace: true });
+
       toast.success("Registration complete!");
+      navigate("/patient-dashboard", { replace: true });
     } else {
       navigate("/landing");
     }

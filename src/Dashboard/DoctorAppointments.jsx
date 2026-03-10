@@ -68,7 +68,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
         setShowCall(false);
         setActiveCallId(null);
         setActiveRoomName(null);
-        toast.info('Call ended');
+        toast('Call ended');
       });
 
       return () => {
@@ -231,8 +231,7 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
   const closeCallHandler = () => {
     setShowCall(false);
     // Keep activeCallId and activeRoomName so we can rejoin
-    // Don't clear existingActiveCall
-    toast.info('Call is still active. You can rejoin anytime.');
+    toast('Call is still active. You can rejoin anytime.');
   };
 
   // End call handler
@@ -495,14 +494,6 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
                   >
                     Start Consultation
                   </Button>
-                  {(selectedAppointment.status?.toLowerCase() === "fulfilled" || selectedAppointment.status?.toLowerCase() === "completed") && (
-                    <Button
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 text-sm font-medium rounded-md"
-                      onClick={() => navigate(`/billing/${selectedAppointment.id}`)}
-                    >
-                      Billing 💳
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
