@@ -249,7 +249,9 @@ export default function ViewModal({
                 </div>
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Appointment Details</h2>
-                    <p className="text-gray-600">Appointment ID: {data.id?.slice(0, 8)}...</p>
+                    <p className="text-gray-600 font-mono">
+                        Appointment ID: <span className="font-bold text-blue-600">{data.appointment_code || (data.id ? data.id.slice(0, 8).toUpperCase() : 'N/A')}</span>
+                    </p>
                 </div>
             </div>
 
@@ -430,19 +432,19 @@ export default function ViewModal({
                 {channels.length > 0 && (
                     <div className="pt-4 border-t">
                         <label className="text-sm font-medium text-gray-500 mb-3 block">Notification Channels</label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {channels.map((channel) => (
-                                <div key={channel} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                                <div key={channel} className="flex flex-col items-start p-3 bg-gray-50 rounded-md gap-3">
                                     <div className="flex items-center gap-2">
                                         {getChannelIcon(channel)}
                                         <span className="text-sm font-medium">{getChannelName(channel)}</span>
                                     </div>
                                     {sentChannels[channel] ? (
-                                        <Badge className="bg-green-100 text-green-600 text-xs">
+                                        <Badge className="bg-green-100 text-green-600 text-[11px] leading-tight w-fit whitespace-normal text-left">
                                             Sent {sentAt[channel] ? new Date(sentAt[channel]).toLocaleString() : ''}
                                         </Badge>
                                     ) : (
-                                        <Badge className="bg-yellow-100 text-yellow-600 text-xs">Pending</Badge>
+                                        <Badge className="bg-yellow-100 text-yellow-600 text-xs w-fit">Pending</Badge>
                                     )}
                                 </div>
                             ))}

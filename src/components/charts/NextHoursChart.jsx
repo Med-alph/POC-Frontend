@@ -40,7 +40,7 @@ import { useChartData } from '@/hooks/useChartData';
 const NextHoursChart = ({ userId, hours = 8 }) => {
   const [hoveredTask, setHoveredTask] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
-  
+
   const endpoint = useMemo(() => {
     if (!userId) return null;
     return `/charts/doctor/${userId}/next-hours?hours=${hours}`;
@@ -63,44 +63,44 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
     }
 
     const tasks = data.gantt || [];
-    
+
     // WORKAROUND: Parse appointment_date and appointment_time as local time
     // Backend is incorrectly treating local times as UTC
     const tasksWithLocalTimestamps = tasks.map(task => {
       // Get the appointment from the appointments array if available
       const appointment = data.appointments?.find(apt => apt.id === task.id);
-      
+
       if (appointment?.appointment_date && appointment?.appointment_time) {
         // Parse as local time by creating date string without 'Z' suffix
         const dateStr = appointment.appointment_date; // "2025-12-04"
         const timeStr = appointment.appointment_time; // "20:00:00"
-        
+
         // Create local date by parsing without timezone
         const localStartDate = new Date(`${dateStr}T${timeStr}`);
         const localEndDate = new Date(localStartDate.getTime() + (task.duration_minutes || 30) * 60 * 1000);
-        
+
         return {
           ...task,
           startTimestamp: localStartDate.getTime(),
           endTimestamp: localEndDate.getTime(),
         };
       }
-      
+
       return task;
     });
-    
+
     const range = data.meta?.gantt_range || {};
     const numHours = data.hours || hours;
-    
+
     // Get the start time (round down to the hour)
-    const rangeStart = range.start 
+    const rangeStart = range.start
       ? new Date(range.start).getTime()
       : Math.min(...tasksWithLocalTimestamps.map(t => t.startTimestamp));
-    
+
     const startDate = new Date(rangeStart);
     startDate.setMinutes(0, 0, 0); // Round down to the hour
     const startTime = startDate.getTime();
-    
+
     // Calculate end time (start + numHours)
     const endTime = startTime + (numHours * 60 * 60 * 1000);
 
@@ -110,7 +110,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
       const hourStart = startTime + (i * 60 * 60 * 1000);
       const hourEnd = hourStart + (60 * 60 * 1000);
       const hourDate = new Date(hourStart);
-      
+
       hourColumns.push({
         index: i,
         start: hourStart,
@@ -125,23 +125,23 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
     const processedTasks = tasksWithLocalTimestamps.map((task) => {
       const taskStart = task.startTimestamp;
       const taskEnd = task.endTimestamp;
-      
+
       // Find which hour column(s) this task belongs to
       const startHourIndex = Math.floor((taskStart - startTime) / (60 * 60 * 1000));
       const endHourIndex = Math.floor((taskEnd - startTime) / (60 * 60 * 1000));
-      
+
       // Calculate position within the hour column
       const hourStart = startTime + (startHourIndex * 60 * 60 * 1000);
       const hourDuration = 60 * 60 * 1000; // 1 hour in milliseconds
-      
+
       const leftInHour = ((taskStart - hourStart) / hourDuration) * 100;
       const widthInHour = ((taskEnd - taskStart) / hourDuration) * 100;
-      
+
       // Calculate absolute position
       const columnLeft = (startHourIndex / numHours) * 100;
       const leftPercent = columnLeft + (leftInHour * (1 / numHours));
       const widthPercent = (widthInHour / numHours);
-      
+
       return {
         ...task,
         leftPercent: Math.max(0, Math.min(100, leftPercent)),
@@ -153,7 +153,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
 
     // Sort tasks by start time and assign rows to avoid overlapping
     processedTasks.sort((a, b) => a.startTimestamp - b.startTimestamp);
-    
+
     // Simple row assignment - group by hour and assign rows within each hour
     const tasksByHour = {};
     processedTasks.forEach((task) => {
@@ -167,7 +167,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
     Object.keys(tasksByHour).forEach((hourKey) => {
       const hourTasks = tasksByHour[hourKey];
       hourTasks.sort((a, b) => a.startTimestamp - b.startTimestamp);
-      
+
       // Simple overlap detection
       const rows = [];
       hourTasks.forEach((task) => {
@@ -180,7 +180,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
           }
           assignedRow = row + 1;
         }
-        
+
         if (!rows[assignedRow]) {
           rows[assignedRow] = [];
         }
@@ -200,7 +200,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
     <Card className="border border-gray-200 dark:border-gray-700 h-full">
       <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <CardTitle className="text-sm font-semibold text-gray-900 dark:text-white">
-          Next few hours 
+          Next few hours
         </CardTitle>
         {data && (
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5">
@@ -295,12 +295,12 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                     const duration = task.duration_minutes || 30;
                     const maxRow = Math.max(...ganttData.tasks.map(t => t.row || 0));
                     const rowHeight = 50;
-                    
+
                     // Only render if task is within the visible hour range
                     if (task.hourIndex < 0 || task.hourIndex >= ganttData.hourColumns.length) {
                       return null;
                     }
-                    
+
                     return (
                       <div
                         key={task.id}
@@ -349,7 +349,7 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                   const startTime = new Date(task.startTimestamp);
                   const endTime = new Date(task.endTimestamp);
                   return (
-                    <div 
+                    <div
                       className="absolute z-20 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-md p-3 shadow-xl pointer-events-none border border-gray-700"
                       style={{
                         left: `${Math.min(task.leftPercent + 5, 80)}%`,
@@ -445,15 +445,14 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
-                        selectedTask.status === 'booked' 
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${selectedTask.status === 'booked'
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                           : selectedTask.status === 'completed'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                          : selectedTask.status === 'cancelled'
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                      }`}>
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            : selectedTask.status === 'cancelled'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                        }`}>
                         {selectedTask.status?.toUpperCase() || 'N/A'}
                       </span>
                     </div>
@@ -514,8 +513,8 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                 {/* Appointment ID */}
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Appointment ID</p>
-                  <p className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                    {selectedTask.id}
+                  <p className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                    {data?.appointments?.find(a => a.id === selectedTask.id)?.appointment_code || (selectedTask.id ? selectedTask.id.slice(0, 8).toUpperCase() : 'N/A')}
                   </p>
                 </div>
               </div>

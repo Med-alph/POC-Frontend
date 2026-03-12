@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
+import { useDebounce } from "../hooks/useDebounce"
+
 import { useSelector } from "react-redux"
 
 import toast, { Toaster } from 'react-hot-toast'
@@ -53,7 +55,9 @@ export default function Doctors() {
     const [doctors, setDoctors] = useState([])
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const debouncedSearchTerm = useDebounce(searchTerm, 300)
     const [departmentFilter, setDepartmentFilter] = useState("all")
+
     const [statusFilter, setStatusFilter] = useState("all")
     const [experienceFilter, setExperienceFilter] = useState("all")
     const [sortBy, setSortBy] = useState("name")
@@ -144,6 +148,7 @@ export default function Doctors() {
     const fetchStats = async () => {
         try {
             const statsData = await staffApi.getStats({ hospital_id: hospitalId });
+
             setStats({
                 total: statsData.total || 0,
                 active: statsData.active || 0,
@@ -165,8 +170,11 @@ export default function Doctors() {
                 offset: (currentPage - 1) * PAGE_SIZE
             };
 
-            if (searchTerm) params.search = searchTerm;
+            if (debouncedSearchTerm && debouncedSearchTerm.length >= 3) {
+                params.search = debouncedSearchTerm;
+            }
             if (departmentFilter !== "all") params.department = departmentFilter;
+
             if (statusFilter !== "all") params.status = statusFilter;
 
             const result = await staffApi.getAll(params);
@@ -186,8 +194,13 @@ export default function Doctors() {
 
 
     useEffect(() => {
+        // Only fetch if search is empty (auto-refresh/clear) or >= 3 chars
+        if (searchTerm.length > 0 && searchTerm.length < 3) {
+            return
+        }
         fetchDoctors()
-    }, [searchTerm, departmentFilter, statusFilter, currentPage])
+    }, [debouncedSearchTerm, departmentFilter, statusFilter, currentPage])
+
 
     // Utility functions
     const handleRefresh = () => {
