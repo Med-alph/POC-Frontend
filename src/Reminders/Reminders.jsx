@@ -181,6 +181,7 @@ export default function Reminders() {
             ...reminder,
             patient: patientName,
             patientInitials,
+            patientCode: reminder.patient?.patient_code || reminder.patient_code || "",
             assignedTo: assignedToName,
             assignedInitials,
             dueDate,
@@ -303,7 +304,7 @@ export default function Reminders() {
                                                 </Avatar>
                                                 <div>
                                                     <p className="font-medium">{reminder.patient}</p>
-                                                    <p className="text-xs text-gray-500">ID: {reminder.id.slice(0, 8)}...</p>
+                                                    <p className="text-xs text-gray-500">ID: {reminder.patientCode || 'N/A'}</p>
                                                 </div>
                                             </div>
                                         </TableCell>

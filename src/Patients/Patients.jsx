@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
+import { useDebounce } from "../hooks/useDebounce"
+
 import { patientsAPI } from "../api/patientsapi"
 import { appointmentsAPI } from "../api/appointmentsapi"
 import toast, { Toaster } from 'react-hot-toast'
@@ -48,7 +50,9 @@ export default function Patients() {
     const [patients, setPatients] = useState([])
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const debouncedSearchTerm = useDebounce(searchTerm, 300)
     const [statusFilter, setStatusFilter] = useState("all")
+
     const [ageGroupFilter, setAgeGroupFilter] = useState("all")
     const [appointmentTypeFilter, setAppointmentTypeFilter] = useState("all")
     const [sortBy, setSortBy] = useState("name")
@@ -170,8 +174,11 @@ export default function Patients() {
                 limit: PAGE_SIZE,
                 offset: offset
             }
-            if (searchTerm) params.search = searchTerm
+            if (debouncedSearchTerm && debouncedSearchTerm.length >= 3) {
+                params.search = debouncedSearchTerm
+            }
             if (statusFilter !== "all") params.status = statusFilter
+
             if (appointmentTypeFilter !== "all") params.appointment_type = appointmentTypeFilter
             const result = await patientsAPI.getAll(params)
             const rawPatients = Array.isArray(result?.data) ? result.data : []
@@ -228,9 +235,14 @@ export default function Patients() {
 
 
     useEffect(() => {
+        // Only fetch if search is empty (auto-refresh/clear) or >= 3 chars
+        if (searchTerm.length > 0 && searchTerm.length < 3) {
+            return
+        }
         fetchPatients()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm, statusFilter, ageGroupFilter, currentPage, appointmentTypeFilter])
+    }, [debouncedSearchTerm, statusFilter, ageGroupFilter, currentPage, appointmentTypeFilter])
+
 
     const handleRefresh = () => {
         fetchPatients()
