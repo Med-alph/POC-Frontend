@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { complianceAPI } from "@/api/complianceapi";
 import toast from 'react-hot-toast';
 
-export default function PatientConsentStatus({ 
-  patientId, 
-  hospitalId, 
+export default function PatientConsentStatus({
+  patientId,
+  hospitalId,
   patientName = "Patient",
   showDetails = true,
-  allowWithdraw = false 
+  allowWithdraw = false
 }) {
   const [consentStatus, setConsentStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ export default function PatientConsentStatus({
         consent_types: [consentType],
         created_by: JSON.parse(localStorage.getItem('user') || '{}').id
       });
-      
+
       toast.success(`${consentType} consent withdrawn successfully`);
       loadConsentStatus(); // Reload status
     } catch (error) {
@@ -79,7 +79,9 @@ export default function PatientConsentStatus({
     );
   }
 
-  const { consents } = consentStatus;
+  // Handle both wrapped and direct formats for robustness
+  const consents = consentStatus.consents || consentStatus;
+
   const hasMedicalConsent = consents?.medical_data?.status === 'granted';
   const hasCommunicationConsent = consents?.communication?.status === 'granted';
 
@@ -93,7 +95,7 @@ export default function PatientConsentStatus({
               Medical Data Consent Required
             </h4>
             <p className="text-xs text-red-700">
-              {patientName} has not provided consent for medical data processing. 
+              {patientName} has not provided consent for medical data processing.
               Access to medical records is restricted.
             </p>
           </div>
@@ -111,7 +113,7 @@ export default function PatientConsentStatus({
             <h4 className="text-sm font-medium text-green-900 mb-2">
               Patient Consent Status
             </h4>
-            
+
             <div className="space-y-2">
               {/* Medical Data Consent */}
               <div className="flex items-center justify-between">
@@ -138,13 +140,12 @@ export default function PatientConsentStatus({
               {/* Communication Consent */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Badge 
-                    variant={hasCommunicationConsent ? "success" : "secondary"} 
-                    className={`text-xs flex items-center gap-1 ${
-                      hasCommunicationConsent 
-                        ? "bg-blue-100 text-blue-800" 
+                  <Badge
+                    variant={hasCommunicationConsent ? "success" : "secondary"}
+                    className={`text-xs flex items-center gap-1 ${hasCommunicationConsent
+                        ? "bg-blue-100 text-blue-800"
                         : "bg-gray-100 text-gray-600"
-                    }`}
+                      }`}
                   >
                     <MessageSquare className="h-3 w-3" />
                     Communication {hasCommunicationConsent ? "✓" : "✗"}

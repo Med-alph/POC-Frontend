@@ -18,7 +18,9 @@ export default function ConsentStatusIndicator({
     );
   }
 
-  const { consents } = consentStatus;
+  // Handle both wrapped (old API) and direct (enriched backend) formats
+  const consents = consentStatus.consents || consentStatus;
+
   const hasMedicalConsent = consents?.medical_data?.status === 'granted';
   const hasCommunicationConsent = consents?.communication?.status === 'granted';
   const hasNppAcknowledgement = consents?.npp_acknowledged?.status === 'granted';
@@ -47,8 +49,8 @@ export default function ConsentStatusIndicator({
             <Badge
               variant={hasNppAcknowledgement ? "success" : "secondary"}
               className={`text-xs flex items-center gap-1 ${hasNppAcknowledgement
-                  ? "bg-indigo-100 text-indigo-800 border-indigo-200"
-                  : "bg-gray-100 text-gray-600 border-gray-200"
+                ? "bg-indigo-100 text-indigo-800 border-indigo-200"
+                : "bg-gray-100 text-gray-600 border-gray-200"
                 }`}
             >
               <Shield className="h-3 w-3" />
@@ -58,8 +60,8 @@ export default function ConsentStatusIndicator({
             <Badge
               variant={hasCommunicationConsent ? "success" : "secondary"}
               className={`text-xs flex items-center gap-1 ${hasCommunicationConsent
-                  ? "bg-blue-100 text-blue-800 border-blue-200"
-                  : "bg-gray-100 text-gray-600 border-gray-200"
+                ? "bg-blue-100 text-blue-800 border-blue-200"
+                : "bg-gray-100 text-gray-600 border-gray-200"
                 }`}
             >
               <MessageSquare className="h-3 w-3" />

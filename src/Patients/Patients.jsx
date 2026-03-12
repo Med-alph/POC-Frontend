@@ -42,7 +42,6 @@ import ViewModal from "@/components/ui/view-modal"
 import AddPatientDialog from "./AddPatient"
 import EditPatientDialog from "./EditPatient"
 import ConsentStatusIndicator from "@/components/compliance/ConsentStatusIndicator"
-import { complianceAPI } from "@/api/complianceapi"
 import ComplianceFooter from "@/components/compliance/ComplianceFooter"
 
 export default function Patients() {
@@ -73,8 +72,6 @@ export default function Patients() {
     const [totalCount, setTotalCount] = useState(0)
     const PAGE_SIZE = 10
 
-    // Consent status cache
-    const [consentStatuses, setConsentStatuses] = useState({})
     const [isAdmin, setIsAdmin] = useState(false)
 
     useEffect(() => {
@@ -219,8 +216,6 @@ export default function Patients() {
                 }))
             }
 
-            // Load consent statuses for all patients
-            await loadConsentStatuses(cleanPatients, hospitalId)
         } catch (err) {
             console.error("Error fetching patients:", err)
             toast.error("Failed to load patients. Please try again.")
@@ -231,24 +226,6 @@ export default function Patients() {
         }
     }
 
-    const loadConsentStatuses = async (patientList, hospitalId) => {
-        const statusPromises = patientList.map(async (patient) => {
-            try {
-                const consentStatus = await complianceAPI.getConsentStatus(patient.id, hospitalId)
-                return { patientId: patient.id, status: consentStatus }
-            } catch (error) {
-                console.warn(`Failed to load consent status for patient ${patient.id}:`, error)
-                return { patientId: patient.id, status: null }
-            }
-        })
-
-        const results = await Promise.all(statusPromises)
-        const statusMap = {}
-        results.forEach(({ patientId, status }) => {
-            statusMap[patientId] = status
-        })
-        setConsentStatuses(statusMap)
-    }
 
     useEffect(() => {
         fetchPatients()
@@ -453,10 +430,10 @@ export default function Patients() {
                                 value={appointmentTypeFilter}
                                 onValueChange={setAppointmentTypeFilter}
                             >
-                                <SelectTrigger className="flex items-center">
+                                {/* <SelectTrigger className="flex items-center">
                                     <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                                     <SelectValue placeholder="All types" />
-                                </SelectTrigger>
+                                </SelectTrigger> */}
                                 <SelectContent>
                                     <SelectItem value="all">All types</SelectItem>
                                     <SelectItem value="consultation">Consultation</SelectItem>
@@ -630,7 +607,7 @@ export default function Patients() {
                                                 </TableCell>
                                                 <TableCell className="py-4">
                                                     <ConsentStatusIndicator
-                                                        consentStatus={consentStatuses[patient.id]}
+                                                        consentStatus={patient.consent_status}
                                                         showDetails={true}
                                                     />
                                                 </TableCell>
