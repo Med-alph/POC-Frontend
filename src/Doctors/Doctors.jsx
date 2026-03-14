@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { useDebounce } from "../hooks/useDebounce"
+import { useNavigate } from "react-router-dom"
 
 import { useSelector } from "react-redux"
 
@@ -52,10 +53,12 @@ import {
 import ViewModal from "@/components/ui/view-modal"
 import staffApi from "../api/staffapi"
 import FilterDialog from "./FilterDialog"
+import ConfirmationModal from "@/components/ui/confirmation-modal"
 
 export default function Doctors() {
     const [doctors, setDoctors] = useState([])
     const [loading, setLoading] = useState(false)
+    const navigate = useNavigate()
     const [searchTerm, setSearchTerm] = useState("")
     const debouncedSearchTerm = useDebounce(searchTerm, 300)
     const [departmentFilter, setDepartmentFilter] = useState("all")
@@ -73,6 +76,9 @@ export default function Doctors() {
     const [filterDialogOpen, setFilterDialogOpen] = useState(false)
     const [editDoctor, setEditDoctor] = useState(null)
     const [editDialogOpen, setEditDialogOpen] = useState(false)
+    const [archiving, setArchiving] = useState(false)
+    const [archiveModalOpen, setArchiveModalOpen] = useState(false)
+    const [doctorToArchive, setDoctorToArchive] = useState(null)
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
@@ -338,6 +344,28 @@ export default function Doctors() {
         } catch (error) {
             console.error("Update doctor error:", error)
             toast.error("Failed to update doctor. Please try again.")
+        }
+    }
+
+    const handleOpenArchiveModal = (doctor) => {
+        setDoctorToArchive(doctor)
+        setArchiveModalOpen(true)
+    }
+
+    const handleConfirmArchive = async () => {
+        if (!doctorToArchive) return
+        try {
+            setArchiving(true)
+            await staffApi.delete(doctorToArchive.id)
+            toast.success(`Doctor "${doctorToArchive.staff_name}" archived successfully`)
+            setArchiveModalOpen(false)
+            setDoctorToArchive(null)
+            fetchDoctors() // Refresh lists and stats
+        } catch (error) {
+            console.error("Archive doctor error:", error)
+            toast.error("Failed to archive doctor. Please try again.")
+        } finally {
+            setArchiving(false)
         }
     }
 
@@ -634,11 +662,14 @@ export default function Doctors() {
                                                                 <Mail className="h-4 w-4 mr-2" />
                                                                 Send Message
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem>
+                                                             <DropdownMenuItem 
+                                                                className="cursor-pointer"
+                                                                onClick={() => navigate('/appointments', { state: { doctorId: doctor.id } })}
+                                                            >
                                                                 <Calendar className="h-4 w-4 mr-2" />
                                                                 View Schedule
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-red-600">
+                                                                    <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => handleOpenArchiveModal(doctor)}>
                                                                 <Trash2 className="h-4 w-4 mr-2" />
                                                                 Archive Doctor
                                                             </DropdownMenuItem>
@@ -717,6 +748,18 @@ export default function Doctors() {
                     onClose={() => setViewModalOpen(false)}
                     data={selectedDoctor}
                     type="doctor"
+                />
+
+                {/* Archive Confirmation Modal */}
+                <ConfirmationModal
+                    isOpen={archiveModalOpen}
+                    onClose={() => setArchiveModalOpen(false)}
+                    onConfirm={handleConfirmArchive}
+                    title="Archive Doctor"
+                    description={`Are you sure you want to archive Dr. "${doctorToArchive?.staff_name}"? This will hide them from all active lists and schedules.`}
+                    confirmText="Archive Doctor"
+                    variant="destructive"
+                    loading={archiving}
                 />
             </main>
         </div>

@@ -610,12 +610,41 @@ const DoctorConsultation = () => {
                     )}
 
                     {isConsultationStarted && user?.id && (
-                        <button
-                            onClick={handleToggleVoiceRecording}
-                            className="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-                        >
-                            {isVoiceRecording ? 'Stop AI Capture' : 'Start AI Capture'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleToggleVoiceRecording}
+                                className={`px-6 py-2 rounded-md transition-all flex items-center gap-2 shadow-sm ${
+                                    isVoiceRecording 
+                                    ? 'bg-red-600 hover:bg-red-700 text-white ring-2 ring-red-200' 
+                                    : 'bg-gray-600 hover:bg-gray-700 text-white'
+                                }`}
+                            >
+                                {isVoiceRecording ? (
+                                    <>
+                                        <StopCircle className="h-4 w-4" />
+                                        Stop AI Capture
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="h-4 w-4" />
+                                        Start AI Capture
+                                    </>
+                                )}
+                            </button>
+                            
+                            {isVoiceRecording && (
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-100 rounded-full shadow-sm animate-in fade-in zoom-in duration-300">
+                                    <div className="flex items-end gap-1 h-4">
+                                        <div className="w-1 bg-red-400 rounded-full animate-[bounce_1s_infinite]" style={{ animationDelay: '0s', height: '60%' }}></div>
+                                        <div className="w-1 bg-red-500 rounded-full animate-[bounce_1s_infinite]" style={{ animationDelay: '0.2s', height: '100%' }}></div>
+                                        <div className="w-1 bg-red-400 rounded-full animate-[bounce_1s_infinite]" style={{ animationDelay: '0.4s', height: '70%' }}></div>
+                                    </div>
+                                    <span className="text-xs font-bold text-red-600 uppercase tracking-widest flex items-center">
+                                        Listening...
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {canCancelAppointment && !cancelRequested && (
