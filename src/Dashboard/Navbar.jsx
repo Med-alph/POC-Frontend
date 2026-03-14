@@ -87,10 +87,11 @@ export default function Navbar() {
   const isAdmin = user?.designation_group?.toLowerCase() !== "doctor";
 
   // Pass userId and hospitalId for all users to receive notifications
-  const notifications = useAdminNotifications(
+  const { notifications, refreshHistory } = useAdminNotifications(
     user?.id || null,
     user?.hospital_id || null
   );
+  const notificationsList = notifications || [];
   const [unreadIds, setUnreadIds] = useState([]);
 
   useEffect(() => {
@@ -112,15 +113,13 @@ export default function Navbar() {
   }, [location.pathname]);
 
   useEffect(() => {
-    console.log("Notifications updated:", notifications);
-    // For socket notifications, use a unique identifier (index or timestamp)
-    // since they don't have notificationId yet
-    const unread = notifications
+    console.log("Notifications updated:", notificationsList);
+    const unread = notificationsList
       .filter(n => n.status !== "read")
       .map((n, idx) => n.notificationId || `socket-${idx}-${n.createdAt}`);
     setUnreadIds(unread);
     console.log("Unread notifications count computed:", unread.length);
-  }, [notifications]);
+  }, [notificationsList]);
 
 
 
@@ -197,7 +196,7 @@ export default function Navbar() {
         navigate("/patient-gallery");
       }
     } else {
-      navigate("/notifications");
+      // Just mark as read and close — no navigation
     }
 
     setShowNotifDropdown(false);
@@ -307,14 +306,14 @@ export default function Navbar() {
                     </div>
                   </div>
                   <div className="max-h-[400px] overflow-y-auto">
-                    {notifications.length === 0 ? (
+                    {notificationsList.length === 0 ? (
                       <div className="text-center py-12 px-4">
                         <Bell className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                         <p className="text-sm text-gray-500 dark:text-gray-400">No new notifications</p>
                       </div>
                     ) : (
                       <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {notifications.map((notif, idx) => {
+                        {notificationsList.map((notif, idx) => {
                           const notifId = notif.notificationId || `socket-${idx}-${notif.createdAt}`;
                           const isUnread = unreadIds.includes(notifId);
                           return (
@@ -352,27 +351,42 @@ export default function Navbar() {
                         })}
                       </ul>
                     )}
-                    {notifications.length > 0 && (
+                    {notificationsList.length > 0 && (
                       <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-2">
-                        {notifications.length > 10 && (
+                        {unreadCount > 0 && (
                           <button
-                            onClick={() => {
-                              navigate("/notifications");
-                              setShowNotifDropdown(false);
+                            onClick={async () => {
+                              try {
+                                await notificationAPI.markAllAsRead();
+                              } catch (e) {
+                                console.warn("Could not mark all as read in backend:", e.message);
+                              }
+                              setUnreadIds([]);
+                              toast.success("All notifications marked as read");
                             }}
-                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
                           >
-                            View all notifications
+                            Mark all as read
                           </button>
                         )}
                         <button
-                          onClick={() => {
+                          onClick={async () => {
+                            try {
+                              await notificationAPI.dismissAll();
+                            } catch (e) {
+                              console.warn("Could not dismiss all in backend:", e.message);
+                            }
                             setUnreadIds([]);
                             setShowNotifDropdown(false);
+                            toast.success("All notifications dismissed");
+                            // Auto refresh as requested
+                            setTimeout(() => {
+                              window.location.reload();
+                            }, 500);
                           }}
-                          className="text-sm text-red-600 dark:text-red-400 hover:underline ml-auto"
+                          className="text-sm text-gray-500 dark:text-gray-400 hover:underline ml-auto"
                         >
-                          Clear all
+                          Dismiss all
                         </button>
                       </div>
                     )}

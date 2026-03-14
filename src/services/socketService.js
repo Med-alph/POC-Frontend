@@ -349,17 +349,17 @@ class SocketService {
     }
 
     const authToken = token || getAuthToken();
-    // Construct notifications namespace URL
-    let notificationsUrl = socketUrl.replace(/\/$/, '');
-    if (!notificationsUrl.endsWith('/notifications')) {
-      notificationsUrl += '/notifications';
-    }
     
-    console.log('Connecting to Notifications namespace:', notificationsUrl);
+    // For Socket.IO namespaces, we should use the base URL and the namespace path
+    // If socketUrl is empty (local), we connect to the current origin
+    const connectionUrl = socketUrl || window.location.origin;
+    const namespace = '/notifications';
+    
+    console.log('Connecting to Notifications namespace:', namespace, 'on', connectionUrl);
 
-    // Create a separate socket connection for notifications namespace
+    // Create a separate socket connection for notifications namespace if it doesn't exist
     if (!this.notificationsSocket) {
-      this.notificationsSocket = io(notificationsUrl, {
+      this.notificationsSocket = io(`${connectionUrl}${namespace}`, {
         auth: {
           token: authToken,
           userId: userId
@@ -372,7 +372,9 @@ class SocketService {
         reconnectionDelay: this.reconnectDelay,
         reconnectionDelayMax: 5000,
         timeout: 10000,
-        transports: ['websocket', 'polling']
+        transports: ['websocket', 'polling'],
+        // Ensure we use the standard path that Lite Proxy handles
+        path: '/socket.io/'
       });
 
       this.notificationsSocket.on('connect', () => {

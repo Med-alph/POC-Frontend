@@ -62,6 +62,13 @@ const notificationAPI = {
     });
   },
 
+  // Dismiss all notifications
+  dismissAll: async () => {
+    return apiRequest('/notifications/dismiss-all', {
+      method: 'POST',
+    });
+  },
+
   // Additional notification-related APIs can be added here
 };
 
