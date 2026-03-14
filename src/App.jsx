@@ -92,7 +92,7 @@ function HospitalApp() {
 
   // Routes that should NOT show the navbar (auth-related)
   const authRoutes = [
-    "/", "/forgotpassword", "/admin/login"
+    "/", "/forgotpassword", "/change-password", "/admin/login"
   ];
 
   const adminRoutes = [
@@ -291,6 +291,7 @@ function HospitalApp() {
             <Route path="/" element={<Login />} />
             <Route path="/forgotpassword" element={<ForgotPassword />} />
             <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/reset-password" element={<ForgotPassword />} />
 
             {/* Patient Routes - No TermsGuard (cookie-based auth) */}
             <Route path="/landing" element={<LandingPage />} />

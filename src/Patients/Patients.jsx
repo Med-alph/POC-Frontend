@@ -4,6 +4,8 @@ import { useDebounce } from "../hooks/useDebounce"
 import { patientsAPI } from "../api/patientsapi"
 import { appointmentsAPI } from "../api/appointmentsapi"
 import toast, { Toaster } from 'react-hot-toast'
+import * as XLSX from 'xlsx'
+import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -249,27 +251,105 @@ export default function Patients() {
         toast.success("Patients data refreshed")
     }
 
-    const handleExport = () => {
-        const csvContent = [
-            ['Name', 'Age', 'Contact', 'Insurance', 'Status', 'Last Visit', 'Next Appointment'],
-            ...filteredAndSortedPatients.map(p => [
-                p.patient_name,
-                p.age,
-                p.contact_info,
-                p.insurance_provider,
-                p.status,
-                p.last_visit || 'N/A',
-                p.next_appointment || 'N/A'
-            ])
-        ].map(row => row.join(',')).join('\n')
-        const blob = new Blob([csvContent], { type: 'text/csv' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'patients.csv'
-        a.click()
-        window.URL.revokeObjectURL(url)
-        toast.success("Patients data exported")
+    const handleExport = async () => {
+        try {
+            setLoading(true)
+            toast.loading("Preparing all patient records for export...", { id: "export-loading" })
+
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const hospitalId = user.hospital_id;
+
+            // Fetch ALL patients specifically for export
+            // We use a high limit to ensure we get all records as requested
+            const params = {
+                hospital_id: hospitalId,
+                limit: stats.total > 0 ? stats.total : 1000,
+                offset: 0
+            }
+
+            // If there's an active search or filter, keep it for the export too? 
+            // User said "export that page 10 data or the entire patient record" 
+            // usually export means all records.
+            const result = await patientsAPI.getAll(params)
+            const allPatients = Array.isArray(result?.data) ? result.data : []
+
+            if (allPatients.length === 0) {
+                toast.dismiss("export-loading")
+                toast.error("No data found to export")
+                return
+            }
+
+            const dataToExport = allPatients.map(p => {
+                // Helper to format consent status logic similar to ConsentStatusIndicator
+                const getConsentString = (status) => {
+                    if (!status) return 'No Consent';
+                    const consents = status.consents || status;
+                    const hasMedical = consents?.medical_data?.status === 'granted';
+                    const hasComm = consents?.communication?.status === 'granted';
+                    const hasNpp = consents?.npp_acknowledged?.status === 'granted';
+
+                    if (hasMedical && hasComm && hasNpp) return 'Full Consent';
+                    if (hasMedical) {
+                        let partial = 'Granted (Medical';
+                        if (hasComm) partial += ', Comm';
+                        if (hasNpp) partial += ', NPP';
+                        return partial + ')';
+                    }
+                    return 'No Consent';
+                };
+
+                return {
+                    "Patient Name": p.patient_name || 'N/A',
+                    "Patient Code": p.patient_code || 'N/A',
+                    "Age": p.age || 'N/A',
+                    "DOB": p.dob ? format(new Date(p.dob), "dd MMM yyyy") : 'N/A',
+                    "Contact": p.contact_info || 'N/A',
+                    "Email": p.email || 'N/A',
+                    "Insurance": p.insurance_provider || 'N/A',
+                    "Insurance #": p.insurance_number || 'N/A',
+                    "Consent Status": getConsentString(p.consent_status),
+                    "Status": p.status || 'N/A',
+                    "Last Visit": p.last_visit ? format(new Date(p.last_visit), "dd MMM yyyy") : 'N/A',
+                    "Next Appointment": (p.next_appointment || p.nextAppointment) ? format(new Date(p.next_appointment || p.nextAppointment), "dd MMM yyyy") : 'N/A',
+                    "Credit Eligible": p.is_credit_eligible === 'yes' ? 'Yes' : 'No',
+                    "Credit Amount": p.credit_amount || '0',
+                    "Remaining Credit": (parseFloat(p.credit_amount || 0) - parseFloat(p.current_credit_balance || 0)).toFixed(2)
+                };
+            })
+
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+            const workbook = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Patients")
+
+            // Auto-size columns (rough approximation)
+            const maxWidths = {}
+            dataToExport.forEach(row => {
+                Object.keys(row).forEach(key => {
+                    const val = String(row[key] || "")
+                    maxWidths[key] = Math.max(maxWidths[key] || 0, val.length, key.length)
+                })
+            })
+            worksheet["!cols"] = Object.keys(maxWidths).map(key => ({ wch: maxWidths[key] + 2 }))
+
+            // Generate filename
+            const filename = `Patients_Export_${format(new Date(), "yyyy-MM-dd")}.xlsx`
+            
+            // Download the file
+            XLSX.writeFile(workbook, filename)
+
+            // Delayed success toast as requested (2 seconds)
+            setTimeout(() => {
+                toast.dismiss("export-loading")
+                toast.success(`Successfully exported ${allPatients.length} patient records`)
+            }, 2000)
+
+        } catch (err) {
+            console.error("Export error:", err)
+            toast.dismiss("export-loading")
+            toast.error("Failed to export patients. Please try again.")
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleSelectPatient = (patientId) => {

@@ -110,11 +110,19 @@ export const authAPI = {
     })
   },
 
-  // Forgot password
-  forgotPassword: async (email) => {
-    return apiRequest('/auth/forgot-password', {
+  // Request password reset OTP
+  requestPasswordReset: async (email) => {
+    return apiRequest('/auth/request-reset', {
       method: 'POST',
       body: JSON.stringify({ email }),
+    })
+  },
+
+  // Verify reset OTP
+  verifyResetOtp: async (data) => {
+    return apiRequest('/auth/verify-reset-otp', {
+      method: 'POST',
+      body: JSON.stringify(data),
     })
   },
 

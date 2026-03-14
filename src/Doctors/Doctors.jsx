@@ -4,6 +4,8 @@ import { useDebounce } from "../hooks/useDebounce"
 import { useSelector } from "react-redux"
 
 import toast, { Toaster } from 'react-hot-toast'
+import * as XLSX from 'xlsx'
+import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -208,28 +210,89 @@ export default function Doctors() {
         toast.success("Doctors data refreshed")
     }
 
-    const handleExport = () => {
-        const csvContent = [
-            ['Name', 'Department', 'Experience', 'Contact', 'Email', 'Status', 'Created'],
-            ...filteredAndSortedDoctors.map(doctor => [
-                doctor.staff_name,
-                doctor.department,
-                doctor.experience,
-                doctor.contact_info,
-                doctor.email,
-                doctor.status,
-                new Date(doctor.created_at).toLocaleDateString()
-            ])
-        ].map(row => row.join(',')).join('\n')
+    const handleExport = async () => {
+        try {
+            setLoading(true)
+            toast.loading("Preparing all doctor records for export...", { id: "export-loading" })
 
-        const blob = new Blob([csvContent], { type: 'text/csv' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'doctors.csv'
-        a.click()
-        window.URL.revokeObjectURL(url)
-        toast.success("Doctors data exported")
+            // Fetch ALL doctors specifically for export
+            const params = {
+                hospital_id: hospitalId,
+                limit: stats.total > 0 ? stats.total : 1000,
+                offset: 0
+            }
+
+            const result = await staffApi.getAll(params)
+            const allDoctors = Array.isArray(result?.data) ? result.data : []
+
+            if (allDoctors.length === 0) {
+                toast.dismiss("export-loading")
+                toast.error("No data found to export")
+                return
+            }
+
+            const dataToExport = allDoctors.map(doctor => {
+                // Parse availability JSON if it exists
+                let availabilityStr = "Not set";
+                try {
+                    const availability = doctor.availability ?
+                        (typeof doctor.availability === 'string' ?
+                            JSON.parse(doctor.availability) :
+                            doctor.availability) : {};
+                    
+                    if (Object.keys(availability).length > 0) {
+                        availabilityStr = Object.entries(availability)
+                            .map(([day, time]) => `${day}: ${time}`)
+                            .join(', ');
+                    }
+                } catch (e) {
+                    console.error("Error parsing availability for export:", e);
+                }
+
+                return {
+                    'Doctor Name': doctor.staff_name || 'N/A',
+                    'Department': doctor.department || 'N/A',
+                    'Experience': doctor.experience ? `${doctor.experience} years` : '0 years',
+                    'Contact': doctor.contact_info || 'N/A',
+                    'Email': doctor.email || 'N/A',
+                    'Status': doctor.status || 'N/A',
+                    'Availability': availabilityStr
+                };
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+            const workbook = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Doctors")
+
+            // Auto-size columns
+            const maxWidths = {}
+            dataToExport.forEach(row => {
+                Object.keys(row).forEach(key => {
+                    const val = String(row[key] || "")
+                    maxWidths[key] = Math.max(maxWidths[key] || 0, val.length, key.length)
+                })
+            })
+            worksheet["!cols"] = Object.keys(maxWidths).map(key => ({ wch: maxWidths[key] + 2 }))
+
+            // Generate filename
+            const filename = `Doctors_Export_${format(new Date(), "yyyy-MM-dd")}.xlsx`
+            
+            // Download the file
+            XLSX.writeFile(workbook, filename)
+
+            // Delayed success toast as requested (2 seconds)
+            setTimeout(() => {
+                toast.dismiss("export-loading")
+                toast.success(`Successfully exported ${allDoctors.length} doctor records`)
+            }, 2000)
+
+        } catch (err) {
+            console.error("Export error:", err)
+            toast.dismiss("export-loading")
+            toast.error("Failed to export doctors. Please try again.")
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleSelectDoctor = (doctorId) => {
