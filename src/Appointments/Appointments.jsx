@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import toast, { Toaster } from "react-hot-toast"
+import * as XLSX from 'xlsx'
+import { format } from 'date-fns'
 import {
   Loader2, Search, CheckCircleIcon, XCircleIcon, Stethoscope, Plus, Edit as EditIcon,
   ChevronDown, ChevronRight, Calendar, Filter, Download as DownloadIcon, RefreshCw, Eye, MoreHorizontal,
@@ -355,25 +357,86 @@ export default function Appointments() {
     }
   }, [isEditing, editDoctor, editDate])
 
-  const handleExport = () => {
-    const csv = [
-      ['ID', 'Patient', 'Doctor', 'Date', 'Time', 'Type', 'Status'],
-      ...filteredAppointments.map(a => [
-        a.appointment_code || a.id.slice(0, 8),
-        a.patient_name || a.patient?.patient_name,
-        a.staff_name || a.staff?.staff_name,
-        a.appointment_date,
-        a.appointment_time,
-        a.appointment_type,
-        a.status
-      ])
-    ].map(r => r.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `appointments_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
+  const handleExport = async () => {
+    try {
+      setLoading(true)
+      toast.loading("Preparing all appointments for export...", { id: "export-loading" })
+
+      // Fetch ALL appointments specifically for export
+      const params = {
+        hospital_id: HOSPITAL_ID,
+        limit: stats.total > 0 ? stats.total : 1000,
+        offset: 0,
+        orderBy: 'appointment_date',
+        sort: 'DESC'
+      }
+
+      const result = await appointmentsAPI.getAll(params)
+      const allAppts = Array.isArray(result?.data) ? result.data : []
+
+      if (allAppts.length === 0) {
+        toast.dismiss("export-loading")
+        toast.error("No data found to export")
+        return
+      }
+
+      const dataToExport = allAppts.map(a => {
+        // Payment logic
+        const orders = a.orders || [];
+        const isPaid = orders.some(o => o.status?.toLowerCase() === 'paid');
+        const totalAmount = orders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0);
+        const totalPaid = orders.filter(o => o.status?.toLowerCase() === 'paid')
+                               .reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0);
+
+        return {
+          'Appt Code': a.appointment_code || a.id.slice(0, 8).toUpperCase(),
+          'Patient Name': a.patient_name || a.patient?.patient_name || 'N/A',
+          'Patient Code': a.patient?.patient_code || 'N/A',
+          'Doctor Name': a.staff_name || a.staff?.staff_name || 'N/A',
+          'Date': a.appointment_date ? format(new Date(a.appointment_date), "dd MMM yyyy") : 'N/A',
+          'Time': a.appointment_time || 'N/A',
+          'Type': a.appointment_type || 'N/A',
+          'Status': a.status || 'N/A',
+          'Payment Status': isPaid ? 'Paid' : 'Unpaid',
+          'Total Bill': totalAmount.toFixed(2),
+          'Amount Paid': totalPaid.toFixed(2),
+          'Balance': (totalAmount - totalPaid).toFixed(2)
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments")
+
+      // Auto-size columns
+      const maxWidths = {}
+      dataToExport.forEach(row => {
+        Object.keys(row).forEach(key => {
+          const val = String(row[key] || "")
+          maxWidths[key] = Math.max(maxWidths[key] || 0, val.length, key.length)
+        })
+      })
+      worksheet["!cols"] = Object.keys(maxWidths).map(key => ({ wch: maxWidths[key] + 2 }))
+
+      // Generate filename
+      const filename = `Appointments_Export_${format(new Date(), "yyyy-MM-dd")}.xlsx`
+      
+      // Download the file
+      XLSX.writeFile(workbook, filename)
+
+      // Delayed success toast as requested (2 seconds)
+      setTimeout(() => {
+        toast.dismiss("export-loading")
+        toast.success(`Successfully exported ${allAppts.length} appointments`)
+      }, 2000)
+
+    } catch (err) {
+      console.error("Export error:", err)
+      toast.dismiss("export-loading")
+      toast.error("Failed to export appointments. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
