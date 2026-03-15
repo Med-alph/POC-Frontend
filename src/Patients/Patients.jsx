@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { useDebounce } from "../hooks/useDebounce"
+import { useNavigate } from "react-router-dom"
 
 import { patientsAPI } from "../api/patientsapi"
 import { appointmentsAPI } from "../api/appointmentsapi"
@@ -47,6 +48,7 @@ import AddPatientDialog from "./AddPatient"
 import EditPatientDialog from "./EditPatient"
 import ConsentStatusIndicator from "@/components/compliance/ConsentStatusIndicator"
 import ComplianceFooter from "@/components/compliance/ComplianceFooter"
+import ConfirmationModal from "@/components/ui/confirmation-modal"
 
 export default function Patients() {
     const [patients, setPatients] = useState([])
@@ -54,6 +56,7 @@ export default function Patients() {
     const [searchTerm, setSearchTerm] = useState("")
     const debouncedSearchTerm = useDebounce(searchTerm, 300)
     const [statusFilter, setStatusFilter] = useState("all")
+    const navigate = useNavigate()
 
     const [ageGroupFilter, setAgeGroupFilter] = useState("all")
     const [appointmentTypeFilter, setAppointmentTypeFilter] = useState("all")
@@ -72,6 +75,11 @@ export default function Patients() {
         inactive: 0,
         withAppointments: 0
     })
+
+    // Archive state
+    const [archiveModalOpen, setArchiveModalOpen] = useState(false)
+    const [patientToArchive, setPatientToArchive] = useState(null)
+    const [archiving, setArchiving] = useState(false)
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
@@ -425,6 +433,28 @@ export default function Patients() {
             console.error("Update patient error:", error)
             toast.error("Failed to update patient. Please try again.")
             throw error
+        }
+    }
+
+    const handleOpenArchiveModal = (patient) => {
+        setPatientToArchive(patient)
+        setArchiveModalOpen(true)
+    }
+
+    const handleConfirmArchive = async () => {
+        if (!patientToArchive) return
+        try {
+            setArchiving(true)
+            await patientsAPI.delete(patientToArchive.id)
+            toast.success(`Patient "${patientToArchive.patient_name}" archived successfully`)
+            setArchiveModalOpen(false)
+            setPatientToArchive(null)
+            fetchPatients() // Refresh the list
+        } catch (error) {
+            console.error("Archive patient error:", error)
+            toast.error("Failed to archive patient. Please try again.")
+        } finally {
+            setArchiving(false)
         }
     }
 
@@ -782,11 +812,17 @@ export default function Patients() {
                                                                     <Mail className="h-4 w-4 mr-2" />
                                                                     Send Message
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem className="cursor-pointer">
+                                                                <DropdownMenuItem 
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => navigate('/appointments', { state: { autoBook: true, patient } })}
+                                                                >
                                                                     <Calendar className="h-4 w-4 mr-2" />
                                                                     Schedule Appointment
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
+                                                                <DropdownMenuItem 
+                                                                    className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                                                                    onClick={() => handleOpenArchiveModal(patient)}
+                                                                >
                                                                     <Trash2 className="h-4 w-4 mr-2" />
                                                                     Archive Patient
                                                                 </DropdownMenuItem>
@@ -858,6 +894,18 @@ export default function Patients() {
                     onClose={() => setViewModalOpen(false)}
                     data={selectedPatient}
                     type="patient"
+                />
+
+                {/* Archive Confirmation Modal */}
+                <ConfirmationModal
+                    isOpen={archiveModalOpen}
+                    onClose={() => setArchiveModalOpen(false)}
+                    onConfirm={handleConfirmArchive}
+                    title="Archive Patient"
+                    description={`Are you sure you want to archive "${patientToArchive?.patient_name}"? This will hide the patient from all active lists.`}
+                    confirmText="Archive Patient"
+                    variant="destructive"
+                    loading={archiving}
                 />
 
                 {/* Compliance Footer */}

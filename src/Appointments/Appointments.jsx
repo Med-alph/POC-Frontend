@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react"
 import { useSelector } from "react-redux"
+import { useLocation } from "react-router-dom"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -38,6 +39,7 @@ import {
 export default function Appointments() {
   const { hospitalInfo } = useHospital()
   const user = useSelector((state) => state.auth.user)
+  const location = useLocation()
   const HOSPITAL_ID = user?.hospital_id || hospitalInfo?.hospital_id
 
   const [appointments, setAppointments] = useState([])
@@ -102,6 +104,38 @@ export default function Appointments() {
     fetchAppointments()
     fetchPatients()
   }, [HOSPITAL_ID])
+
+  // Handle navigation state (Auto-booking or Viewing Doctor Schedule)
+  useEffect(() => {
+    if (!location.state) return;
+
+    // Case 1: Auto-book from Patients Tab
+    if (location.state.autoBook && location.state.patient) {
+      setSelectedPatient(location.state.patient)
+      setOpen(true)
+      setIsEditing(false)
+      setStep(2)
+    }
+
+    // Case 2: View Schedule from Doctors Tab
+    if (location.state.doctorId) {
+      const docId = location.state.doctorId
+      setExpandedDoctors(prev => {
+        const next = new Set(prev)
+        next.add(docId)
+        return next
+      })
+      
+      // Minor delay to allow table to render before potential scroll or focus
+      setTimeout(() => {
+        const element = document.getElementById(`doctor-row-${docId}`);
+        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    // Clear location state to prevent re-triggering on manual refresh
+    window.history.replaceState({}, document.title)
+  }, [location, appointments])
 
 
 
@@ -681,7 +715,11 @@ export default function Appointments() {
                 </TableRow>
               ) : groupedAppointments.map(group => (
                 <React.Fragment key={group.id}>
-                  <TableRow className="bg-blue-50/20 dark:bg-blue-900/5 cursor-pointer hover:bg-blue-50/40 transition-colors border-y border-gray-100 dark:border-gray-800" onClick={() => toggleDoctor(group.id)}>
+                  <TableRow 
+                    id={`doctor-row-${group.id}`}
+                    className="bg-blue-50/20 dark:bg-blue-900/5 cursor-pointer hover:bg-blue-50/40 transition-colors border-y border-gray-100 dark:border-gray-800" 
+                    onClick={() => toggleDoctor(group.id)}
+                  >
                     <TableCell className="py-4">
                       {expandedDoctors.has(group.id) ? <ChevronDown className="h-5 w-5 text-blue-600" /> : <ChevronRight className="h-5 w-5 text-gray-400" />}
                     </TableCell>
