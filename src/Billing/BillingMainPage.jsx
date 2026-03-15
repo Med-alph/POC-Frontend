@@ -153,6 +153,7 @@ export default function BillingPage() {
     };
 
     if (appoinmentid) {
+      window.scrollTo(0, 0);
       fetchAppointmentDetails();
     }
   }, [appoinmentid]);
@@ -192,7 +193,7 @@ export default function BillingPage() {
         setActiveTab("payment");
       } else if (mode === 'CASH') {
         toast.success("Bill posted as UNPAID. Send patient to Cashier.", { duration: 4000 });
-        navigate('/appointments'); // Or to a bill detail page
+        navigate('/cashier'); // Navigate to cashier tab as requested
       } else if (mode === 'CREDIT') {
         toast.success("Payment settled via Patient Credit.");
         navigate('/appointments');

@@ -116,7 +116,7 @@ You have the right to access your medical records, request corrections to your i
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[600px] max-h-[85vh] flex flex-col modal-content p-0 gap-0">
+      <DialogContent className="max-w-[600px] max-h-[85vh] flex flex-col modal-content p-0 gap-0 border-none">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Shield className="h-6 w-6 text-blue-600" />

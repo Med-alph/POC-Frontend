@@ -274,3 +274,18 @@
 .quill-premium-wrapper .ql-editor {
   min-height: 250px;
 }
+/* AI Safety Animations & Styles */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.shake-animation {
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+.safety-safe { background-color: #ecfdf5; border-color: #10b981; color: #065f46; }
+.safety-caution { background-color: #fffbeb; border-color: #f59e0b; color: #92400e; }
+.safety-high-risk { background-color: #fef2f2; border-color: #ef4444; color: #991b1b; }
+

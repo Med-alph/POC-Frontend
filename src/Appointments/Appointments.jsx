@@ -61,6 +61,7 @@ export default function Appointments() {
   const [staffList, setStaffList] = useState([])
   const [selectedStaff, setSelectedStaff] = useState(null)
   const [loadingDoctors, setLoadingDoctors] = useState(false)
+  const [doctorSearch, setDoctorSearch] = useState("")
 
   const [selectedDate, setSelectedDate] = useState("")
   const [slots, setSlots] = useState([])
@@ -87,6 +88,7 @@ export default function Appointments() {
   // Custom Filters
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [listingDate, setListingDate] = useState(format(new Date(), 'yyyy-MM-dd'))
 
   // Stats
   const [stats, setStats] = useState({
@@ -103,7 +105,7 @@ export default function Appointments() {
   useEffect(() => {
     fetchAppointments()
     fetchPatients()
-  }, [HOSPITAL_ID])
+  }, [HOSPITAL_ID, listingDate])
 
   // Handle navigation state (Auto-booking or Viewing Doctor Schedule)
   useEffect(() => {
@@ -142,10 +144,13 @@ export default function Appointments() {
   async function fetchAppointments() {
     if (!HOSPITAL_ID) return
     setLoading(true);
+    setAppointments([]); // Clear old results to show loading state immediately
     try {
       const result = await appointmentsAPI.getAll({
         hospital_id: HOSPITAL_ID,
         limit: 1000,
+        fromDate: listingDate,
+        toDate: listingDate,
         orderBy: 'appointment_date',
         sort: 'DESC'
       })
@@ -239,6 +244,7 @@ export default function Appointments() {
     if (s === "fulfilled" || s === "completed") return <Badge className="bg-green-100 text-green-700 border-green-200">Completed</Badge>
     if (s === "cancelled") return <Badge className="bg-red-100 text-red-700 border-red-200">Cancelled</Badge>
     if (s === "booked") return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Booked</Badge>
+    if (s === "in-progress") return <Badge className="bg-purple-100 text-purple-700 border-purple-200">In Progress</Badge>
     return <Badge variant="outline">{status}</Badge>
   }
 
@@ -278,6 +284,7 @@ export default function Appointments() {
     setSelectedSlot("")
     setReason("")
     setPatientSearch("")
+    setDoctorSearch("")
     setIsEditing(false)
   }
 
@@ -484,107 +491,9 @@ export default function Appointments() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Appointments</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">Manage medical schedules and patient visits</p>
           </div>
-          <Dialog open={open && !isEditing} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 h-10">
-                <Plus className="h-4 w-4 mr-2" /> Book Appointment
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Step {step}: {step === 1 ? "Select Patient" : step === 2 ? "Select Doctor" : step === 3 ? "Select Slot" : "Final Details"}</DialogTitle>
-                <div className="flex gap-1 mt-2">
-                  {[1, 2, 3, 4].map(i => <div key={i} className={`h-1 flex-1 rounded-full ${step >= i ? "bg-blue-500" : "bg-gray-200"}`} />)}
-                </div>
-              </DialogHeader>
-
-              {step === 1 && (
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input placeholder="Search patient..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} className="pl-10 h-10" />
-                  </div>
-                  <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
-                    {patients.filter(p => !patientSearch || p.patient_name?.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
-                      <div key={p.id} onClick={() => setSelectedPatient(p)} className={`p-3 rounded-lg border cursor-pointer flex items-center justify-between ${selectedPatient?.id === p.id ? "bg-blue-50 border-blue-500" : "hover:bg-gray-50 border-gray-200"}`}>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10"><AvatarFallback>{p.patient_name?.[0]}</AvatarFallback></Avatar>
-                          <div><p className="text-sm font-medium">{p.patient_name}</p><p className="text-xs text-gray-500">{p.contact_info}</p></div>
-                        </div>
-                        {selectedPatient?.id === p.id && <CheckCircleIcon className="h-4 w-4 text-blue-600" />}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setShowAddPatientDialog(true)}><Plus className="h-4 w-4 mr-2" /> New Patient</Button>
-                    <Button className="flex-1" disabled={!selectedPatient} onClick={() => setStep(2)}>Next</Button>
-                  </div>
-                </div>
-              )}
-
-              {step === 2 && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-2">
-                    {loadingDoctors ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500" /> :
-                      staffList.map(s => (
-                        <div key={s.id} onClick={() => setSelectedStaff(s)} className={`p-3 rounded-lg border cursor-pointer flex items-center justify-between ${selectedStaff?.id === s.id ? "bg-blue-50 border-blue-500" : "hover:bg-gray-50 border-gray-200"}`}>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10"><AvatarFallback>{s.staff_name?.[0]}</AvatarFallback></Avatar>
-                            <div><p className="text-sm font-medium">{s.staff_name}</p><p className="text-xs text-gray-500">{s.department}</p></div>
-                          </div>
-                          {selectedStaff?.id === s.id && <CheckCircleIcon className="h-4 w-4 text-blue-600" />}
-                        </div>
-                      ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                    <Button className="flex-1" disabled={!selectedStaff} onClick={() => setStep(3)}>Next</Button>
-                  </div>
-                </div>
-              )}
-
-              {step === 3 && (
-                <div className="space-y-4">
-                  <Input type="date" value={selectedDate} min={new Date().toISOString().split('T')[0]} onChange={e => setSelectedDate(e.target.value)} className="h-10" />
-                  {selectedDate ? (
-                    <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                      {loadingSlots ? <Loader2 className="h-5 w-5 animate-spin mx-auto" colSpan={3} /> :
-                        slots.map(s => (
-                          <Button key={s.time} variant={selectedSlot === s.time ? "default" : "outline"} disabled={s.status !== 'available'} size="sm" onClick={() => setSelectedSlot(s.time)}>{s.display_time}</Button>
-                        ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-sm text-gray-500 py-8">Please select a date to view time slots.</p>
-                  )}
-                  <div className="flex gap-2 pt-2">
-                    <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-                    <Button className="flex-1" disabled={!selectedSlot} onClick={() => setStep(4)}>Next</Button>
-                  </div>
-                </div>
-              )}
-
-              {step === 4 && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-gray-500">Appointment Type</label>
-                    <select className="w-full p-2.5 border rounded-lg bg-gray-50 text-sm" value={appointmentType} onChange={e => setAppointmentType(e.target.value)}>
-                      <option value="consultation">Consultation</option>
-                      <option value="follow-up">Follow-up</option>
-                      <option value="emergency">Emergency</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-gray-500">Reason</label>
-                    <textarea className="w-full p-2.5 border rounded-lg bg-gray-50 text-sm min-h-[80px]" value={reason} onChange={e => setReason(e.target.value)} placeholder="Enter visit reason..." />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
-                    <Button className="flex-1" disabled={formLoading} onClick={handleCreateConfirm}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Booking"}</Button>
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
+          <Button className="bg-blue-600 hover:bg-blue-700 h-10 shadow-lg transition-all" onClick={() => { setIsEditing(false); setOpen(true); setStep(1); }}>
+            <Plus className="h-4 w-4 mr-2" /> Book Appointment
+          </Button>
         </div>
 
         {/* Statistics Cards */}
@@ -633,7 +542,7 @@ export default function Appointments() {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
                 <Input
                   type="text"
@@ -641,6 +550,15 @@ export default function Appointments() {
                   className="pl-10 h-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Calendar className="h-4 w-4 text-gray-500 hidden sm:block" />
+                <Input
+                  type="date"
+                  className="h-10 w-full sm:w-44"
+                  value={listingDate}
+                  onChange={(e) => setListingDate(e.target.value)}
                 />
               </div>
               <Select
@@ -655,7 +573,9 @@ export default function Appointments() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="booked">Booked</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="fulfilled">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -877,9 +797,22 @@ export default function Appointments() {
 
                 {step === 2 && (
                   <div className="space-y-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input 
+                        placeholder="Search doctor or department..." 
+                        value={doctorSearch} 
+                        onChange={e => setDoctorSearch(e.target.value)} 
+                        className="pl-10 h-11" 
+                      />
+                    </div>
                     <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto pr-2">
                       {loadingDoctors ? <div className="py-10 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" /></div> :
-                        staffList.map(s => (
+                        staffList.filter(s => 
+                          !doctorSearch || 
+                          s.staff_name?.toLowerCase().includes(doctorSearch.toLowerCase()) || 
+                          s.department?.toLowerCase().includes(doctorSearch.toLowerCase())
+                        ).map(s => (
                           <div key={s.id} onClick={() => setSelectedStaff(s)} className={`p-4 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${selectedStaff?.id === s.id ? "bg-blue-50 border-blue-500 shadow-sm" : "hover:bg-gray-50 border-gray-100"}`}>
                             <div className="flex items-center gap-4">
                               <Avatar className="h-10 w-10"><AvatarFallback>{s.staff_name?.[0]}</AvatarFallback></Avatar>

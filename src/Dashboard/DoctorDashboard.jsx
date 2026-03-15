@@ -479,9 +479,11 @@ const DoctorDashboard = () => {
           </Card>
         </div>
 
-        {/* Chart Section - Full Width */}
         <div className="grid grid-cols-1 gap-6">
-          <NextHoursChart userId={user?.id} />
+          <NextHoursChart 
+            userId={user?.id} 
+            todaysAppointments={todaysData?.appointments || []} 
+          />
         </div>
 
         {/* Main Content Grid */}
