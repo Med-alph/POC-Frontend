@@ -347,15 +347,24 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
               Clinical Copilot
             </h3>
             {selectedPatient && (
-              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                {selectedPatient.patient_name}
-              </p>
+              <button 
+                onClick={() => {
+                  setShowPatientSelector(true);
+                  if (!allPatients.length) fetchAllPatients();
+                }}
+                className="text-xs text-indigo-600 dark:text-indigo-400 truncate hover:underline text-left block w-full"
+              >
+                {selectedPatient.patient_name} (Switch)
+              </button>
             )}
           </div>
         </div>
         {!activePatientId && (
           <button
-            onClick={() => setShowPatientSelector(true)}
+            onClick={() => {
+              setShowPatientSelector(true);
+              if (!allPatients.length) fetchAllPatients();
+            }}
             className="text-xs md:text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 px-2 py-1 rounded transition-colors"
           >
             Select Patient
@@ -375,9 +384,19 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
           <div className="flex-1 overflow-y-auto p-3 md:p-4 min-h-0">
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Search & Select Patient
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Search & Select Patient
+                  </label>
+                  {activePatientId && (
+                    <button 
+                      onClick={() => setShowPatientSelector(false)}
+                      className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
                 
                 {loadingPatients ? (
                   <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 py-4">

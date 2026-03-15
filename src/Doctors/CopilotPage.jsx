@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Loader2, Sparkles } from 'lucide-react';
+import { Search, User, Loader2, Sparkles, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { patientsAPI } from '@/api/patientsapi';
 import CopilotPanel from '@/components/CopilotPanel';
@@ -43,6 +43,7 @@ const CopilotPage = () => {
   const handlePatientSelect = (patientId) => {
     setSelectedPatientId(patientId);
     setSearchTerm(''); // Clear search after selection
+    setIsCopilotOpen(true); // Ensure open when switching
   };
 
   // Filter patients based on search
@@ -90,8 +91,16 @@ const CopilotPage = () => {
                       placeholder="Search by name, ID, or phone..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:text-white text-base transition-all"
+                      className="w-full pl-11 pr-12 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:text-white text-base transition-all"
                     />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                      >
+                        <X className="w-5 h-5 text-gray-400" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Search Results as Cards */}
@@ -168,9 +177,20 @@ const CopilotPage = () => {
                       {selectedPatient.patient_name?.charAt(0).toUpperCase() || 'P'}
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                        {selectedPatient.patient_name}
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                          {selectedPatient.patient_name}
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setSelectedPatientId(null);
+                            setIsCopilotOpen(false);
+                          }}
+                          className="px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all"
+                        >
+                          Change Patient
+                        </button>
+                      </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mt-2">
                         <span className="font-medium">Age: {selectedPatient.age || 'N/A'}</span>
                         <span className="text-gray-400">•</span>
@@ -219,6 +239,8 @@ const CopilotPage = () => {
           setSelectedPatientId(null);
         }}
         patientId={selectedPatientId}
+        patients={allPatients}
+        onPatientSelect={handlePatientSelect}
       />
     </div>
   );

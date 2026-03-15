@@ -252,7 +252,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
 
     return (
         <>
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={open && !showConsentModal} onOpenChange={setOpen}>
                 <DialogContent className="max-w-[600px] h-[85vh] sm:h-[90vh] flex flex-col modal-content">
                     <DialogHeader className="flex-shrink-0">
                         <DialogTitle>Add New Patient</DialogTitle>

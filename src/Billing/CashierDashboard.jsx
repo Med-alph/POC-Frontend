@@ -43,6 +43,7 @@ export default function CashierDashboard() {
     };
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         fetchPendingOrders();
     }, []);
 

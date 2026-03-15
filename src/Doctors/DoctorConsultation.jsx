@@ -1,9 +1,37 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { User, ClipboardList, Activity, Stethoscope, Pill, FlaskConical, Play, StopCircle, XCircle, Clock, Camera, Sparkles, Check, X } from "lucide-react";
+import { 
+    User as UserIcon, 
+    ClipboardList, 
+    Activity, 
+    Stethoscope, 
+    Pill, 
+    FlaskConical, 
+    Play, 
+    StopCircle, 
+    XCircle, 
+    Clock, 
+    Camera, 
+    Sparkles, 
+    Check, 
+    X,
+    PlusCircle, 
+    Trash2, 
+    Calendar, 
+    Clock as ClockIcon, 
+    CalendarCheck, 
+    ShieldCheck, 
+    AlertTriangle, 
+    AlertCircle as AlertCircleIcon, 
+    Info, 
+    CheckCircle2, 
+    Loader2, 
+    ChevronDown 
+} from "lucide-react";
 import appointmentsAPI from "../api/appointmentsapi";
 import consultationsAPI from "../api/consultationsapi";
 import imagesAPI from "../api/imagesapi";
+import prescriptionSafetyAPI from "../api/prescriptionSafetyAPI";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
 import cancellationRequestAPI from "../api/cancellationrequestapi";
@@ -14,7 +42,6 @@ import proceduresAPI from "../api/proceduresapi";
 import ProcedureAutocomplete from "../components/ProcedureAutocomplete";
 import { baseUrl } from "../constants/Constant";
 import { getAuthToken } from "../utils/auth";
-import { PlusCircle, Trash2, Calendar, Clock as ClockIcon, CalendarCheck } from "lucide-react";
 
 
 const DoctorConsultation = () => {
@@ -73,6 +100,10 @@ const DoctorConsultation = () => {
     const [availableSlots, setAvailableSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
 
+    // AI Prescription Safety State
+    const [safetyReport, setSafetyReport] = useState(null);
+    const [isCheckingSafety, setIsCheckingSafety] = useState(false);
+
 
 
     async function checkCancellationRequest() {
@@ -88,6 +119,7 @@ const DoctorConsultation = () => {
 
 
     useEffect(() => {
+        window.scrollTo(0, 0);
         const fetchAppointmentDetails = async () => {
             if (!appointmentId) {
                 toast.error("No appointment ID provided");
@@ -156,6 +188,7 @@ const DoctorConsultation = () => {
                 actual_start_time: startTime.toISOString(),
             }));
             toast.success("Consultation started!");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err) {
             console.error("Failed to start consultation:", err);
             toast.error("Failed to start consultation");
@@ -183,7 +216,7 @@ const DoctorConsultation = () => {
                 setAvailableSlots(slots);
 
                 if (response.on_leave) {
-                    toast.warning(`Doctor is on ${response.leave_type || ''} leave on this date`);
+                    toast(`Doctor is on ${response.leave_type || ''} leave on this date`, { icon: '⚠️' });
                 }
             } catch (error) {
                 console.error("Error fetching slots:", error);
@@ -200,9 +233,24 @@ const DoctorConsultation = () => {
     }, [followUpDate, isFollowUpRequired, appointmentData?.staff_id]);
 
     const handleEndConsultation = async () => {
+        const validPrescriptions = prescriptions.filter(p => p.medicine_name.trim() !== "");
 
         if (!soapNotes.subjective && !soapNotes.objective && !soapNotes.assessment && !soapNotes.plan) {
             toast.error("Please fill in at least one SOAP note section");
+            return;
+        }
+
+        // Enforce AI Safety Check for prescriptions
+        if (validPrescriptions.length > 0 && !safetyReport) {
+            toast.error("AI Safety Scan Required: Please scan your prescriptions for allergies and conflicts before finalizing.");
+            // Scroll to the button
+            const safetyBtn = document.getElementById("ai-safety-scan-btn");
+            if (safetyBtn) {
+                safetyBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Optional: add a temporary highlight
+                safetyBtn.classList.add("ring-4", "ring-indigo-300");
+                setTimeout(() => safetyBtn.classList.remove("ring-4", "ring-indigo-300"), 3000);
+            }
             return;
         }
 
@@ -410,6 +458,62 @@ const DoctorConsultation = () => {
         setShowReplaceConfirmModal(false);
     };
 
+    const handleCheckPrescriptionSafety = async () => {
+        const validPrescriptions = prescriptions.filter(p => p.medicine_name.trim() !== "");
+        
+        if (validPrescriptions.length === 0) {
+            toast.error("Please add at least one medication to check safety");
+            return;
+        }
+
+        try {
+            setIsCheckingSafety(true);
+            const patientId = appointmentData?.patient_id || patient?.id;
+            
+            if (!patientId || patientId === "N/A") {
+                toast.error("Patient identification missing. Cannot run safety check. 🔍");
+                return;
+            }
+
+            const report = await prescriptionSafetyAPI.checkSafety(patientId, validPrescriptions);
+            
+            if (!report || !report.status) {
+                throw new Error("AI returned an incomplete safety report.");
+            }
+
+            setSafetyReport(report);
+            const status = report.status.toLowerCase();
+            
+            if (status === 'safe') {
+                toast.success("AI Safety Scan: All Clear! 🛡️", {
+                    duration: 4000
+                });
+            } else if (status === 'high risk' || status === 'high-risk') {
+                toast.error("CRITICAL: AI detected severe safety risks!", {
+                    duration: 6000
+                });
+            } else if (status === 'caution' || status === 'warning') {
+                toast("AI Safety Scan: Potential risks found. ⚠️", {
+                    duration: 5000,
+                    icon: '⚠️'
+                });
+            } else {
+                toast(`AI Scan Complete: ${report.status} status 🔍`);
+            }
+        } catch (err) {
+            console.error("Prescription safety check failed:", err);
+            toast.error(
+                <div className="flex flex-col gap-1">
+                    <span className="font-bold">Clinical AI Scan Interrupted 🛰️</span>
+                    <span className="text-[10px] opacity-80">{err.message || 'Service temporarily unavailable'}</span>
+                </div>,
+                { duration: 5000 }
+            );
+        } finally {
+            setIsCheckingSafety(false);
+        }
+    };
+
     const addPrescription = () =>
         setPrescriptions([...prescriptions, { medicine_name: "", dosage: "", frequency: "", duration: "" }]);
 
@@ -443,7 +547,7 @@ const DoctorConsultation = () => {
         if (!medication.is_available) {
             toast.error(`${medication.name} is currently out of stock`);
         } else if (medication.current_stock < 10) {
-            toast.warning(`${medication.name} has low stock (${medication.current_stock} ${medication.unit} remaining)`);
+            toast(`${medication.name} has low stock (${medication.current_stock} ${medication.unit} remaining)`, { icon: '⚠️' });
         }
     };
 
@@ -531,7 +635,7 @@ const DoctorConsultation = () => {
         insuranceProvider: appointmentData.patient?.insurance_provider || "N/A",
     };
 
-    const canStartConsultation = ['pending', 'arrived'].includes(appointmentData.status?.toLowerCase());
+    const canStartConsultation = ['pending', 'arrived', 'booked'].includes(appointmentData.status?.toLowerCase());
     const canEndConsultation = appointmentData.status?.toLowerCase() === 'in-progress';
     const canCancelAppointment = !['fulfilled', 'completed', 'cancelled', 'in-progress'].includes(appointmentData.status?.toLowerCase());
     const isCompleted = ['fulfilled', 'completed'].includes(appointmentData.status?.toLowerCase());
@@ -558,7 +662,7 @@ const DoctorConsultation = () => {
                 <div className="flex justify-between items-start">
                     <div>
                         <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-                            <User className="h-6 w-6 text-blue-500" /> {patient.name}
+                            <UserIcon className="h-6 w-6 text-blue-500" /> {patient.name}
                         </h1>
                         <p className="text-gray-600">
                             {patient.age} yrs / {patient.gender} | ID: {patient.id}
@@ -609,7 +713,7 @@ const DoctorConsultation = () => {
                         </button>
                     )}
 
-                    {isConsultationStarted && user?.id && (
+                    {/* {isConsultationStarted && user?.id && (
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={handleToggleVoiceRecording}
@@ -645,7 +749,7 @@ const DoctorConsultation = () => {
                                 </div>
                             )}
                         </div>
-                    )}
+                    )} */}
 
                     {canCancelAppointment && !cancelRequested && (
                         <button
@@ -859,9 +963,95 @@ const DoctorConsultation = () => {
 
             {/* Prescription Section */}
             <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
-                <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-3">
-                    <Pill className="h-5 w-5 text-blue-500" /> Prescriptions
-                </h2>
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                        <Pill className="h-5 w-5 text-blue-500" /> Prescriptions
+                    </h2>
+                    {isConsultationStarted && !isCompleted && (
+                        <button
+                            id="ai-safety-scan-btn"
+                            onClick={handleCheckPrescriptionSafety}
+                            disabled={isCheckingSafety}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${
+                                isCheckingSafety 
+                                ? 'bg-gray-100 text-gray-400' 
+                                : safetyReport?.status?.toLowerCase() === 'high risk'
+                                    ? 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 shake-animation'
+                                    : safetyReport?.status?.toLowerCase() === 'caution'
+                                        ? 'bg-amber-50 text-amber-600 border-2 border-amber-200 hover:bg-amber-100'
+                                        : 'bg-indigo-50 text-indigo-600 border-2 border-indigo-100 hover:bg-indigo-100'
+                            }`}
+                        >
+                            {isCheckingSafety ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Sparkles className="h-4 w-4" />
+                            )}
+                            {isCheckingSafety ? "Analyzing Safety..." : "Scan for Allergies & Conflicts"}
+                        </button>
+                    )}
+                </div>
+
+                {safetyReport && (
+                    <div className={`mb-4 p-4 rounded-xl border-l-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300 ${
+                        safetyReport.status === 'High Risk' 
+                        ? 'bg-red-50 border-red-500 text-red-900' 
+                        : safetyReport.status === 'Caution'
+                            ? 'bg-amber-50 border-amber-500 text-amber-900'
+                            : 'bg-emerald-50 border-emerald-500 text-emerald-900'
+                    }`}>
+                        <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-full flex-shrink-0 ${
+                                safetyReport.status === 'High Risk' ? 'bg-red-100 text-red-600' :
+                                safetyReport.status === 'Caution' ? 'bg-amber-100 text-amber-600' :
+                                'bg-emerald-100 text-emerald-600'
+                            }`}>
+                                {safetyReport.status === 'High Risk' ? (
+                                    <AlertTriangle className="h-4 w-4" />
+                                ) : safetyReport.status === 'Caution' ? (
+                                    <Info className="h-4 w-4" />
+                                ) : (
+                                    <CheckCircle2 className="h-4 w-4" />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                    <p className="text-xs font-black uppercase tracking-widest opacity-70">
+                                        AI Safety Analysis: {safetyReport.status}
+                                    </p>
+                                    <button 
+                                        onClick={() => setSafetyReport(null)}
+                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p className="text-sm font-semibold mb-1">{safetyReport.summary}</p>
+                                {safetyReport.suggestion && (
+                                    <p className="text-xs font-medium opacity-80 italic">
+                                        Clinical Suggestion: {safetyReport.suggestion}
+                                    </p>
+                                )}
+                                {safetyReport.alternativeConsiderations && safetyReport.alternativeConsiderations.length > 0 && (
+                                    <div className="mt-2 space-y-1 p-2 bg-black/5 rounded-md">
+                                        <p className="text-[10px] font-bold uppercase opacity-60 flex items-center gap-1">
+                                            <Activity className="h-3 w-3" /> Alternatives to Consider
+                                        </p>
+                                        {safetyReport.alternativeConsiderations.map((alt, i) => (
+                                            <p key={i} className="text-[11px] leading-tight">• {alt}</p>
+                                        ))}
+                                    </div>
+                                )}
+                                {safetyReport.warnings && safetyReport.warnings.length > 0 && (
+                                    <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-orange-600 bg-orange-50/50 w-fit px-2 py-0.5 rounded border border-orange-100">
+                                        <AlertCircleIcon className="h-3 w-3" />
+                                        {safetyReport.warnings[0]}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {prescriptions.map((pres, index) => (
                     <div key={index} className="grid md:grid-cols-4 gap-3 mb-3">
@@ -1281,6 +1471,7 @@ const DoctorConsultation = () => {
                     toast.success('Images uploaded successfully!');
                 }}
             />
+
         </div>
     );
 };

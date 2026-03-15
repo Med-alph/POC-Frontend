@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Sparkles, AlertCircle, Pill, FlaskConical } from 'lucide-react';
+import { X, Loader2, Sparkles, AlertCircle, Pill, FlaskConical, Search, ChevronDown, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSelector } from 'react-redux';
@@ -14,20 +14,24 @@ import copilotAPI from '@/api/copilotapi';
  * @param {Function} props.onClose - Callback to close the panel
  * @param {string} props.patientId - Patient ID for fetching insights
  */
-const CopilotPanel = ({ isOpen, onClose, patientId }) => {
+const CopilotPanel = ({ isOpen, onClose, patientId, patients = [], onPatientSelect }) => {
   const user = useSelector((state) => state.auth.user);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [panelSearchTerm, setPanelSearchTerm] = useState('');
 
   useEffect(() => {
-    if (isOpen && patientId && !data) {
+    if (isOpen && patientId) {
       fetchCopilotData();
     }
-    // Reset data when panel closes
+    // Reset states when panel closes
     if (!isOpen) {
       setData(null);
       setError(null);
+      setIsSwitching(false);
+      setPanelSearchTerm('');
     }
   }, [isOpen, patientId]);
 
@@ -79,22 +83,95 @@ const CopilotPanel = ({ isOpen, onClose, patientId }) => {
       <div className={`fixed right-0 top-0 h-full w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out overflow-hidden flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-              <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-              AI Clinical Insights
-            </CardTitle>
+          <div className="flex-1">
+            {isSwitching ? (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search patient..."
+                  className="w-full pl-9 pr-8 py-2 text-sm bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-800 rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                  value={panelSearchTerm}
+                  onChange={(e) => setPanelSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setIsSwitching(false);
+                  }}
+                />
+                <button
+                  onClick={() => setIsSwitching(false)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+
+                {/* Search Results Dropdown */}
+                {panelSearchTerm && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-[60] animate-in slide-in-from-top-2 duration-200">
+                    {patients.filter(p =>
+                      p.patient_name?.toLowerCase().includes(panelSearchTerm.toLowerCase()) ||
+                      p.patient_code?.toLowerCase().includes(panelSearchTerm.toLowerCase())
+                    ).length > 0 ? (
+                      patients.filter(p =>
+                        p.patient_name?.toLowerCase().includes(panelSearchTerm.toLowerCase()) ||
+                        p.patient_code?.toLowerCase().includes(panelSearchTerm.toLowerCase())
+                      ).map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            onPatientSelect(p.id);
+                            setIsSwitching(false);
+                            setPanelSearchTerm('');
+                          }}
+                          className={`w-full text-left px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors ${patientId === p.id ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}
+                        >
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{p.patient_name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{p.patient_code || 'ID: ' + p.id.slice(0, 8)}</p>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-6 text-center text-gray-500 text-sm italic">
+                        No matches found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                  <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                    AI Insights
+                  </CardTitle>
+                  {patientId && (
+                    <button
+                      onClick={() => setIsSwitching(true)}
+                      className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors font-semibold mt-0.5"
+                    >
+                      <User className="h-3 w-3" />
+                      <span className="max-w-[150px] truncate">
+                        {patients?.find(p => p.id === patientId)?.patient_name || 'Loading...'}
+                      </span>
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2 ml-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}

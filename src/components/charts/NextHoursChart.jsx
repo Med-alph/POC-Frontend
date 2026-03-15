@@ -37,7 +37,7 @@ import { useChartData } from '@/hooks/useChartData';
  *    stats: { total, completed, pending, cancelled }
  *  }
  */
-const NextHoursChart = ({ userId, hours = 8 }) => {
+const NextHoursChart = ({ userId, hours = 8, todaysAppointments = [] }) => {
   const [hoveredTask, setHoveredTask] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
 
@@ -64,29 +64,54 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
 
     const tasks = data.gantt || [];
 
-    // WORKAROUND: Parse appointment_date and appointment_time as local time
-    // Backend is incorrectly treating local times as UTC
     const tasksWithLocalTimestamps = tasks.map(task => {
       // Get the appointment from the appointments array if available
       const appointment = data.appointments?.find(apt => apt.id === task.id);
+      
+      // Sync with todaysAppointments to get the most up-to-date status and color
+      const syncAppointment = todaysAppointments?.find(apt => apt.id === task.id);
+      const currentStatus = syncAppointment?.status || task.status;
+
+      // Map status to consistent colors for the Gantt bars
+      const getStatusColor = (status) => {
+        switch (status?.toLowerCase()) {
+          case 'fulfilled':
+          case 'completed':
+            return '#10b981'; // Green-500
+          case 'in-progress':
+            return '#3b82f6'; // Blue-500
+          case 'arrived':
+            return '#8b5cf6'; // Purple-500
+          case 'booked':
+          case 'pending':
+            return '#f59e0b'; // Amber-500
+          case 'cancelled':
+            return '#ef4444'; // Red-500
+          default:
+            return '#6b7280'; // Gray-500
+        }
+      };
 
       if (appointment?.appointment_date && appointment?.appointment_time) {
-        // Parse as local time by creating date string without 'Z' suffix
-        const dateStr = appointment.appointment_date; // "2025-12-04"
-        const timeStr = appointment.appointment_time; // "20:00:00"
-
-        // Create local date by parsing without timezone
+        const dateStr = appointment.appointment_date;
+        const timeStr = appointment.appointment_time;
         const localStartDate = new Date(`${dateStr}T${timeStr}`);
         const localEndDate = new Date(localStartDate.getTime() + (task.duration_minutes || 30) * 60 * 1000);
 
         return {
           ...task,
+          status: currentStatus,
+          color: getStatusColor(currentStatus),
           startTimestamp: localStartDate.getTime(),
           endTimestamp: localEndDate.getTime(),
         };
       }
 
-      return task;
+      return {
+        ...task,
+        status: currentStatus,
+        color: getStatusColor(currentStatus)
+      };
     });
 
     const range = data.meta?.gantt_range || {};
@@ -445,13 +470,15 @@ const NextHoursChart = ({ userId, hours = 8 }) => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${selectedTask.status === 'booked'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : selectedTask.status === 'completed'
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                            : selectedTask.status === 'cancelled'
-                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${selectedTask.status?.toLowerCase() === 'booked' || selectedTask.status?.toLowerCase() === 'pending'
+                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          : (selectedTask.status?.toLowerCase() === 'completed' || selectedTask.status?.toLowerCase() === 'fulfilled')
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : selectedTask.status?.toLowerCase() === 'in-progress'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                              : selectedTask.status?.toLowerCase() === 'cancelled'
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                         }`}>
                         {selectedTask.status?.toUpperCase() || 'N/A'}
                       </span>

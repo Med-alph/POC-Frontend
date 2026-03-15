@@ -231,7 +231,7 @@ export default function AppointmentForm() {
         // Show toast if doctor is on leave
         if (response.on_leave) {
           console.log("⚠️ Doctor is on leave - showing warning");
-          toast.warning(`Doctor is on ${response.leave_type || ''} leave on this date`);
+          toast(`Doctor is on ${response.leave_type || ''} leave on this date`, { icon: '⚠️' });
         } else {
           console.log("✓ Doctor is available");
         }
@@ -371,7 +371,7 @@ export default function AppointmentForm() {
 
       // Show toast if doctor is on leave
       if (response.on_leave) {
-        toast.warning(`Doctor is on ${response.leave_type || ''} leave on this date`);
+        toast(`Doctor is on ${response.leave_type || ''} leave on this date`, { icon: '⚠️' });
       }
     } catch {
       toast.error("Failed to fetch slots");
