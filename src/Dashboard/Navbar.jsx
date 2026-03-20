@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote, FileText, Clipboard } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote, FileText, Clipboard, MessageSquareText } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import { UI_MODULES } from "../constants/Constant";
 import { useHospital } from "../contexts/HospitalContext";
 import { useAuth } from "../contexts/AuthContext";
 import ActiveSessions from "../components/ActiveSessions";
+import SupportHubDialog from "../components/support/SupportHubDialog";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home, requiredModule: UI_MODULES.DASHBOARD },
@@ -58,6 +59,7 @@ export default function Navbar() {
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showCopilotChat, setShowCopilotChat] = useState(false);
   const [showActiveSessions, setShowActiveSessions] = useState(false);
+  const [showSupportHub, setShowSupportHub] = useState(false);
 
   // Extract patientId from current route
   const getPatientIdFromRoute = () => {
@@ -87,9 +89,25 @@ export default function Navbar() {
   const isAdmin = user?.designation_group?.toLowerCase() !== "doctor";
 
   // Pass userId and hospitalId for all users to receive notifications
+  const socketRoleForNotifs = (() => {
+    if (!user) return "";
+    const rs = typeof user.role === "string" ? user.role.toLowerCase() : "";
+    if (rs === "superadmin") return "superadmin";
+    if (
+      user.role === "Admin" ||
+      user.designation_group === "Admin" ||
+      user.role === "HOSPITAL_ADMIN" ||
+      user.role === "tenant_admin"
+    ) {
+      return "admin";
+    }
+    return "";
+  })();
+
   const { notifications, refreshHistory } = useAdminNotifications(
     user?.id || null,
-    user?.hospital_id || null
+    user?.hospital_id || null,
+    { role: socketRoleForNotifs, tenantId: user?.tenant_id }
   );
   const notificationsList = notifications || [];
   const [unreadIds, setUnreadIds] = useState([]);
@@ -436,6 +454,13 @@ export default function Navbar() {
                 <Monitor className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium">Active Sessions</span>
               </DropdownMenuItem>
+              <DropdownMenuItem
+                className="px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors"
+                onClick={() => setShowSupportHub(true)}
+              >
+                <MessageSquareText className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                <span className="text-sm font-medium">Support &amp; queries</span>
+              </DropdownMenuItem>
               {(user?.role === 'Admin' || user?.designation_group === 'Admin') && (
                 <>
                   <DropdownMenuItem
@@ -525,6 +550,11 @@ export default function Navbar() {
       <ActiveSessions
         open={showActiveSessions}
         onOpenChange={setShowActiveSessions}
+      />
+      <SupportHubDialog
+        open={showSupportHub}
+        onOpenChange={setShowSupportHub}
+        user={user}
       />
     </div>
   );

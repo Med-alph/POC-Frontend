@@ -12,7 +12,7 @@
  */
 
 import { getSecureItem, SECURE_KEYS } from '../utils/secureStorage';
-import { isAppAdmin } from '../utils/subdomain';
+import { isPlatformAppAdmin } from '../utils/subdomain';
 
 // Global reference to auth context logout handler
 let sessionInvalidationHandler = null;
@@ -114,7 +114,7 @@ if (typeof window !== 'undefined' && originalFetch) {
           // if /auth/me fails, we handle it in AuthContext/authSlice without a redirect loop
           // ALSO SKIP if we're on a SuperAdmin subdomain (don't nuke the admin session from here)
           const isHandshake = url.includes('/auth/me');
-          if (isHandshake || isAppAdmin()) {
+          if (isHandshake || isPlatformAppAdmin()) {
             return Promise.reject(new Error('Session validation failed'));
           }
 
@@ -126,7 +126,7 @@ if (typeof window !== 'undefined' && originalFetch) {
         }
 
         // Regular 401 (invalid token, etc.)
-        if (sessionInvalidationHandler && !isAppAdmin()) {
+        if (sessionInvalidationHandler && !isPlatformAppAdmin()) {
           sessionInvalidationHandler('Authentication failed. Please login again.');
           return Promise.reject(new Error('Authentication failed'));
         }

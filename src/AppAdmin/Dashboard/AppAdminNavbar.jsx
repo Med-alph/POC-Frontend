@@ -16,16 +16,6 @@ const AppAdminNavbar = () => {
 
   const navigation = [
     {
-      name: 'Dashboard',
-      href: '/dashboard',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z" />
-        </svg>
-      )
-    },
-    {
       name: 'Plans',
       href: '/plans',
       icon: (
@@ -62,11 +52,22 @@ const AppAdminNavbar = () => {
         </svg>
       )
     },
+    {
+      name: 'Tickets',
+      href: '/queries',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        </svg>
+      )
+    },
   ];
 
   const isActive = (href) => {
-    if (href === '/dashboard') {
-      return location.pathname === href;
+    if (href === '/queries') {
+      return (
+        location.pathname === '/queries' || location.pathname.startsWith('/queries/')
+      );
     }
     return location.pathname.startsWith(href);
   };
@@ -79,7 +80,7 @@ const AppAdminNavbar = () => {
           <div className="flex">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link to="/dashboard" className="flex items-center space-x-2">
+              <Link to="/queries" className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
                     <rect width="40" height="40" rx="8" fill="white" />
@@ -92,7 +93,7 @@ const AppAdminNavbar = () => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:ml-8 md:flex md:space-x-8">
+            <div className="hidden md:ml-8 md:flex md:items-stretch md:space-x-6">
               {navigation.map((item) => (
                 <Link
                   key={item.name}

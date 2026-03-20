@@ -8,7 +8,8 @@ import { getAuthToken } from '../utils/auth';
 
 const SOCKET_SERVER_URL = socketUrl;
 
-function useAdminNotifications(adminUserId, hospitalId) {
+function useAdminNotifications(adminUserId, hospitalId, socketOpts = {}) {
+  const { role: socketRole, tenantId } = socketOpts;
   const [notifications, setNotifications] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -62,12 +63,23 @@ function useAdminNotifications(adminUserId, hospitalId) {
   useEffect(() => {
     console.log('🧪 [useAdminNotifications] Effect starting...', { adminUserId, hospitalId });
     
-    if (!adminUserId || !hospitalId) {
+    if (!adminUserId) {
       console.log('⚠️ [useAdminNotifications] Missing ID, returning early');
       return;
     }
 
-    const socket = socketService.connectNotifications(adminUserId);
+    const hasHospital = hospitalId != null && hospitalId !== '';
+    const hasTenant = tenantId != null && tenantId !== '';
+    if (!hasHospital && !hasTenant) {
+      console.log('⚠️ [useAdminNotifications] Missing hospital/tenant context');
+      return;
+    }
+
+    const socket = socketService.connectNotifications(adminUserId, null, {
+      hospitalId,
+      role: socketRole,
+      tenantId,
+    });
 
     if (!socket) {
       console.error('❌ [useAdminNotifications] Failed to get socket from service');
@@ -89,6 +101,14 @@ function useAdminNotifications(adminUserId, hospitalId) {
         'appointmentCancellationRequested',
         'leaveRequestSubmitted'
       ];
+
+      s.on('new_ticket', (payload) => {
+        const title = payload?.title || 'New support ticket';
+        toast(`🎫 ${title}`, { duration: 5000 });
+        try {
+          window.dispatchEvent(new CustomEvent('support:new-ticket', { detail: payload }));
+        } catch (_) { /* ignore */ }
+      });
 
       notificationEvents.forEach(eventName => {
         s.on(eventName, (payload) => {
@@ -194,8 +214,9 @@ function useAdminNotifications(adminUserId, hospitalId) {
       socket.off('notification:status-change');
       socket.off('appointmentCancellationRequested');
       socket.off('leaveRequestSubmitted');
+      socket.off('new_ticket');
     };
-  }, [adminUserId, hospitalId]);
+  }, [adminUserId, hospitalId, socketRole, tenantId]);
 
   return { notifications, refreshHistory };
 }

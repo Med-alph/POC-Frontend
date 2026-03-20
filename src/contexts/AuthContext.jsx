@@ -13,7 +13,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { isAppAdmin } from '../utils/subdomain';
+import { isPlatformAppAdmin } from '../utils/subdomain';
 import {
   setSecureItem,
   getSecureItem,
@@ -25,7 +25,6 @@ import { clearCredentials, checkAuth } from '../features/auth/authSlice';
 import { authAPI } from '../api/authapi';
 import { sessionAPI } from '../api/sessionapi';
 import { setSessionInvalidationHandler } from '../services/apiInterceptor';
-import { baseUrl } from '../constants/Constant';
 
 const AuthContext = createContext(null);
 
@@ -76,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   const [sessionId, setSessionId] = useState(null);
   const [isInitialized, setIsInitialized] = useState(() => {
     // If we're on a SuperAdmin subdomain, skip general user auth initialization
-    if (isAppAdmin()) return true;
+    if (isPlatformAppAdmin()) return true;
 
     const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
     const currentPath = window.location.pathname;
@@ -94,7 +93,7 @@ export const AuthProvider = ({ children }) => {
       const currentPath = window.location.pathname;
       const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
 
-      if (isAppAdmin() || publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard')) {
+      if (isPlatformAppAdmin() || publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard')) {
         console.log('[AuthContext] Skipping validation for route/appmode:', currentPath);
         setIsInitialized(true);
         return;

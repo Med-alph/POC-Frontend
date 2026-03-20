@@ -16,7 +16,7 @@ const AppAdminLogin = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/queries');
     }
   }, [isAuthenticated, navigate]);
 
@@ -64,7 +64,7 @@ const AppAdminLogin = () => {
 
     try {
       await login(formData.email, formData.password);
-      navigate('/dashboard');
+      navigate('/queries');
     } catch (error) {
       console.error('Login failed:', error);
     }

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { uiModulesAPI } from '../api/uiModulesApi';
-import { isAppAdmin } from '../utils/subdomain';
+import { isPlatformAppAdmin } from '../utils/subdomain';
 
 const PermissionsContext = createContext();
 
@@ -26,7 +26,7 @@ export const PermissionsProvider = ({ children }) => {
 
   useEffect(() => {
     // Skip general UI modules logic for superadmin (it has its own system)
-    if (isAppAdmin()) {
+    if (isPlatformAppAdmin()) {
       setLoading(false);
       return;
     }

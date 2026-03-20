@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { clearCredentials } from "../features/auth/authSlice";
@@ -19,6 +19,9 @@ import HospitalPatinets from "./Patients/HospitalPatients";
 import RoleManagement from "./RoleManagement/RoleManagement";
 import ProcedureList from "./Procedures/ProcedureList";
 import { useAuth } from "../contexts/AuthContext";
+import useAdminNotifications from "../hooks/useAdminNotifications";
+import SuperAdminSupportTickets from "./SuperAdminSupportTickets";
+import { isTenantSuperAdminPortal } from "../utils/subdomain";
 
 export default function TenantAdminDashboard() {
   const NAVBAR_HEIGHT = 84; // height of navbar in px
@@ -33,6 +36,18 @@ export default function TenantAdminDashboard() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const tenantId = user?.tenant_id;
+
+  const isTenantSuperAdminUser =
+    user?.permissions?.includes("roles:manage") ||
+    (typeof user?.role === "string" && user.role.toLowerCase() === "superadmin");
+
+  const tenantSocketRole =
+    isTenantSuperAdminPortal() && isTenantSuperAdminUser ? "superadmin" : "";
+
+  useAdminNotifications(user?.id || null, null, {
+    tenantId: user?.tenant_id,
+    role: tenantSocketRole,
+  });
 
   useEffect(() => {
     if (!tenantId) return;
@@ -118,6 +133,28 @@ export default function TenantAdminDashboard() {
     </div>
   );
 
+  const showSupportTickets = isTenantSuperAdminPortal() && isTenantSuperAdminUser;
+
+  const mainTabs = useMemo(
+    () =>
+      [
+        { id: "overview", label: "Tenant Overview" },
+        { id: "hospitals", label: "Hospitals" },
+        { id: "procedures", label: "Master Procedures" },
+        { id: "hospitals-staffs", label: "Hospitals Staffs" },
+        { id: "roles-access", label: "Roles & Access" },
+        { id: "hospitals-patients", label: "Hospitals Patients" },
+        ...(showSupportTickets ? [{ id: "support-tickets", label: "Support Tickets" }] : []),
+      ],
+    [showSupportTickets]
+  );
+
+  useEffect(() => {
+    if (activeTab === "support-tickets" && !showSupportTickets) {
+      setActiveTab("overview");
+    }
+  }, [activeTab, showSupportTickets]);
+
   const renderTabs = () => (
     <div
       className="bg-white border-b border-gray-100 sticky z-40"
@@ -125,14 +162,7 @@ export default function TenantAdminDashboard() {
     >
       <div className="px-6">
         <div className="flex space-x-1 overflow-x-auto">
-          {[
-            { id: "overview", label: "Tenant Overview" },
-            { id: "hospitals", label: "Hospitals" },
-            { id: "procedures", label: "Master Procedures" },
-            { id: "hospitals-staffs", label: "Hospitals Staffs" },
-            { id: "roles-access", label: "Roles & Access" },
-            { id: "hospitals-patients", label: "Hospitals Patients" },
-          ].map((tab) => {
+          {mainTabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -264,6 +294,8 @@ export default function TenantAdminDashboard() {
         return <RoleManagement />;
       case "hospitals-patients":
         return <HospitalPatinets />
+      case "support-tickets":
+        return <SuperAdminSupportTickets />;
       default:
         return null;
     }

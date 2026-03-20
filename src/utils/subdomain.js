@@ -43,6 +43,28 @@ export const isAppAdmin = () => {
     return hostname.startsWith('superadmin.') || hostname.includes('.superadmin.');
 };
 
+/**
+ * Tenant-level superadmin portal host (support tickets, etc.).
+ * Not the Medalph platform admin (plans / tenant onboarding).
+ *
+ * Local: superadmin.<tenant>.localhost (platform uses superadmin.localhost).
+ * Prod: superadmin.<tenant>.<domain>.<tld> (≥4 labels); superadmin.<domain>.<tld> stays platform (3 labels).
+ */
+export const isTenantSuperAdminPortal = () => {
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return false;
+    const parts = hostname.split('.');
+
+    if (hostname.endsWith('.localhost')) {
+        return parts[0] === 'superadmin' && parts.length >= 3;
+    }
+
+    return parts[0] === 'superadmin' && parts.length >= 4;
+};
+
+/** Medalph platform admin only (excludes tenant superadmin portal on superadmin.* hosts). */
+export const isPlatformAppAdmin = () => isAppAdmin() && !isTenantSuperAdminPortal();
+
 export const isHospitalSubdomain = () => {
     const subdomain = getSubdomain();
     return subdomain !== null && subdomain !== 'admin' && subdomain !== 'superadmin' && subdomain !== 'www';

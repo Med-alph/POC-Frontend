@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { getSubdomain, isTenantAdmin, isAppAdmin, isHospitalSubdomain } from "./utils/subdomain";
+import { getSubdomain, isTenantAdmin, isPlatformAppAdmin, isTenantSuperAdminPortal, isHospitalSubdomain } from "./utils/subdomain";
 import { HospitalProvider, useHospital } from "./contexts/HospitalContext";
 import AppAdminApp from "./AppAdmin/AppAdminApp";
 
@@ -86,6 +86,7 @@ import EmailTemplateManagement from "./components/email-templates/EmailTemplateM
 import Footer from "./components/Footer";
 import TenantAdminApp from "./TenantAdmin/TenantAdminApp";
 import HospitalAdminSettings from "./Settings/HospitalAdminSettings";
+import TicketChatPage from "./components/support/TicketChatPage";
 
 function HospitalApp() {
   const location = useLocation();
@@ -166,6 +167,7 @@ function HospitalApp() {
               <Route path="/leave-management" element={<LeaveManagement />} />
               <Route path="/reminders" element={<Reminders />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/support/ticket/:ticketId" element={<TicketChatPage />} />
               <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
               <Route path="/procedures" element={<ProceduresPage />} />
               <Route path="/TenantListPage" element={<TenantListPage />} />
@@ -318,8 +320,8 @@ function HospitalApp() {
 }
 
 function App() {
-  const isTenantAdminMode = isTenantAdmin();
-  const isAppAdminMode = isAppAdmin();
+  const isTenantAdminMode = isTenantAdmin() || isTenantSuperAdminPortal();
+  const isAppAdminMode = isPlatformAppAdmin();
 
   return (
     <AppAdminAuthProvider>

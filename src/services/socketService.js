@@ -342,7 +342,9 @@ class SocketService {
    * @param {number} userId - Current user's ID
    * @param {string} token - JWT authentication token
    */
-  connectNotifications(userId, token = null) {
+  connectNotifications(userId, token = null, opts = {}) {
+    const { hospitalId, role, tenantId } = opts;
+
     if (this.notificationsSocket?.connected) {
       console.log('Notifications socket already connected');
       return this.notificationsSocket;
@@ -359,14 +361,19 @@ class SocketService {
 
     // Create a separate socket connection for notifications namespace if it doesn't exist
     if (!this.notificationsSocket) {
+      const query = {
+        userId,
+        ...(hospitalId != null && hospitalId !== '' ? { hospitalId } : {}),
+        ...(role != null && role !== '' ? { role } : {}),
+        ...(tenantId != null && tenantId !== '' ? { tenantId: String(tenantId) } : {}),
+      };
+
       this.notificationsSocket = io(`${connectionUrl}${namespace}`, {
         auth: {
           token: authToken,
           userId: userId
         },
-        query: {
-          userId: userId
-        },
+        query,
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: this.reconnectDelay,
