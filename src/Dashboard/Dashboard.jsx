@@ -579,7 +579,7 @@ export default function Dashboard() {
               )}
             </div>
           </div>
- 
+
           {/* Card 3 - Cancellations Today */}
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
             <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
@@ -629,6 +629,45 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Card 4 - Patient Satisfaction */}
+          {/* <div 
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-all shadow-sm hover:shadow-md group"
+            onClick={() => navigate("/hospital/feedback")}
+          >
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform" />
+                  Patient Satisfaction
+                </h2>
+                <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-100">Live</Badge>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <p className="text-4xl font-semibold text-gray-900 dark:text-white mb-1">
+                  {feedbackStats.happinessScore || 0}%
+                </p>
+                <span className="text-xs text-blue-600 font-bold">
+                  {feedbackStats.responseRate || 0}% response rate
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Happiness Score</p>
+            </div>
+            <div className="p-4 bg-gray-50/50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-gray-500">Positive Experience</span>
+                    <span className="font-bold text-green-600">{feedbackStats.positive || 0}</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-4">
+                    <div 
+                      className="bg-green-500 h-1.5 rounded-full" 
+                      style={{ width: `${feedbackStats.happinessScore || 0}%` }}
+                    ></div>
+                </div>
+                <button className="text-[10px] text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                    View full report <ArrowRight className="h-2 w-2" />
+                </button>
+            </div>
+          </div> */}
         </div>
 
         {/* Charts section */}

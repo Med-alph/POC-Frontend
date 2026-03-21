@@ -168,9 +168,7 @@ export default function Appointments() {
       });
       setStats(newStats);
 
-      // Auto-expand doctors who have appointments
-      const doctorIds = new Set(data.map(a => a.staff_id || 'unassigned'))
-      setExpandedDoctors(doctorIds)
+      // Auto-expand logic removed to keep it closed by default
     } catch {
       toast.error("Failed to load appointments.");
     } finally {

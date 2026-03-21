@@ -106,16 +106,19 @@ const CopilotPanel = ({ isOpen, onClose, patientId, patients = [], onPatientSele
                 </button>
 
                 {/* Search Results Dropdown */}
-                {panelSearchTerm && (
+                {(panelSearchTerm || (!panelSearchTerm && patients.some(p => p.isSuggested))) && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-[60] animate-in slide-in-from-top-2 duration-200">
-                    {patients.filter(p =>
-                      p.patient_name?.toLowerCase().includes(panelSearchTerm.toLowerCase()) ||
-                      p.patient_code?.toLowerCase().includes(panelSearchTerm.toLowerCase())
-                    ).length > 0 ? (
-                      patients.filter(p =>
-                        p.patient_name?.toLowerCase().includes(panelSearchTerm.toLowerCase()) ||
-                        p.patient_code?.toLowerCase().includes(panelSearchTerm.toLowerCase())
-                      ).map(p => (
+                    {!panelSearchTerm && (
+                       <div className="py-2 px-4 text-xs font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20 border-b border-gray-100 dark:border-gray-700">
+                         Suggested Patients
+                       </div>
+                    )}
+                    {panelSearchTerm && patients.filter(p => p.patient_name?.toLowerCase().includes(panelSearchTerm.toLowerCase()) || p.patient_code?.toLowerCase().includes(panelSearchTerm.toLowerCase())).length === 0 ? (
+                      <div className="px-4 py-6 text-center text-gray-500 text-sm italic">
+                        No matches found
+                      </div>
+                    ) : (
+                      (panelSearchTerm ? patients.filter(p => p.patient_name?.toLowerCase().includes(panelSearchTerm.toLowerCase()) || p.patient_code?.toLowerCase().includes(panelSearchTerm.toLowerCase())) : patients.filter(p => p.isSuggested)).map(p => (
                         <button
                           key={p.id}
                           onClick={() => {
@@ -125,14 +128,12 @@ const CopilotPanel = ({ isOpen, onClose, patientId, patients = [], onPatientSele
                           }}
                           className={`w-full text-left px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors ${patientId === p.id ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}
                         >
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">{p.patient_name}</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">
+                            {p.patient_name} {p.isSuggested && !panelSearchTerm && <span className="ml-2 text-[10px] bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full font-medium">Recommended</span>}
+                          </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{p.patient_code || 'ID: ' + p.id.slice(0, 8)}</p>
                         </button>
                       ))
-                    ) : (
-                      <div className="px-4 py-6 text-center text-gray-500 text-sm italic">
-                        No matches found
-                      </div>
                     )}
                   </div>
                 )}
@@ -313,6 +314,8 @@ const CopilotPanel = ({ isOpen, onClose, patientId, patients = [], onPatientSele
     </>
   );
 };
+
+
 
 export default CopilotPanel;
 

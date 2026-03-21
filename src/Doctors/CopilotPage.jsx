@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, User, Loader2, Sparkles, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { patientsAPI } from '@/api/patientsapi';
+import { appointmentsAPI } from '@/api/appointmentsapi';
 import CopilotPanel from '@/components/CopilotPanel';
 import toast from 'react-hot-toast';
 
@@ -27,11 +28,46 @@ const CopilotPage = () => {
   const fetchAllPatients = async () => {
     try {
       setLoadingPatients(true);
-      const response = await patientsAPI.getAll({
-        limit: 1000,
-        offset: 0
-      });
-      setAllPatients(response.data || []);
+      const [patientsRes, todayRes, upcomingRes] = await Promise.all([
+        patientsAPI.getAll({ limit: 1000, offset: 0 }),
+        appointmentsAPI.getTodaysAppointments().catch(e => { console.error('today e:', e); return { data: [] } }),
+        appointmentsAPI.getUpcomingAppointments().catch(e => { console.error('upcoming e:', e); return { data: [] } })
+      ]);
+      
+      const pData = patientsRes.data || [];
+      
+      const extractList = (res) => {
+        if (!res) return [];
+        if (Array.isArray(res)) return res;
+        if (Array.isArray(res.data)) return res.data;
+        if (Array.isArray(res.appointments)) return res.appointments;
+        // fallback if it's an object with numeric keys or something
+        return [];
+      };
+
+      const todayList = extractList(todayRes);
+      const upcomingList = extractList(upcomingRes);
+      
+      console.log('=== Copilot Debug ===');
+      console.log('Today Res:', todayRes);
+      console.log('Upcoming Res:', upcomingRes);
+      console.log('Today List length:', todayList.length);
+      console.log('Upcoming List length:', upcomingList.length);
+      
+      let allAppts = [...todayList, ...upcomingList];
+      
+      // Some endpoints return the appointment ID as id, patientId as patient_id or patient.id
+      const apptPatientIds = new Set(allAppts.map(a => a.patient_id || (a.patient && a.patient.id)).filter(Boolean));
+      
+      console.log('Extracted patient IDs from appointments:', Array.from(apptPatientIds));
+      
+      const suggested = pData.filter(p => apptPatientIds.has(p.id)).map(p => ({...p, isSuggested: true}));
+      const others = pData.filter(p => !apptPatientIds.has(p.id));
+      
+      console.log('Total suggested patients matched:', suggested.length);
+      console.log('=====================');
+      
+      setAllPatients([...suggested, ...others]);
     } catch (error) {
       console.error('Failed to load patients:', error);
       toast.error('Failed to load patients list');
@@ -103,16 +139,21 @@ const CopilotPage = () => {
                     )}
                   </div>
 
-                  {/* Search Results as Cards */}
-                  {searchTerm && (
+                  {/* Show search results or suggested patients */}
+                  {(searchTerm || (!searchTerm && allPatients.some(p => p.isSuggested))) && (
                     <div className="mt-3 max-h-96 overflow-y-auto space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-900/50">
-                      {filteredPatients.length === 0 ? (
+                      {!searchTerm && (
+                         <div className="py-2 px-3 text-sm font-semibold text-indigo-700 dark:text-indigo-400 border-b border-gray-200 dark:border-gray-700 mb-2">
+                           Suggested Patients (Upcoming/Today's Appointments)
+                         </div>
+                      )}
+                      {searchTerm && filteredPatients.length === 0 ? (
                         <div className="text-center py-8">
                           <User className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-2" />
                           <p className="text-sm text-gray-500 dark:text-gray-400">No patients found matching "{searchTerm}"</p>
                         </div>
                       ) : (
-                        filteredPatients.map(p => (
+                        (searchTerm ? filteredPatients : allPatients.filter(p => p.isSuggested)).map(p => (
                           <button
                             key={p.id}
                             onClick={() => handlePatientSelect(p.id)}
@@ -128,7 +169,7 @@ const CopilotPage = () => {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-gray-900 dark:text-white truncate">
-                                  {p.patient_name}
+                                  {p.patient_name} {p.isSuggested && !searchTerm && <span className="ml-2 text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full font-medium">Recommended</span>}
                                 </p>
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-1">
                                   <span className="truncate">ID: {p.patient_code || p.id.slice(0, 8)}</span>
@@ -156,8 +197,8 @@ const CopilotPage = () => {
                     </div>
                   )}
 
-                  {/* Show instruction when no search */}
-                  {!searchTerm && !selectedPatientId && (
+                  {/* Show instruction when no search and no suggested */}
+                  {!searchTerm && !selectedPatientId && !allPatients.some(p => p.isSuggested) && (
                     <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
                       <Search className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                       Start typing to search for a patient

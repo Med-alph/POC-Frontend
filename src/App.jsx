@@ -17,6 +17,7 @@ import ChangePassword from "./Login/ChangePassword";
 
 import TenantListPage from "./Owner/TenantList/TenantList";
 import Navbar from "./Dashboard/Navbar";
+import Sidebar from "./components/Sidebar";
 import StaffListPage from "./Staff/StaffList";
 import DoctorDashboard from "./Dashboard/DoctorDashboard";
 import DoctorPatientRecord from "./Patients/PatientRecords/DoctorPatientRecord";
@@ -92,6 +93,8 @@ import FeedbackAnalytics from "./Admin/FeedbackAnalytics";
 
 function HospitalApp() {
   const location = useLocation();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
 
   // Routes that should NOT show the navbar (auth-related)
   const authRoutes = [
@@ -119,22 +122,19 @@ function HospitalApp() {
   const shouldShowNavbar =
     !authRoutes.includes(location.pathname) &&
     !adminRoutes.includes(location.pathname) &&
-    // !location.pathname.startsWith('/app-admin') && // Removed as handled by subdomain
     !patientRoutes.includes(location.pathname) &&
     !shouldHideMainNavbar.includes(location.pathname) &&
-    !complianceRoutes.includes(location.pathname); // Hide navbar on compliance pages
+    !complianceRoutes.includes(location.pathname);
 
-  const shouldShowFooter = shouldShowNavbar; // Show footer wherever navbar is shown
+  const shouldShowFooter = shouldShowNavbar;
+  const shouldShowSidebar = shouldShowNavbar;
 
-  // Check if current route should be wrapped by TermsGuard
-  // Exclude patient routes since they use cookie-based auth without Redux user state
   const shouldUseTermsGuard =
     !authRoutes.includes(location.pathname) &&
     !complianceRoutes.includes(location.pathname) &&
     !patientRoutes.includes(location.pathname);
 
   const { hospitalInfo, loading } = useHospital();
-  const subdomain = getSubdomain();
 
   if (loading && isHospitalSubdomain()) {
     return (
@@ -144,7 +144,6 @@ function HospitalApp() {
     );
   }
 
-  // If a hospital subdomain is used but not found in the database
   if (!loading && isHospitalSubdomain() && !hospitalInfo) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
@@ -155,131 +154,176 @@ function HospitalApp() {
   }
 
   return (
-    <div className="min-h-svh flex flex-col">
-      {shouldShowNavbar && <Navbar />}
-      <div className="flex-1">
-        {shouldUseTermsGuard ? (
-          <TermsGuard>
+    <div className="min-h-svh flex bg-gray-50 dark:bg-gray-950 overflow-hidden">
+      {shouldShowSidebar && (
+        <Sidebar 
+          isOpen={isMobileSidebarOpen} 
+          onClose={() => setIsMobileSidebarOpen(false)} 
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        />
+      )}
+      
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {shouldShowNavbar && (
+          <Navbar onMenuClick={() => {
+            if (window.innerWidth < 1024) {
+              setIsMobileSidebarOpen(true);
+            } else {
+              setIsSidebarCollapsed(!isSidebarCollapsed);
+            }
+          }} />
+        )}
+        
+        <main className="flex-1">
+          {shouldUseTermsGuard ? (
+            <TermsGuard>
+              <Routes>
+                {/* App Routes - Protected by TermsGuard */}
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/patients" element={<Patients />} />
+                <Route path="/doctors" element={<Doctors />} />
+                <Route path="/appointments" element={<Appointments />} />
+                <Route path="/leave-management" element={<LeaveManagement />} />
+                <Route path="/reminders" element={<Reminders />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/support/ticket/:ticketId" element={<TicketChatPage />} />
+                <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
+                <Route path="/procedures" element={<ProceduresPage />} />
+                <Route path="/TenantListPage" element={<TenantListPage />} />
+                <Route path="/Staffs" element={<StaffListPage />} />
+                <Route
+                  path="/hospital/consent"
+                  element={
+                    <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                      <HospitalConsentManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hospital/email-notifications"
+                  element={
+                    <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                      <EmailTemplateManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hospital/settings"
+                  element={
+                    <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                      <HospitalAdminSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hospital/feedback"
+                  element={
+                    <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                      <FeedbackAnalytics />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Inventory Management Routes */}
+                <Route path="/inventory" element={<InventoryLayout />}>
+                  <Route index element={<InventoryDashboard />} />
+                  <Route path="dashboard" element={<InventoryDashboard />} />
+                  <Route path="items" element={<ItemsPage />} />
+                  <Route path="categories" element={<CategoriesPage />} />
+                  <Route path="transactions" element={<TransactionsPage />} />
+                </Route>
+
+                {/* Doctor view routes */}
+                <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+                <Route path="/doctor-attendance" element={<DoctorAttendance />} />
+                <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
+                <Route path="/fulfilled-records" element={<FulfilledRecords />} />
+                <Route path="/patient-gallery" element={<DynamicPatientGallery />} />
+                <Route path="/patient-images/:patientId" element={<PatientImagesPage />} />
+                <Route path="/copilot" element={<CopilotPage />} />
+
+                <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
+
+                {/* Admin routes */}
+
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/roles"
+                  element={
+                    <ProtectedRoute requireSuperAdmin={true}>
+                      <RolesManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/permissions"
+                  element={
+                    <ProtectedRoute requireSuperAdmin={true}>
+                      <PermissionsManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/staffs"
+                  element={
+                    <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
+                      <StaffRoleAssignment />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/admin/attendance" element={<AdminAttendanceManagement />} />
+                <Route
+                  path="/admin/invoice-reports"
+                  element={
+                    <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                      <InvoiceReports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/master-procedures"
+                  element={
+                    <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                      <MasterProcedures />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Appointment Flow Routes */}
+                <Route path="/landing" element={<LandingPage />} />
+                <Route path="/patient-details" element={<PatientDetails />} />
+                <Route path="/otp-verification" element={<OTPVerification />} />
+                <Route path="/appointment" element={<AppointmentPage />} />
+                <Route path="/confirmation" element={<ConfirmationPage />} />
+                <Route path="/patient-details-form" element={<PatientDetailsForm />} />
+                <Route path="/patient-dashboard" element={<PatientDashboard />} />
+                <Route path="/auth-callback" element={<AuthCallback />} />
+
+                {/* Billing */}
+                <Route path="/billing/:appoinmentid" element={<BillingPage />} />
+                <Route path="/cashier" element={<CashierDashboard />} />
+
+                {/* Redirect to dashboard for any unknown route within hospital context */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </TermsGuard>
+          ) : (
             <Routes>
-              {/* App Routes - Protected by TermsGuard */}
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/patients" element={<Patients />} />
-              <Route path="/doctors" element={<Doctors />} />
-              <Route path="/appointments" element={<Appointments />} />
-              <Route path="/leave-management" element={<LeaveManagement />} />
-              <Route path="/reminders" element={<Reminders />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/support/ticket/:ticketId" element={<TicketChatPage />} />
-              <Route path="/CancellationRequests" element={<DoctorCancellationRequests />} />
-              <Route path="/procedures" element={<ProceduresPage />} />
-              <Route path="/TenantListPage" element={<TenantListPage />} />
-              <Route path="/Staffs" element={<StaffListPage />} />
-              <Route
-                path="/hospital/consent"
-                element={
-                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
-                    <HospitalConsentManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/hospital/email-notifications"
-                element={
-                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
-                    <EmailTemplateManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/hospital/settings"
-                element={
-                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
-                    <HospitalAdminSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/hospital/feedback"
-                element={
-                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
-                    <FeedbackAnalytics />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Auth Routes - No TermsGuard */}
+              <Route path="/" element={<Login />} />
+              <Route path="/forgotpassword" element={<ForgotPassword />} />
+              <Route path="/change-password" element={<ChangePassword />} />
+              <Route path="/reset-password" element={<ForgotPassword />} />
 
-              {/* Inventory Management Routes */}
-              <Route path="/inventory" element={<InventoryLayout />}>
-                <Route index element={<InventoryDashboard />} />
-                <Route path="dashboard" element={<InventoryDashboard />} />
-                <Route path="items" element={<ItemsPage />} />
-                <Route path="categories" element={<CategoriesPage />} />
-                <Route path="transactions" element={<TransactionsPage />} />
-              </Route>
-
-              {/* Doctor view routes */}
-              <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-              <Route path="/doctor-attendance" element={<DoctorAttendance />} />
-              <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
-              <Route path="/fulfilled-records" element={<FulfilledRecords />} />
-              <Route path="/patient-gallery" element={<DynamicPatientGallery />} />
-              <Route path="/patient-images/:patientId" element={<PatientImagesPage />} />
-              <Route path="/copilot" element={<CopilotPage />} />
-
-              <Route path="/consultation/:appointmentId" element={<DoctorConsultation />} />
-
-              {/* Admin routes */}
-
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/roles"
-                element={
-                  <ProtectedRoute requireSuperAdmin={true}>
-                    <RolesManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/permissions"
-                element={
-                  <ProtectedRoute requireSuperAdmin={true}>
-                    <PermissionsManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/staffs"
-                element={
-                  <ProtectedRoute requiredPermissions={['staff:assign_roles']}>
-                    <StaffRoleAssignment />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/admin/attendance" element={<AdminAttendanceManagement />} />
-              <Route
-                path="/admin/invoice-reports"
-                element={
-                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
-                    <InvoiceReports />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/master-procedures"
-                element={
-                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
-                    <MasterProcedures />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Appointment Flow Routes */}
+              {/* Patient Routes - No TermsGuard (cookie-based auth) */}
               <Route path="/landing" element={<LandingPage />} />
               <Route path="/patient-details" element={<PatientDetails />} />
               <Route path="/otp-verification" element={<OTPVerification />} />
@@ -289,42 +333,17 @@ function HospitalApp() {
               <Route path="/patient-dashboard" element={<PatientDashboard />} />
               <Route path="/auth-callback" element={<AuthCallback />} />
 
-              {/* Billing */}
-              <Route path="/billing/:appoinmentid" element={<BillingPage />} />
-              <Route path="/cashier" element={<CashierDashboard />} />
+              {/* Compliance Routes - No TermsGuard, No Navbar */}
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
-              {/* Redirect to dashboard for any unknown route within hospital context */}
+              {/* Redirect to root if route doesn't match */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </TermsGuard>
-        ) : (
-          <Routes>
-            {/* Auth Routes - No TermsGuard */}
-            <Route path="/" element={<Login />} />
-            <Route path="/forgotpassword" element={<ForgotPassword />} />
-            <Route path="/change-password" element={<ChangePassword />} />
-            <Route path="/reset-password" element={<ForgotPassword />} />
-
-            {/* Patient Routes - No TermsGuard (cookie-based auth) */}
-            <Route path="/landing" element={<LandingPage />} />
-            <Route path="/patient-details" element={<PatientDetails />} />
-            <Route path="/otp-verification" element={<OTPVerification />} />
-            <Route path="/appointment" element={<AppointmentPage />} />
-            <Route path="/confirmation" element={<ConfirmationPage />} />
-            <Route path="/patient-details-form" element={<PatientDetailsForm />} />
-            <Route path="/patient-dashboard" element={<PatientDashboard />} />
-            <Route path="/auth-callback" element={<AuthCallback />} />
-
-            {/* Compliance Routes - No TermsGuard, No Navbar */}
-            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-
-            {/* Redirect to root if route doesn't match */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        )}
+          )}
+        </main>
+        {shouldShowFooter && <Footer />}
       </div>
-      {shouldShowFooter && <Footer />}
     </div>
   );
 }
