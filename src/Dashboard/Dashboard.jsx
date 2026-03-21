@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "./Navbar";
 import toast, { Toaster } from 'react-hot-toast';
-import { CalendarDays, Users, UserX, Stethoscope, TrendingUp, BarChart2, Clock, X } from "lucide-react";
+import { CalendarDays, Users, UserX, Stethoscope, TrendingUp, BarChart2, Clock, X, MessageSquare, ArrowRight } from "lucide-react";
 import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -17,8 +17,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import appointmentsAPI from "../api/appointmentsapi";
 import patientsAPI from "../api/patientsapi"; // Assume you have this API file
+import feedbackAPI from "../api/feedbackapi";
 import LiveAppointmentList from "./comps/LiveAppoinment";
 import ComplianceBanner from "@/components/compliance/ComplianceBanner";
+import { Badge } from "@/components/ui/badge";
 
 ChartJS.register(
   CategoryScale,
@@ -149,6 +151,13 @@ export default function Dashboard() {
 
   const [showAllModal, setShowAllModal] = useState(false);
   const [showCancelledModal, setShowCancelledModal] = useState(false);
+  const [feedbackStats, setFeedbackStats] = useState({
+    happinessScore: 0,
+    positive: 0,
+    totalSent: 0,
+    responseRate: 0,
+    negative: 0
+  });
 
   // Weekly Visits Chart State & Option State
   const [weeklyVisitsData, setWeeklyVisitsData] = useState({
@@ -322,7 +331,7 @@ export default function Dashboard() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [apptRes, cancelRes, patientsRes, weeklyVisitsRes] = await Promise.all([
+        const [apptRes, cancelRes, patientsRes, weeklyVisitsRes, feedbackRes] = await Promise.all([
           appointmentsAPI.getAll({
             hospital_id: hospitalId,
             fromDate: today,
@@ -343,12 +352,14 @@ export default function Dashboard() {
             limit: 10,
           }),
           appointmentsAPI.getWeeklyVisits(hospitalId),
+          feedbackAPI.getStats(hospitalId),
         ]);
 
         const appointments = Array.isArray(apptRes.data) ? apptRes.data : [];
         const cancelled = Array.isArray(cancelRes.data) ? cancelRes.data : [];
         const newPatients = Array.isArray(patientsRes.data) ? patientsRes.data : [];
         const weeklyVisits = weeklyVisitsRes;
+        const fStats = feedbackRes;
 
         // --- DEBUG LOGS ---
         console.log("WEEKLY VISITS API RAW RESULT:", weeklyVisitsRes);
@@ -358,6 +369,9 @@ export default function Dashboard() {
         setTodaysAppointments(appointments);
         setCancelledAppointments(cancelled);
         setNewPatientsToday(newPatients);
+        if (fStats) {
+          setFeedbackStats(fStats);
+        }
 
         // Chart data update
         if (
@@ -444,6 +458,8 @@ export default function Dashboard() {
     }
   }, [weeklyVisitsData]);
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -467,7 +483,7 @@ export default function Dashboard() {
 
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
-            Good Morning, Care Coordinator
+            Good Morning, {user.name || "Care Coordinator"}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Here's your clinic overview for today
@@ -563,7 +579,7 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-
+ 
           {/* Card 3 - Cancellations Today */}
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
             <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
@@ -612,6 +628,7 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
         </div>
 
         {/* Charts section */}

@@ -87,6 +87,8 @@ import Footer from "./components/Footer";
 import TenantAdminApp from "./TenantAdmin/TenantAdminApp";
 import HospitalAdminSettings from "./Settings/HospitalAdminSettings";
 import TicketChatPage from "./components/support/TicketChatPage";
+import FeedbackAnalytics from "./Admin/FeedbackAnalytics";
+
 
 function HospitalApp() {
   const location = useLocation();
@@ -193,6 +195,14 @@ function HospitalApp() {
                 element={
                   <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
                     <HospitalAdminSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hospital/feedback"
+                element={
+                  <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                    <FeedbackAnalytics />
                   </ProtectedRoute>
                 }
               />

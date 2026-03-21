@@ -36,6 +36,7 @@ const navigationItems = [
   { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote },
   { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true },
   { id: "master-procedures", label: "Master Procedures", path: "/admin/master-procedures", icon: Clipboard, isAdminOnly: true, requiredModule: UI_MODULES.PROCEDURES },
+  { id: "feedback", label: "Patient Feedback", path: "/hospital/feedback", icon: MessageSquare, isAdminOnly: true },
 ];
 
 const doctorNavItems = [

@@ -235,11 +235,6 @@ const DoctorConsultation = () => {
     const handleEndConsultation = async () => {
         const validPrescriptions = prescriptions.filter(p => p.medicine_name.trim() !== "");
 
-        if (!soapNotes.subjective && !soapNotes.objective && !soapNotes.assessment && !soapNotes.plan) {
-            toast.error("Please fill in at least one SOAP note section");
-            return;
-        }
-
         // Enforce AI Safety Check for prescriptions
         if (validPrescriptions.length > 0 && !safetyReport) {
             toast.error("AI Safety Scan Required: Please scan your prescriptions for allergies and conflicts before finalizing.");
