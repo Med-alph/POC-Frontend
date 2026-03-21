@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import appointmentsAPI from "../api/appointmentsapi";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { CheckCircle2, CalendarDays, Clock, User, FileText, ArrowRight } from "lucide-react";
+import { CheckCircle2, CalendarDays, Clock, User, FileText, ArrowRight, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -126,6 +126,19 @@ export default function FulfilledRecords() {
                             <Clock className="h-3.5 w-3.5" />
                             <span>{formatTime(apt.appointment_time)}</span>
                           </div>
+                          {apt.feedback && (
+                            <div className="flex items-center gap-1.5 ml-2 border-l border-gray-200 dark:border-gray-700 pl-3">
+                              {apt.feedback.rating === 'positive' ? (
+                                <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+                                  <ThumbsUp className="h-3 w-3" /> Excellent
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
+                                  <ThumbsDown className="h-3 w-3" /> Needs Attention
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

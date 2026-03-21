@@ -130,6 +130,13 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
         whatsapp_number: "",
         bot_active: false,
         welcome_message: "",
+        // Feedback System
+        feedback_enabled: false,
+        feedback_delay_minutes: 120,
+        feedback_template: "Hi {{patient_name}}, how was your appointment with {{doctor_name}}?",
+        positive_btn_text: "Excellent",
+        negative_btn_text: "Needs Work",
+        negative_followup_msg: "We're sorry to hear that. What could we have done better?",
     });
     const [timings, setTimings] = useState(createDefaultTimings());
 
@@ -205,6 +212,7 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                 avg_appointment_time: parseInt(settings.avg_appointment_time, 10),
                 buffer_time: parseInt(settings.buffer_time, 10),
                 cancellation_policy_days: parseInt(settings.cancellation_policy_days, 10),
+                feedback_delay_minutes: parseInt(settings.feedback_delay_minutes || 0, 10),
             };
 
             // Remove the file object from the JSON payload (it goes to a different endpoint)
@@ -578,6 +586,93 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                                     placeholder="Welcome to [Hospital Name]! How can we assist you today?"
                                     className="bg-white"
                                 />
+                            </div>
+
+                            <div className="pt-6 border-t mt-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h4 className="text-md font-semibold text-gray-900">Automated Patient Feedback</h4>
+                                        <p className="text-xs text-gray-500">Collect feedback via WhatsApp after appointment completion.</p>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Label htmlFor="feedback_enabled" className="text-sm font-medium">Enable Feedback</Label>
+                                        <Checkbox
+                                            id="feedback_enabled"
+                                            checked={settings.feedback_enabled}
+                                            onCheckedChange={(checked) => setSettings({ ...settings, feedback_enabled: checked })}
+                                        />
+                                    </div>
+                                </div>
+
+                                {settings.feedback_enabled && (
+                                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="feedback_delay_minutes">Send Delay (Minutes)</Label>
+                                            <Input
+                                                id="feedback_delay_minutes"
+                                                name="feedback_delay_minutes"
+                                                type="number"
+                                                value={settings.feedback_delay_minutes}
+                                                onChange={handleChange}
+                                                className="bg-white max-w-[200px]"
+                                            />
+                                            <p className="text-xs text-gray-500">How many minutes to wait after appointment is fulfilled before sending the message.</p>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="feedback_template">Feedback Message Template</Label>
+                                            <Textarea
+                                                id="feedback_template"
+                                                name="feedback_template"
+                                                value={settings.feedback_template}
+                                                onChange={handleChange}
+                                                rows={3}
+                                                placeholder="Hi {{patient_name}}, how was your appointment with {{doctor_name}}?"
+                                                className="bg-white"
+                                            />
+                                            <p className="text-[10px] text-blue-600 font-medium italic">Use {"{{patient_name}}"} and {"{{doctor_name}}"} as placeholders.</p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="positive_btn_text">Positive Button Label</Label>
+                                                <Input
+                                                    id="positive_btn_text"
+                                                    name="positive_btn_text"
+                                                    value={settings.positive_btn_text}
+                                                    onChange={handleChange}
+                                                    placeholder="Excellent"
+                                                    className="bg-white"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="negative_btn_text">Negative Button Label</Label>
+                                                <Input
+                                                    id="negative_btn_text"
+                                                    name="negative_btn_text"
+                                                    value={settings.negative_btn_text}
+                                                    onChange={handleChange}
+                                                    placeholder="Needs Work"
+                                                    className="bg-white"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="negative_followup_msg">Negative Feedback Follow-up</Label>
+                                            <Textarea
+                                                id="negative_followup_msg"
+                                                name="negative_followup_msg"
+                                                value={settings.negative_followup_msg}
+                                                onChange={handleChange}
+                                                rows={2}
+                                                placeholder="We're sorry to hear that. What could we have done better?"
+                                                className="bg-white"
+                                            />
+                                            <p className="text-xs text-gray-500">Sent if the patient clicks the negative button.</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

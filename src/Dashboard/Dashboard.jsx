@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "./Navbar";
 import toast, { Toaster } from 'react-hot-toast';
-import { CalendarDays, Users, UserX, Stethoscope, TrendingUp, BarChart2, Clock, X } from "lucide-react";
+import { CalendarDays, Users, UserX, Stethoscope, TrendingUp, BarChart2, Clock, X, MessageSquare, ArrowRight } from "lucide-react";
 import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -17,8 +17,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import appointmentsAPI from "../api/appointmentsapi";
 import patientsAPI from "../api/patientsapi"; // Assume you have this API file
+import feedbackAPI from "../api/feedbackapi";
 import LiveAppointmentList from "./comps/LiveAppoinment";
 import ComplianceBanner from "@/components/compliance/ComplianceBanner";
+import { Badge } from "@/components/ui/badge";
 
 ChartJS.register(
   CategoryScale,
@@ -149,6 +151,13 @@ export default function Dashboard() {
 
   const [showAllModal, setShowAllModal] = useState(false);
   const [showCancelledModal, setShowCancelledModal] = useState(false);
+  const [feedbackStats, setFeedbackStats] = useState({
+    happinessScore: 0,
+    positive: 0,
+    totalSent: 0,
+    responseRate: 0,
+    negative: 0
+  });
 
   // Weekly Visits Chart State & Option State
   const [weeklyVisitsData, setWeeklyVisitsData] = useState({
@@ -322,7 +331,7 @@ export default function Dashboard() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [apptRes, cancelRes, patientsRes, weeklyVisitsRes] = await Promise.all([
+        const [apptRes, cancelRes, patientsRes, weeklyVisitsRes, feedbackRes] = await Promise.all([
           appointmentsAPI.getAll({
             hospital_id: hospitalId,
             fromDate: today,
@@ -343,12 +352,14 @@ export default function Dashboard() {
             limit: 10,
           }),
           appointmentsAPI.getWeeklyVisits(hospitalId),
+          feedbackAPI.getStats(hospitalId),
         ]);
 
         const appointments = Array.isArray(apptRes.data) ? apptRes.data : [];
         const cancelled = Array.isArray(cancelRes.data) ? cancelRes.data : [];
         const newPatients = Array.isArray(patientsRes.data) ? patientsRes.data : [];
         const weeklyVisits = weeklyVisitsRes;
+        const fStats = feedbackRes;
 
         // --- DEBUG LOGS ---
         console.log("WEEKLY VISITS API RAW RESULT:", weeklyVisitsRes);
@@ -358,6 +369,9 @@ export default function Dashboard() {
         setTodaysAppointments(appointments);
         setCancelledAppointments(cancelled);
         setNewPatientsToday(newPatients);
+        if (fStats) {
+          setFeedbackStats(fStats);
+        }
 
         // Chart data update
         if (
@@ -444,6 +458,8 @@ export default function Dashboard() {
     }
   }, [weeklyVisitsData]);
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -467,7 +483,7 @@ export default function Dashboard() {
 
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
-            Good Morning, Care Coordinator
+            Good Morning, {user.name || "Care Coordinator"}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Here's your clinic overview for today
@@ -612,6 +628,46 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {/* Card 4 - Patient Satisfaction */}
+          {/* <div 
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-all shadow-sm hover:shadow-md group"
+            onClick={() => navigate("/hospital/feedback")}
+          >
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform" />
+                  Patient Satisfaction
+                </h2>
+                <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-100">Live</Badge>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <p className="text-4xl font-semibold text-gray-900 dark:text-white mb-1">
+                  {feedbackStats.happinessScore || 0}%
+                </p>
+                <span className="text-xs text-blue-600 font-bold">
+                  {feedbackStats.responseRate || 0}% response rate
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Happiness Score</p>
+            </div>
+            <div className="p-4 bg-gray-50/50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-gray-500">Positive Experience</span>
+                    <span className="font-bold text-green-600">{feedbackStats.positive || 0}</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-4">
+                    <div 
+                      className="bg-green-500 h-1.5 rounded-full" 
+                      style={{ width: `${feedbackStats.happinessScore || 0}%` }}
+                    ></div>
+                </div>
+                <button className="text-[10px] text-blue-600 font-semibold hover:underline flex items-center gap-1">
+                    View full report <ArrowRight className="h-2 w-2" />
+                </button>
+            </div>
+          </div> */}
         </div>
 
         {/* Charts section */}

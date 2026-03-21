@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import copilotAPI from '@/api/copilotapi';
 import { patientsAPI } from '@/api/patientsapi';
+import { appointmentsAPI } from '@/api/appointmentsapi';
 import { detectCopilotIntent } from '@/utils/copilotIntentDetection';
 
 /**
@@ -76,13 +77,46 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
   const fetchAllPatients = async () => {
     try {
       setLoadingPatients(true);
-      const response = await patientsAPI.getAll({
-        limit: 1000,
-        offset: 0
-      });
-      setAllPatients(response.data || []);
+      const [patientsRes, todayRes, upcomingRes] = await Promise.all([
+        patientsAPI.getAll({ limit: 1000, offset: 0 }),
+        appointmentsAPI.getTodaysAppointments().catch(e => { console.error('today e:', e); return { data: [] } }),
+        appointmentsAPI.getUpcomingAppointments().catch(e => { console.error('upcoming e:', e); return { data: [] } })
+      ]);
+      
+      const pData = patientsRes.data || [];
+      
+      const extractList = (res) => {
+        if (!res) return [];
+        if (Array.isArray(res)) return res;
+        if (Array.isArray(res.data)) return res.data;
+        if (Array.isArray(res.appointments)) return res.appointments;
+        return [];
+      };
+
+      const todayList = extractList(todayRes);
+      const upcomingList = extractList(upcomingRes);
+      
+      console.log('=== Copilot Chat Debug ===');
+      console.log('Today Res:', todayRes);
+      console.log('Upcoming Res:', upcomingRes);
+      console.log('Today List length:', todayList.length);
+      console.log('Upcoming List length:', upcomingList.length);
+      
+      let allAppts = [...todayList, ...upcomingList];
+      
+      const apptPatientIds = new Set(allAppts.map(a => a.patient_id || (a.patient && a.patient.id)).filter(Boolean));
+      
+      console.log('Extracted patient IDs from appointments:', Array.from(apptPatientIds));
+      
+      const suggested = pData.filter(p => apptPatientIds.has(p.id)).map(p => ({...p, isSuggested: true}));
+      const others = pData.filter(p => !apptPatientIds.has(p.id));
+      
+      console.log('Total suggested patients matched:', suggested.length);
+      console.log('==========================');
+      
+      setAllPatients([...suggested, ...others]);
     } catch (error) {
-      console.error('Failed to load patients:', error);
+      console.error('Failed to load patients for Copilot Chat:', error);
       setAllPatients([]);
     } finally {
       setLoadingPatients(false);
@@ -667,10 +701,15 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
                       />
                     </div>
 
-                    {/* Search Results as Cards */}
-                    {patientSearchTerm && (
+                    {/* Show search results or suggested patients */}
+                    {(patientSearchTerm || (!patientSearchTerm && allPatients.some(p => p.isSuggested))) && (
                       <div className="mt-3 max-h-96 overflow-y-auto space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-900">
-                        {filteredPatients.length === 0 ? (
+                        {!patientSearchTerm && (
+                           <div className="py-2 px-3 text-xs md:text-sm font-semibold text-indigo-700 dark:text-indigo-400 border-b border-gray-200 dark:border-gray-700 mb-2">
+                             Suggested Patients (Upcoming/Today's Appointments)
+                           </div>
+                        )}
+                        {patientSearchTerm && filteredPatients.length === 0 ? (
                           <div className="text-center py-8">
                             <User className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -678,7 +717,7 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
                             </p>
                           </div>
                         ) : (
-                          filteredPatients.map((patient) => (
+                          (patientSearchTerm ? filteredPatients : allPatients.filter(p => p.isSuggested)).map((patient) => (
                             <button
                               key={patient.id}
                               onClick={() => handlePatientSelect(patient.id)}
@@ -694,7 +733,7 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">
-                                    {patient.patient_name}
+                                    {patient.patient_name} {patient.isSuggested && !patientSearchTerm && <span className="ml-2 text-[10px] bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full font-medium">Recommended</span>}
                                   </p>
                                   <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                                     <span className="truncate">ID: {patient.patient_code || patient.id.slice(0, 8)}</span>
@@ -722,8 +761,8 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
                       </div>
                     )}
 
-                    {/* Show instruction when no search */}
-                    {!patientSearchTerm && (
+                    {/* Show instruction when no search and no recommended */}
+                    {!patientSearchTerm && !allPatients.some(p => p.isSuggested) && (
                       <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
                         <Search className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                         Start typing to search for a patient
@@ -866,4 +905,6 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
 };
 
 export default CopilotChat;
+
+
 
