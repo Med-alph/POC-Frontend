@@ -5,29 +5,47 @@ import TenantAdminDashboard from './TenantAdminDashboard';
 import ProtectedRoute from '../components/ProtectedRoute';
 import TicketChatPage from '../components/support/TicketChatPage';
 import TenantSuperAdminSupportGate from './TenantSuperAdminSupportGate';
+import TenantAdminLayout from './TenantAdminLayout';
+import HospitalListTable from './Hospitals/HospitalListTable';
+import ProcedureList from './Procedures/ProcedureList';
+import StaffsRolesTab from './StaffRoles/StaffsRolesTab';
+import RoleManagement from './RoleManagement/RoleManagement';
+import HospitalPatinets from './Patients/HospitalPatients';
+import SuperAdminSupportTickets from './SuperAdminSupportTickets';
 
 const TenantAdminApp = () => {
   return (
     <Routes>
       <Route path="/login" element={<TenantAdminLogin />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <TenantAdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/dashboard/support-ticket/:ticketId"
-        element={
-          <ProtectedRoute>
+      
+      <Route element={<ProtectedRoute><TenantAdminLayout /></ProtectedRoute>}>
+        <Route path="/dashboard" element={<Navigate to="/tenant/overview" replace />} />
+        <Route path="/tenant/overview" element={<TenantAdminDashboard />} />
+        <Route path="/tenant/hospitals" element={<HospitalListTable />} />
+        <Route path="/tenant/procedures" element={<ProcedureList />} />
+        <Route path="/tenant/staffs" element={<StaffsRolesTab />} />
+        <Route path="/tenant/roles" element={<RoleManagement />} />
+        <Route path="/tenant/patients" element={<HospitalPatinets />} />
+        
+        <Route
+          path="/tenant/support"
+          element={
+            <TenantSuperAdminSupportGate>
+              <SuperAdminSupportTickets />
+            </TenantSuperAdminSupportGate>
+          }
+        />
+        
+        <Route
+          path="/tenant/support-ticket/:ticketId"
+          element={
             <TenantSuperAdminSupportGate>
               <TicketChatPage />
             </TenantSuperAdminSupportGate>
-          </ProtectedRoute>
-        }
-      />
+          }
+        />
+      </Route>
+
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

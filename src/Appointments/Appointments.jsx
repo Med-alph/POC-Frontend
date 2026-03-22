@@ -580,12 +580,12 @@ export default function Appointments() {
               </Select>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex flex-row items-center gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 onClick={fetchAppointments}
                 disabled={loading}
-                className="h-10 flex items-center gap-2"
+                className="h-10 flex items-center justify-center gap-2 flex-1 sm:flex-none"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -593,7 +593,7 @@ export default function Appointments() {
               <Button
                 variant="outline"
                 onClick={handleExport}
-                className="h-10 flex items-center gap-2"
+                className="h-10 flex items-center justify-center gap-2 flex-1 sm:flex-none"
               >
                 <DownloadIcon className="h-4 w-4" />
                 Export

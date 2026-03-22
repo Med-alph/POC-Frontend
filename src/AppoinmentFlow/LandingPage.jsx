@@ -152,7 +152,7 @@ const LandingPage = () => {
                 </label>
                 <div className="flex gap-2">
                   <Select value={countryCode} onValueChange={setCountryCode}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-[110px] sm:w-[140px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

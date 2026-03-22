@@ -66,7 +66,8 @@ const LiveAppointmentList = ({ appointments = [] }) => {
     };
 
     return (
-        <div className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+        <div className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-x-auto">
+          <div className="min-w-[700px]">
             {/* Header */}
             <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex items-center text-xs font-semibold text-gray-900 dark:text-white">
                 <div className="w-[18%] flex items-center gap-1.5">
@@ -136,6 +137,7 @@ const LiveAppointmentList = ({ appointments = [] }) => {
                     </div>
                 )}
             </div>
+          </div>
         </div>
     );
 };

@@ -478,7 +478,7 @@ export default function Doctors() {
                                 <span>Showing {doctors.length} of {totalCount} doctors</span>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <Button
                                     variant="outline"
                                     onClick={() => setFilterDialogOpen(true)}

@@ -192,7 +192,7 @@ export default function LeaveManagement() {
                             <div className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {pendingLeaves.map((leave) => (
                                     <div key={leave.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                        <div className="flex items-start justify-between gap-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                             {/* Left: Staff Info */}
                                             <div className="flex-1 space-y-3">
                                                 <div className="flex items-center gap-3">
@@ -263,7 +263,7 @@ export default function LeaveManagement() {
                                             </div>
 
                                             {/* Right: Action Buttons */}
-                                            <div className="flex flex-col gap-2 min-w-[120px]">
+                                            <div className="flex flex-row sm:flex-col gap-2 min-w-full sm:min-w-[120px] mt-4 sm:mt-0">
                                                 {rejectingId === leave.id ? (
                                                     <>
                                                         <Button
@@ -355,7 +355,7 @@ export default function LeaveManagement() {
                             <div className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {leaveHistory.map((leave) => (
                                     <div key={leave.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                        <div className="flex items-start justify-between gap-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                             {/* Left: Staff Info */}
                                             <div className="flex-1 space-y-3">
                                                 <div className="flex items-center gap-3">
@@ -436,7 +436,7 @@ export default function LeaveManagement() {
                                             </div>
 
                                             {/* Right: Status Badge */}
-                                            <div className="flex flex-col items-end gap-2">
+                                            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start w-full sm:w-auto gap-2 mt-2 sm:mt-0">
                                                 {leave.status === 'approved' ? (
                                                     <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md border border-green-200 dark:border-green-800">
                                                         <CheckCircle className="h-4 w-4" />

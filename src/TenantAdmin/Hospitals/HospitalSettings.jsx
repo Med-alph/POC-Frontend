@@ -279,7 +279,7 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
             </div>
 
             <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 lg:w-[750px] mb-8 bg-gray-100 p-1 rounded-xl">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 lg:w-[750px] h-auto mb-8 bg-gray-100 p-1 rounded-xl gap-1 lg:gap-0">
                     <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                         <Globe className="h-4 w-4 mr-2" /> General
                     </TabsTrigger>

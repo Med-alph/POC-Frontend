@@ -237,11 +237,11 @@ export default function CategoriesPage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
               <div className="flex items-center gap-2 text-gray-600 text-sm">
                 <span>{filteredCategories.length} of {categories.length} categories</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* View Mode Toggle */}
                 <div className="flex items-center border rounded-lg p-1">
                   <Button

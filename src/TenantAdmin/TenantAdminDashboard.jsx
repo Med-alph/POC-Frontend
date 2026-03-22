@@ -1,311 +1,153 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
-import { clearCredentials } from "../features/auth/authSlice";
-
-import { Bell, ChevronDown, Search, LogOut, Stethoscope, Settings, Loader } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import tenantsuperadminapi from "../api/tenantsuperadminapi"
-import HospitalListTable from "./Hospitals/HospitalListTable";
-import StaffsRolesTab from "./StaffRoles/StaffsRolesTab";
-import HospitalPatinets from "./Patients/HospitalPatients";
-import RoleManagement from "./RoleManagement/RoleManagement";
-import ProcedureList from "./Procedures/ProcedureList";
-import { useAuth } from "../contexts/AuthContext";
-import useAdminNotifications from "../hooks/useAdminNotifications";
-import SuperAdminSupportTickets from "./SuperAdminSupportTickets";
-import { isTenantSuperAdminPortal } from "../utils/subdomain";
+import React from "react";
+import { useOutletContext } from "react-router-dom";
+import { Loader2, Globe, Mail, Phone, Clock, Calendar, Shield, CreditCard, MapPin } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function TenantAdminDashboard() {
-  const NAVBAR_HEIGHT = 84; // height of navbar in px
-  const { logout } = useAuth();
+  const { tenantInfo } = useOutletContext();
 
-  const [activeTab, setActiveTab] = useState("overview");
-  const [tenantInfo, setTenantInfo] = useState(null);
-  const [loadingTenant, setLoadingTenant] = useState(false);
-  const [tenantError, setTenantError] = useState(null);
-
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const user = useSelector((state) => state.auth.user);
-  const tenantId = user?.tenant_id;
-
-  const isTenantSuperAdminUser =
-    user?.permissions?.includes("roles:manage") ||
-    (typeof user?.role === "string" && user.role.toLowerCase() === "superadmin");
-
-  const tenantSocketRole =
-    isTenantSuperAdminPortal() && isTenantSuperAdminUser ? "superadmin" : "";
-
-  useAdminNotifications(user?.id || null, null, {
-    tenantId: user?.tenant_id,
-    role: tenantSocketRole,
-  });
-
-  useEffect(() => {
-    if (!tenantId) return;
-
-    const fetchTenantInfo = async () => {
-      setLoadingTenant(true);
-      setTenantError(null);
-      try {
-        const data = await tenantsuperadminapi.getTenantInfo(tenantId);
-        setTenantInfo(data);
-      } catch (error) {
-        setTenantError(error.message || "Failed to fetch tenant info");
-        setTenantInfo(null);
-      } finally {
-        setLoadingTenant(false);
-      }
-    };
-
-    fetchTenantInfo();
-  }, [tenantId]);
-
-  const handleLogout = async () => {
-    await logout(true);
-  };
-
-  const Navbar = () => (
-    <div
-      className="w-full bg-white shadow-lg border-b border-gray-100 fixed top-0 left-0 z-50"
-      style={{ height: NAVBAR_HEIGHT }}
-    >
-      <nav className="w-full flex items-center justify-between px-6 bg-gradient-to-r from-blue-600 to-blue-700 h-full">
-        {/* Logo and Brand */}
-        <div
-          onClick={() => navigate("/dashboard")}
-          className="flex items-center space-x-3 cursor-pointer select-none"
-        >
-          <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-lg hover:bg-white/30 transition duration-200">
-            <Stethoscope className="h-6 w-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-bold text-white">MedAssist</span>
-            <span className="text-xs text-blue-100 font-medium">Healthcare Management</span>
-          </div>
-        </div>
-
-        {/* Right side */}
-        <div className="flex items-center space-x-4">
-          {/* Profile Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-white/10 transition duration-200 group select-none">
-                <div className="h-10 w-10 shrink-0 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-sm border-2 border-white/30 group-hover:border-white/50 transition duration-200">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
-                </div>
-                <div className="hidden lg:block text-left max-w-[150px]">
-                  <div className="text-sm font-semibold text-white truncate">{user?.name || "User"}</div>
-                  <div className="text-xs text-blue-100 capitalize truncate">{user?.role || "Staff"}</div>
-                </div>
-                <ChevronDown className="h-4 w-4 shrink-0 text-white group-hover:rotate-180 transition duration-200" />
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[280px] mt-2">
-              <div className="px-4 py-4 border-b border-gray-100">
-                <div className="flex items-center space-x-3">
-                  <div className="h-12 w-12 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg border border-blue-200">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-gray-900 truncate">{user?.name || "User"}</div>
-                    <div className="text-xs text-gray-500 truncate mt-0.5">{user?.email || "user@example.com"}</div>
-                    <div className="text-[11px] text-blue-700 font-semibold uppercase tracking-wide mt-1.5">{user?.role || "Staff"}</div>
-                  </div>
-                </div>
-              </div>
-              <DropdownMenuItem onClick={handleLogout} className="px-4 py-3 text-red-600 hover:bg-red-50 cursor-pointer flex items-center m-1 rounded-md">
-                <LogOut className="h-4 w-4 mr-3" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </nav>
-    </div>
-  );
-
-  const showSupportTickets = isTenantSuperAdminPortal() && isTenantSuperAdminUser;
-
-  const mainTabs = useMemo(
-    () =>
-      [
-        { id: "overview", label: "Tenant Overview" },
-        { id: "hospitals", label: "Hospitals" },
-        { id: "procedures", label: "Master Procedures" },
-        { id: "hospitals-staffs", label: "Hospitals Staffs" },
-        { id: "roles-access", label: "Roles & Access" },
-        { id: "hospitals-patients", label: "Hospitals Patients" },
-        ...(showSupportTickets ? [{ id: "support-tickets", label: "Support Tickets" }] : []),
-      ],
-    [showSupportTickets]
-  );
-
-  useEffect(() => {
-    if (activeTab === "support-tickets" && !showSupportTickets) {
-      setActiveTab("overview");
-    }
-  }, [activeTab, showSupportTickets]);
-
-  const renderTabs = () => (
-    <div
-      className="bg-white border-b border-gray-100 sticky z-40"
-      style={{ top: NAVBAR_HEIGHT }}
-    >
-      <div className="px-6">
-        <div className="flex space-x-1 overflow-x-auto">
-          {mainTabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-4 py-3 rounded-lg font-medium text-sm transition duration-200 whitespace-nowrap ${isActive
-                  ? "bg-blue-50 text-blue-700 border-b-2 border-blue-700"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderTenantOverview = () => {
-    if (loadingTenant) {
-      return (
-        <div className="flex items-center space-x-2 text-gray-600">
-          <Loader className="animate-spin h-5 w-5" />
-          <span>Loading tenant details...</span>
-        </div>
-      );
-    }
-
-    if (tenantError) {
-      return <p className="text-red-600 font-semibold">Error: {tenantError}</p>;
-    }
-
-    if (!tenantInfo) {
-      return <p className="text-gray-600">No tenant information available.</p>;
-    }
-
+  if (!tenantInfo) {
     return (
-      <div className="mt-6 max-w-4xl p-6 bg-white rounded-lg shadow space-y-6 text-gray-800">
-        <h2 className="text-3xl font-bold border-b pb-3">{tenantInfo.name}</h2>
-
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <InfoItem label="Legal Name" value={tenantInfo.legal_name || "N/A"} />
-          <InfoItem label="Type" value={tenantInfo.type || "N/A"} />
-          <InfoItem label="Email" value={tenantInfo.email || "N/A"} />
-          <InfoItem label="Phone" value={tenantInfo.phone || "N/A"} />
-          <InfoItem
-            label="Website"
-            value={
-              tenantInfo.website ? (
-                <a href={tenantInfo.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                  {tenantInfo.website}
-                </a>
-              ) : (
-                "N/A"
-              )
-            }
-          />
-          <InfoItem label="Timezone" value={tenantInfo.timezone || "N/A"} />
-          <InfoItem
-            label="Working Hours"
-            value={
-              tenantInfo.working_hours_start && tenantInfo.working_hours_end
-                ? `${tenantInfo.working_hours_start} - ${tenantInfo.working_hours_end}`
-                : "N/A"
-            }
-          />
-          <InfoItem label="Working Days" value={tenantInfo.working_days?.join(", ") || "N/A"} />
-          <InfoItem label="Billing Contact" value={tenantInfo.billing_contact || "N/A"} />
-          <InfoItem label="License No." value={tenantInfo.license_no || "N/A"} />
-          <InfoItem label="Tax ID" value={tenantInfo.tax_id || "N/A"} />
-          <InfoItem label="Status" value={tenantInfo.status || "N/A"} />
-        </section>
-
-        <section className="mt-6 border-t pt-4">
-          <h3 className="text-xl font-semibold mb-3">Subscription Plan</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <PlanInfo label="Plan Type" value={tenantInfo.plan_type || "N/A"} />
-            <PlanInfo
-              label="Start Date"
-              value={tenantInfo.plan_start ? new Date(tenantInfo.plan_start).toLocaleDateString() : "N/A"}
-            />
-            <PlanInfo
-              label="End Date"
-              value={tenantInfo.plan_end ? new Date(tenantInfo.plan_end).toLocaleDateString() : "N/A"}
-            />
-          </div>
-        </section>
-
-        <section className="mt-6 border-t pt-4">
-          <h3 className="text-xl font-semibold mb-3">Address</h3>
-          <address className="not-italic space-y-1 text-gray-700">
-            <div>{tenantInfo.address_street || ""}</div>
-            <div>
-              {tenantInfo.address_city || ""}, {tenantInfo.address_state || ""} {tenantInfo.address_zip || ""}
-            </div>
-            <div>{tenantInfo.address_country || ""}</div>
-          </address>
-        </section>
+      <div className="flex items-center justify-center p-12">
+        <p className="text-gray-500">No tenant information available.</p>
       </div>
     );
-  };
+  }
 
-  const InfoItem = ({ label, value }) => (
-    <div className="flex flex-col">
-      <span className="text-sm font-semibold text-gray-500 mb-1">{label}</span>
-      <span className="text-base text-gray-800">{value}</span>
+  const InfoItem = ({ label, value, icon: Icon }) => (
+    <div className="flex items-center gap-3 p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm">
+      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+      </div>
+      <div className="flex flex-col min-w-0">
+        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</span>
+        <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{value || "N/A"}</span>
+      </div>
     </div>
   );
 
-  const PlanInfo = ({ label, value }) => (
-    <div className="p-4 bg-blue-50 rounded-lg shadow-sm hover:shadow-md transition duration-200">
-      <span className="block text-gray-500 text-sm mb-1">{label}</span>
-      <span className="block font-semibold text-blue-700 text-lg">{value}</span>
+  const PlanCard = ({ label, value, icon: Icon, colorClass }) => (
+    <div className={`p-4 rounded-xl border ${colorClass} shadow-sm flex flex-col gap-2 transition-all hover:shadow-md`}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-widest opacity-70">{label}</span>
+        <Icon className="h-4 w-4 opacity-70" />
+      </div>
+      <span className="text-lg font-bold truncate">{value || "N/A"}</span>
     </div>
   );
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case "overview":
-        return renderTenantOverview();
-      case "hospitals":
-        return <HospitalListTable />;
-      case "procedures":
-        return <ProcedureList />;
-      case "hospitals-staffs":
-        return <StaffsRolesTab />;
-      case "roles-access":
-        return <RoleManagement />;
-      case "hospitals-patients":
-        return <HospitalPatinets />
-      case "support-tickets":
-        return <SuperAdminSupportTickets />;
-      default:
-        return null;
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-[84px]">
-      <Navbar />
-      {renderTabs()}
-      <main className="p-6 max-w-6xl mx-auto">{renderContent()}</main>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-200 dark:shadow-blue-900/20 transform -rotate-3">
+             <Globe className="h-8 w-8" />
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{tenantInfo.name}</h1>
+            <p className="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-500" />
+              Verified Enterprise Partner
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Core Info */}
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <InfoItem label="Legal Entity" value={tenantInfo.legal_name} icon={Globe} />
+          <InfoItem label="Support Email" value={tenantInfo.email} icon={Mail} />
+          <InfoItem label="Contact Phone" value={tenantInfo.phone} icon={Phone} />
+          <InfoItem label="Timezone" value={tenantInfo.timezone} icon={Clock} />
+          <InfoItem label="License Number" value={tenantInfo.license_no} icon={Shield} />
+          <InfoItem label="Registration Status" value={tenantInfo.status} icon={Shield} />
+        </div>
+
+        {/* Subscription Sidebar */}
+        <Card className="border-0 shadow-lg dark:bg-gray-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-blue-600" />
+              Subscription Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <PlanCard 
+              label="Active Plan" 
+              value={tenantInfo.plan_type} 
+              icon={Shield}
+              colorClass="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300" 
+            />
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex justify-between items-center text-sm p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <span className="text-gray-500 dark:text-gray-400">Start Date</span>
+                <span className="font-bold">{tenantInfo.plan_start ? new Date(tenantInfo.plan_start).toLocaleDateString() : "N/A"}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <span className="text-gray-500 dark:text-gray-400">Renewal Date</span>
+                <span className="font-bold text-red-600">{tenantInfo.plan_end ? new Date(tenantInfo.plan_end).toLocaleDateString() : "N/A"}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Operations Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-0 shadow-lg dark:bg-gray-800">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-blue-600" />
+              Business Address
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 space-y-2">
+              <p className="font-bold text-gray-900 dark:text-white leading-relaxed">
+                {tenantInfo.address_street || "Street address not provided"}
+              </p>
+              <div className="text-gray-500 dark:text-gray-400 text-sm flex gap-2">
+                <span>{tenantInfo.address_city}</span>
+                <span>•</span>
+                <span>{tenantInfo.address_state} {tenantInfo.address_zip}</span>
+              </div>
+              <p className="text-xs uppercase tracking-widest font-bold text-blue-600 dark:text-blue-400 mt-2">
+                {tenantInfo.address_country}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg dark:bg-gray-800">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              Operation Schedule
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                <span className="text-sm font-bold text-blue-700 dark:text-blue-300">Working Hours</span>
+                <span className="text-lg font-black text-blue-800 dark:text-blue-200 tracking-tight leading-none">
+                   {tenantInfo.working_hours_start && tenantInfo.working_hours_end
+                    ? `${tenantInfo.working_hours_start} - ${tenantInfo.working_hours_end}`
+                    : "N/A"}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {tenantInfo.working_days?.map((day) => (
+                  <span key={day} className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-[11px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-tighter border border-gray-200 dark:border-gray-600">
+                    {day}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

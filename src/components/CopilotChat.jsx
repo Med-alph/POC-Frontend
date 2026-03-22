@@ -616,12 +616,12 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
     <>
       {/* Backdrop for mobile */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 md:hidden"
+        className="fixed inset-0 bg-black/50 z-40 sm:hidden transition-opacity"
         onClick={onClose}
       />
       
       {/* Chat Container */}
-      <div className="fixed right-0 bottom-0 md:right-4 md:bottom-4 w-full h-full md:w-96 md:h-[600px] md:max-h-[calc(100vh-2rem)] bg-white dark:bg-gray-800 border-t md:border border-gray-200 dark:border-gray-700 md:rounded-lg shadow-2xl z-50 flex flex-col">
+      <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 w-full h-[85vh] sm:w-[400px] sm:h-[600px] sm:max-h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border sm:border-gray-200 sm:dark:border-gray-700 rounded-t-3xl sm:rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
         {/* Header */}
         <div className="flex items-center justify-between p-3 md:p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 flex-shrink-0">
         <div className="flex items-center gap-2 flex-1 min-w-0">

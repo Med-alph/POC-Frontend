@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Phone,
   Image,
+  Menu,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -41,7 +42,7 @@ const PATIENT_TABS = [
   { key: "profile", label: "Profile", icon: UserCircle2 },
 ];
 
-export default function PatientNavbar({ patientName, patientRole, activeTab: activeTabProp, onTabChange, patientId }) {
+export default function PatientNavbar({ patientName, patientRole, activeTab: activeTabProp, onTabChange, patientId, onMenuClick }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { logout } = useAuth();
@@ -189,22 +190,21 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
 
   return (
     <>
-      <div className="w-full fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <nav className="w-full flex items-center justify-between px-6 lg:px-8 h-16 bg-white dark:bg-gray-900">
-          <div onClick={() => navigate("/patient-dashboard")} className="flex items-center gap-3 cursor-pointer">
-            <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {hospitalInfo?.logo ? (
-                <img src={hospitalInfo.logo} alt={hospitalInfo.name} className="h-full w-full object-contain p-1" />
-              ) : (
-                <UserCircle2 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              )}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base font-semibold text-gray-900 dark:text-white leading-tight">
-                {hospitalInfo?.name || "Patient Portal"}
-              </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {hospitalInfo?.name ? "Patient Portal" : "Manage Your Health"}
+      <div className="w-full bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+        <nav className="w-full flex items-center justify-between px-4 lg:px-8 h-16 bg-white dark:bg-gray-900">
+          <div className="flex items-center gap-3">
+            {onMenuClick && (
+              <button 
+                onClick={onMenuClick}
+                className="p-2 lg:hidden rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="Toggle Sidebar"
+              >
+                <Menu className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </button>
+            )}
+            <div onClick={() => navigate("/patient-dashboard")} className="flex items-center gap-3 cursor-pointer">
+              <span className="text-lg font-bold text-gray-900 dark:text-white">
+                Patient Portal
               </span>
             </div>
           </div>
@@ -379,33 +379,7 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
             </DropdownMenu>
           </div>
         </nav>
-
-        <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-          <div className="px-6 lg:px-8">
-            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-              {/* Patient Flow Tabs - Only show if activeTab and onTabChange are provided */}
-              {activeTabProp !== undefined && onTabChange && PATIENT_TABS.map((tab) => {
-                const IconComponent = tab.icon;
-                const isActive = activeTabProp === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => onTabChange(tab.key)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-md font-bold text-sm transition-colors whitespace-nowrap ${isActive
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
-                  >
-                    <IconComponent className={`h-4 w-4 ${isActive ? "text-white" : "text-gray-500 dark:text-gray-400"}`} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
       </div>
-      <div className="pt-[96px]" /> {/* Spacer for fixed navbar height */}
     </>
   );
 }
