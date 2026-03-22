@@ -50,13 +50,13 @@ export default function HospitalQueriesPage() {
             Support tickets raised from hospitals across all tenants.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col text-xs font-medium text-gray-600">
             Status
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="mt-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900"
+              className="mt-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All</option>
               <option value="OPEN">Open</option>
@@ -69,7 +69,7 @@ export default function HospitalQueriesPage() {
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className="mt-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900"
+              className="mt-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All</option>
               <option value="LOW">Low</option>
@@ -81,14 +81,14 @@ export default function HospitalQueriesPage() {
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="h-[38px] rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors shadow-sm"
           >
-            Refresh
+            {isFetching ? <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> : "Refresh"}
           </button>
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto custom-scrollbar">
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-gray-600">
             <Loader2 className="h-5 w-5 animate-spin" />

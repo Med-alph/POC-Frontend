@@ -348,7 +348,7 @@ export default function TransactionsPage() {
             {/* Second Row: Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Date Range */}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Input
                   type="date"
                   value={filters.start_date}

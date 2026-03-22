@@ -312,77 +312,96 @@ const ImageAnnotation = ({
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-3 p-4 border-b bg-gray-50 flex-wrap">
-          <div className="flex items-center gap-2 border-r pr-3">
-            <Button 
-              size="sm" 
-              variant={activeTool === 'circle' ? 'default' : 'outline'} 
-              onClick={() => setActiveTool('circle')}
-            >
-              <Circle className="w-4 h-4 mr-1" /> Circle
-            </Button>
-            <Button 
-              size="sm" 
-              variant={activeTool === 'rectangle' ? 'default' : 'outline'} 
-              onClick={() => setActiveTool('rectangle')}
-            >
-              <Square className="w-4 h-4 mr-1" /> Box
-            </Button>
-            <Button 
-              size="sm" 
-              variant={activeTool === 'line' ? 'default' : 'outline'} 
-              onClick={() => setActiveTool('line')}
-            >
-              <Minus className="w-4 h-4 mr-1" /> Line
-            </Button>
-            <Button 
-              size="sm" 
-              variant={activeTool === 'pen' ? 'default' : 'outline'} 
-              onClick={() => setActiveTool('pen')}
-            >
-              <Pencil className="w-4 h-4 mr-1" /> Pen
-            </Button>
-            <Button 
-              size="sm" 
-              variant={activeTool === 'text' ? 'default' : 'outline'} 
-              onClick={() => setActiveTool('text')}
-            >
-              <Type className="w-4 h-4 mr-1" /> Text
-            </Button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 border-b bg-gray-50">
+          {/* Tools & Actions (Scrollable horizontally on mobile) */}
+          <div className="flex items-center gap-2 flex-nowrap overflow-x-auto pb-1 sm:pb-0 sm:overflow-visible flex-1 scrollbar-thin">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <Button 
+                size="sm" 
+                variant={activeTool === 'circle' ? 'default' : 'outline'} 
+                onClick={() => setActiveTool('circle')}
+                className="px-2 sm:px-3"
+              >
+                <Circle className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Circle</span>
+              </Button>
+              <Button 
+                size="sm" 
+                variant={activeTool === 'rectangle' ? 'default' : 'outline'} 
+                onClick={() => setActiveTool('rectangle')}
+                className="px-2 sm:px-3"
+              >
+                <Square className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Box</span>
+              </Button>
+              <Button 
+                size="sm" 
+                variant={activeTool === 'line' ? 'default' : 'outline'} 
+                onClick={() => setActiveTool('line')}
+                className="px-2 sm:px-3"
+              >
+                <Minus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Line</span>
+              </Button>
+              <Button 
+                size="sm" 
+                variant={activeTool === 'pen' ? 'default' : 'outline'} 
+                onClick={() => setActiveTool('pen')}
+                className="px-2 sm:px-3"
+              >
+                <Pencil className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Pen</span>
+              </Button>
+              <Button 
+                size="sm" 
+                variant={activeTool === 'text' ? 'default' : 'outline'} 
+                onClick={() => setActiveTool('text')}
+                className="px-2 sm:px-3"
+              >
+                <Type className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Text</span>
+              </Button>
+            </div>
+
+            <div className="w-px h-6 bg-gray-300 mx-1 flex-shrink-0" />
+
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <Button size="sm" variant="outline" onClick={handleUndo} disabled={annotations.length === 0} title="Undo" className="px-2 sm:px-3">
+                <Undo className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleClear} disabled={annotations.length === 0} title="Clear All" className="px-2 sm:px-3">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 border-r pr-3">
-            <span className="text-xs font-medium text-gray-600">Color:</span>
-            {colors.map(c => (
-              <button
-                key={c.value}
-                onClick={() => setColor(c.value)}
-                className={`w-8 h-8 rounded-full border-2 transition-all ${
-                  color === c.value ? 'border-gray-800 scale-110 shadow-lg' : 'border-gray-300'
-                }`}
-                style={{ backgroundColor: c.value }}
-                title={c.name}
-              />
-            ))}
-          </div>
+          {/* Color & Save Actions */}
+          <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-600 hidden sm:inline">Color:</span>
+              {colors.map(c => (
+                <button
+                  key={c.value}
+                  onClick={() => setColor(c.value)}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all ${
+                    color === c.value ? 'border-gray-800 scale-110 shadow-lg' : 'border-gray-300'
+                  }`}
+                  style={{ backgroundColor: c.value }}
+                  title={c.name}
+                />
+              ))}
+            </div>
 
-          <div className="flex items-center gap-2 border-r pr-3">
-            <Button size="sm" variant="outline" onClick={handleUndo} disabled={annotations.length === 0}>
-              <Undo className="w-4 h-4" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleClear} disabled={annotations.length === 0}>
-              <Trash2 className="w-4 h-4" />
+            <Button 
+              size="sm" 
+              onClick={handleSave} 
+              disabled={isSaving || annotations.length === 0} 
+              className="bg-green-600 hover:bg-green-700 whitespace-nowrap px-3 sm:px-4"
+            >
+              {isSaving ? 'Saving...' : (
+                <>
+                  <Save className="w-4 h-4 sm:mr-2" /> 
+                  <span className="hidden sm:inline">Save ({annotations.length})</span>
+                  <span className="sm:hidden ml-1">({annotations.length})</span>
+                </>
+              )}
             </Button>
           </div>
-
-          <Button 
-            size="sm" 
-            onClick={handleSave} 
-            disabled={isSaving || annotations.length === 0} 
-            className="bg-green-600 hover:bg-green-700 ml-auto"
-          >
-            {isSaving ? 'Saving...' : <><Save className="w-4 h-4 mr-2" /> Save ({annotations.length})</>}
-          </Button>
         </div>
 
         {/* Canvas Area */}

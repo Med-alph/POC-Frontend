@@ -330,7 +330,7 @@ const DoctorPatientRecord = () => {
                         <Stethoscope className="h-6 w-6" />
                         <span className="text-sm font-semibold">Patient Medical Records</span>
                     </div> */}
-                    <div className="flex items-center gap-4 mb-6">
+                    <div className="flex flex-wrap items-center gap-4 mb-6">
                         <Button
                             onClick={() => navigate(-1)}
                             variant="outline"
@@ -414,7 +414,7 @@ const DoctorPatientRecord = () => {
                 {/* Tabs */}
                 <Card className="shadow-xl border-0 rounded-2xl overflow-hidden dark:bg-gray-800 dark:border-gray-700">
                     <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800/50 p-4 border-b border-gray-200 dark:border-gray-600">
-                        <nav className="flex space-x-2 overflow-x-auto scrollbar-hide">
+                        <nav className="flex space-x-2 overflow-x-auto pb-2 scrollbar-thin">
                             {tabs.map((tab) => {
                                 const tabIcons = {
                                     "Appointments": CalendarDays,

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getUserData } from "@/utils/auth";
 import PatientNavbar from "./PatientNavbar";
+import PatientSidebar from "./PatientSidebar";
 import NewAppointmentFlow from "./NewAppointmentFlow";
 import appointmentsAPI from "@/api/appointmentsapi";
 import { patientsAPI } from "@/api/patientsapi";
@@ -135,6 +136,10 @@ export default function PatientDashboard() {
   const [callsCurrentPage, setCallsCurrentPage] = useState(1);
   const [callsTotalCount, setCallsTotalCount] = useState(0);
   const CALLS_PAGE_SIZE = 10;
+
+  // Sidebar state
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     // SOC 2: Check isAuthenticated flag, actual auth is via httpOnly cookie
@@ -433,15 +438,22 @@ export default function PatientDashboard() {
     setLoadingAppointments(true);
     try {
       const offset = (currentPage - 1) * PAGE_SIZE;
+      // Use generic getAll but remove hospital_id to show all appointments across hospitals for this patient
       const result = await appointmentsAPI.getAll({
         patient_id: patient.id,
-        limit: PAGE_SIZE,
+        limit: PAGE_SIZE, 
         offset: offset,
-        orderBy: 'created_at',
-        sort: 'DESC'
+        orderBy: 'appointment_date',
+        sort: 'DESC',
+        fromDate: '1000-01-01',
+        toDate: '9999-12-31'
       });
-      setAppointments(result.data || []);
-      setTotalCount(result.total || 0);
+      
+      const appointmentsData = result.data || (Array.isArray(result) ? result : []);
+      const total = result.total || appointmentsData.length;
+      
+      setAppointments(appointmentsData);
+      setTotalCount(total);
     } catch (error) {
       console.error('Failed to load appointments:', error);
       toast.error("Failed to load appointments");
@@ -731,8 +743,8 @@ export default function PatientDashboard() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full min-w-[800px]">
                     <thead><tr className="border-b bg-gray-50 dark:bg-gray-800">
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Date</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Time</th>
@@ -1432,13 +1444,13 @@ export default function PatientDashboard() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-blue-50 dark:bg-gray-900"><Loader2 className="animate-spin h-10 w-10 text-blue-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-svh flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden">
       {/* Toast Notifications */}
-
+      <Toaster position="top-right" />
 
       {/* Loading Overlay while joining call */}
       {isJoiningCall && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
             <div className="text-center">
@@ -1476,7 +1488,46 @@ export default function PatientDashboard() {
         </div>
       )}
 
-      {/* Call Notification */}
+      <div className="flex-1 flex overflow-hidden">
+        <PatientSidebar
+          isOpen={isMobileSidebarOpen}
+          onClose={() => setIsMobileSidebarOpen(false)}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            if (tab !== "appointments") setView("list");
+          }}
+        />
+
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden pt-0">
+          <PatientNavbar
+            patientName={patient?.name || patient?.patient_name}
+            patientRole="Patient"
+            activeTab={activeTab}
+            onTabChange={(tab) => {
+              setActiveTab(tab);
+              if (tab !== "appointments") setView("list");
+            }}
+            patientId={patient?.id}
+            onMenuClick={() => {
+              if (window.innerWidth < 1024) {
+                setIsMobileSidebarOpen(true);
+              } else {
+                setIsSidebarCollapsed(!isSidebarCollapsed);
+              }
+            }}
+          />
+
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+            <div className="max-w-7xl mx-auto space-y-6">
+              {renderActiveTab()}
+            </div>
+          </main>
+        </div>
+      </div>
+
       {showCallNotification && incomingCall && (
         <CallNotification
           callData={incomingCall}
@@ -1496,19 +1547,6 @@ export default function PatientDashboard() {
         />
       )}
 
-      <PatientNavbar
-        patientName={patient?.name || patient?.patient_name}
-        patientRole="Patient"
-        activeTab={activeTab}
-        onTabChange={(tab) => {
-          setActiveTab(tab);
-          if (tab !== "appointments") setView("list");
-        }}
-        patientId={patient?.id}
-      />
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        {renderActiveTab()}
-      </div>
       {renderCancelModal()}
       {renderRescheduleModal()}
 

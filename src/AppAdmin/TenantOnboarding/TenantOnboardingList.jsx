@@ -225,8 +225,8 @@ export default function TenantOnboardingList() {
       </div>
 
       {/* Tenant Table */}
-      <Card className="shadow-sm border border-gray-200">
-        <CardContent className="p-0">
+      <Card className="shadow-sm border border-gray-200 overflow-x-auto custom-scrollbar">
+        <CardContent className="p-0 min-w-[1000px]">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-100">

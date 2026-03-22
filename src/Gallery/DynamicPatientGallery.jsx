@@ -270,15 +270,15 @@ export default function DynamicPatientGallery() {
           {/* Selected Patient Info */}
           {patient && (
             <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                   {patient.patient_name?.charAt(0).toUpperCase() || 'P'}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {patient.patient_name}
                   </h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-400 mt-1">
                     <span>Age: {patient.age || 'N/A'}</span>
                     <span>•</span>
                     <span>ID: {patient.patient_code || patient.id?.slice(0, 8)}</span>
@@ -286,7 +286,7 @@ export default function DynamicPatientGallery() {
                     <span>Phone: {patient.contact_info || 'N/A'}</span>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right mt-2 sm:mt-0 border-t sm:border-0 border-blue-200 pt-2 sm:pt-0 w-full sm:w-auto">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Sessions</p>
                   <p className="text-2xl font-bold text-blue-600">{sessions.length}</p>
                 </div>

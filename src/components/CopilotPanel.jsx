@@ -80,7 +80,7 @@ const CopilotPanel = ({ isOpen, onClose, patientId, patients = [], onPatientSele
       )}
 
       {/* Side Panel */}
-      <div className={`fixed right-0 top-0 h-full w-full max-w-2xl bg-white dark:bg-gray-800 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out overflow-hidden flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'}`}>
+      <div className={`fixed bottom-0 right-0 sm:bottom-6 sm:right-6 h-[85vh] sm:h-[80vh] w-full sm:w-[400px] lg:w-[450px] bg-white dark:bg-gray-800 shadow-2xl z-50 transform transition-all duration-300 ease-in-out overflow-hidden flex flex-col rounded-t-3xl sm:rounded-2xl border sm:border-gray-200 sm:dark:border-gray-700 ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20">
           <div className="flex-1">

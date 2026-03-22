@@ -215,7 +215,7 @@ const DoctorAttendance = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b">
+        <div className="flex flex-wrap gap-2 mb-6 border-b">
           <button
             onClick={() => setActiveTab('attendance')}
             className={`px-4 py-2 font-medium ${activeTab === 'attendance' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
@@ -678,7 +678,7 @@ const DoctorAttendance = () => {
                   <p className="text-center py-8 text-gray-500">No attendance records found</p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[700px] whitespace-nowrap">
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-4 text-sm font-semibold">Date</th>
@@ -759,7 +759,7 @@ const DoctorAttendance = () => {
                   <p className="text-center py-8 text-gray-500">No leave requests found</p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[700px] whitespace-nowrap">
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-4 text-sm font-semibold">Type</th>
@@ -810,7 +810,7 @@ const DoctorAttendance = () => {
                   <p className="text-center py-8 text-gray-500">No permission requests found</p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[700px] whitespace-nowrap">
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-4 text-sm font-semibold">Date</th>

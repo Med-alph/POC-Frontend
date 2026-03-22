@@ -749,9 +749,9 @@ const DermImageComparison = ({ patient = dummyPatient, canManage = false }) => {
                 </h3>
 
                 {/* Main 3-Column Layout */}
-                <div className="grid grid-cols-12 gap-3 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
                     {/* LEFT SIDEBAR */}
-                    <div className="col-span-3">
+                    <div className="lg:col-span-3 w-full">
                         <ImageListColumn
                             title="Left Collection (Old)"
                             images={selectedLeft} icon={CornerLeftDown} colorClass="border-blue-500/50"
@@ -762,11 +762,11 @@ const DermImageComparison = ({ patient = dummyPatient, canManage = false }) => {
                     </div>
 
                     {/* CENTER VIEW: Conditional rendering for Zoom or Slider */}
-                    <div className="col-span-6">
+                    <div className="lg:col-span-6 w-full">
                         {zoomActive && currentZoomImage ? (
                             // 1. DEDICATED ZOOM VIEW
                             <Card className="p-4 shadow-xl border-2 rounded-xl bg-white" style={{ height: sliderHeight + 'px' }}>
-                                <div className="flex justify-between items-center border-b-2 pb-3 mb-4">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-2 pb-3 mb-4 gap-4 md:gap-0">
                                     <div>
                                         <h4 className={`font-bold text-xl ${currentZoomTitleColor} flex items-center gap-2`}>
                                             <Focus className="w-6 h-6" />
@@ -774,7 +774,7 @@ const DermImageComparison = ({ patient = dummyPatient, canManage = false }) => {
                                         </h4>
                                         <p className="text-sm text-gray-600 mt-1">Date: {currentZoomImageDate}</p>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2 w-full md:w-auto">
                                         {canManage && (
                                             <Button 
                                                 onClick={() => handleOpenAnnotation(
@@ -862,7 +862,7 @@ const DermImageComparison = ({ patient = dummyPatient, canManage = false }) => {
                                     </div>
                                 </Resizable>
                                 {/* --- ZOOM CONTROLS - Fixed at bottom --- */}
-                                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4 px-4 z-10">
+                                <div className="absolute bottom-4 left-0 right-0 flex flex-wrap justify-center gap-2 px-4 z-10">
                                     <Button 
                                         variant="outline" 
                                         onClick={() => handleZoom('left')} 
@@ -883,7 +883,7 @@ const DermImageComparison = ({ patient = dummyPatient, canManage = false }) => {
                     </div>
 
                     {/* RIGHT SIDEBAR */}
-                    <div className="col-span-3">
+                    <div className="lg:col-span-3 w-full">
                         <ImageListColumn
                             title="Right Collection (New)"
                             images={selectedRight} icon={CornerRightDown} colorClass="border-green-500/50"

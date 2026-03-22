@@ -193,12 +193,14 @@ const OTPVerification = () => {
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-2">Appointment booking</span>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-3">
-                <Smartphone className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                <span>Enter the 6-digit code sent to</span>
-                <span className="font-bold text-gray-900 dark:text-white">{countryCode} {phone}</span>
-              </p>
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 sm:p-5 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <Smartphone className="h-6 w-6 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-x-2 flex-wrap min-w-0">
+                  <span className="text-[13px] sm:text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">Enter the 6-digit code sent to</span>
+                  <span className="text-[15px] sm:text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">{countryCode} {phone}</span>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4">

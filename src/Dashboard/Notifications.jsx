@@ -519,7 +519,7 @@ export default function Notifications() {
                       </div>
 
                       {/* Right Section - Action Buttons */}
-                      <div className="flex items-center sm:items-start gap-2">
+                      <div className="flex flex-wrap items-center sm:items-start gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                         {/* Mark as read button for unread notifications */}
                         {notificationStatus === 'unread' && (
                           <button
