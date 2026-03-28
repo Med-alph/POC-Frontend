@@ -137,6 +137,44 @@ class SubscriptionsApiService {
       throw error;
     }
   }
+  async getSubscriptionStatus() {
+    try {
+      const response = await fetch(`${API_BASE}/subscription/status`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch subscription status');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Get subscription status error:', error);
+      throw error;
+    }
+  }
+
+  async getFinalModules() {
+    try {
+      const response = await fetch(`${API_BASE}/tenant/ui-modules/user/final-modules`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch final modules');
+      }
+      return data;
+    } catch (error) {
+      console.error('Get final modules error:', error);
+      throw error;
+    }
+  }
 }
 
 export default new SubscriptionsApiService();

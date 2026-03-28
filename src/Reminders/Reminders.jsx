@@ -29,6 +29,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { remindersAPI } from "@/api/remindersapi"
+import { useSubscription } from "@/hooks/useSubscription"
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip"
 
 export default function Reminders() {
     const [reminders, setReminders] = useState([])
@@ -44,6 +46,7 @@ export default function Reminders() {
     const [selectedReminder, setSelectedReminder] = useState(null)
     const { hospitalInfo } = useHospital();
     const [hospitalId, setHospitalId] = useState("")
+    const { isReadOnly } = useSubscription()
 
     useEffect(() => {
         // Get hospital_id from localStorage
@@ -206,13 +209,16 @@ export default function Reminders() {
                     </p>
                 </div>
 
-                <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2 mb-6"
-                    onClick={() => setAddModalOpen(true)}
-                >
-                    <Plus className="h-4 w-4" />
-                    Add New Reminder
-                </Button>
+                <ReadOnlyTooltip>
+                    <Button
+                        className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2 mb-6"
+                        onClick={() => setAddModalOpen(true)}
+                        disabled={isReadOnly}
+                    >
+                        <Plus className="h-4 w-4" />
+                        Add New Reminder
+                    </Button>
+                </ReadOnlyTooltip>
 
                 {/* Filters */}
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -354,15 +360,18 @@ export default function Reminders() {
                                             <div className="flex items-center gap-2">
                                                 {/* Mark Complete Button (outside card) */}
                                                 {reminder.status !== 'done' && reminder.status !== 'completed' && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0"
-                                                        onClick={() => handleMarkComplete(reminder)}
-                                                        title="Mark as Complete"
-                                                    >
-                                                        <CheckCircle className="h-4 w-4 text-green-600" />
-                                                    </Button>
+                                                    <ReadOnlyTooltip>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0"
+                                                            onClick={() => handleMarkComplete(reminder)}
+                                                            title="Mark as Complete"
+                                                            disabled={isReadOnly}
+                                                        >
+                                                            <CheckCircle className="h-4 w-4 text-green-600" />
+                                                        </Button>
+                                                    </ReadOnlyTooltip>
                                                 )}
                                                 <Button
                                                     variant="ghost"
@@ -373,15 +382,18 @@ export default function Reminders() {
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0"
-                                                    onClick={() => handleEditReminder(reminder)}
-                                                    title="Edit"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
+                                                <ReadOnlyTooltip>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0"
+                                                        onClick={() => handleEditReminder(reminder)}
+                                                        title="Edit"
+                                                        disabled={isReadOnly}
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                </ReadOnlyTooltip>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -390,22 +402,29 @@ export default function Reminders() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         {reminder.status !== 'done' && reminder.status !== 'completed' && (
-                                                            <DropdownMenuItem onClick={() => handleMarkComplete(reminder)}>
-                                                                <CheckCircle className="h-4 w-4 mr-2" />
-                                                                Mark Complete
-                                                            </DropdownMenuItem>
+                                                            <ReadOnlyTooltip>
+                                                                <DropdownMenuItem onClick={() => handleMarkComplete(reminder)} disabled={isReadOnly}>
+                                                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                                                    Mark Complete
+                                                                </DropdownMenuItem>
+                                                            </ReadOnlyTooltip>
                                                         )}
-                                                        <DropdownMenuItem onClick={() => handleRescheduleReminder(reminder)}>
-                                                            <Clock className="h-4 w-4 mr-2" />
-                                                            Reschedule
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            className="text-red-600"
-                                                            onClick={() => handleDeleteReminder(reminder)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4 mr-2" />
-                                                            Delete Reminder
-                                                        </DropdownMenuItem>
+                                                        <ReadOnlyTooltip>
+                                                            <DropdownMenuItem onClick={() => handleRescheduleReminder(reminder)} disabled={isReadOnly}>
+                                                                <Clock className="h-4 w-4 mr-2" />
+                                                                Reschedule
+                                                            </DropdownMenuItem>
+                                                        </ReadOnlyTooltip>
+                                                        <ReadOnlyTooltip>
+                                                            <DropdownMenuItem
+                                                                className="text-red-600 focus:text-red-600"
+                                                                onClick={() => handleDeleteReminder(reminder)}
+                                                                disabled={isReadOnly}
+                                                            >
+                                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                                Delete Reminder
+                                                            </DropdownMenuItem>
+                                                        </ReadOnlyTooltip>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>

@@ -5,24 +5,25 @@ import {
   Home, Users, Stethoscope, Calendar, Clock, 
   Package, Sparkles, MessageSquare, Shield, Mail, 
   Banknote, FileText, Clipboard, X, ChevronRight,
-  LayoutDashboard, Bell
+  LayoutDashboard, Bell, AlertCircle
 } from "lucide-react";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
 import { useHospital } from "../contexts/HospitalContext";
+import { useSubscription } from "../hooks/useSubscription";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, requiredModule: UI_MODULES.DASHBOARD },
   { id: "patients", label: "Patients", path: "/patients", icon: Users, requiredModule: UI_MODULES.PATIENTS },
   { id: "doctors", label: "Doctors", path: "/doctors", icon: Stethoscope, requiredModule: UI_MODULES.DOCTORS },
   { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar, requiredModule: UI_MODULES.APPOINTMENTS },
-  { id: "inventory", label: "Inventory", path: "/inventory", icon: Package, requiredModule: UI_MODULES.INVENTORY },
+  { id: "inventory", label: "Inventory", path: "/inventory", icon: Package, requiredModule: UI_MODULES.INVENTORY, subscriptionModule: "INVENTORY" },
   { id: "leave-management", label: "Leave Management", path: "/leave-management", icon: Calendar, requiredModule: UI_MODULES.LEAVE_MANAGEMENT },
   { id: "attendance-management", label: "Attendance Management", path: "/admin/attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock, requiredModule: UI_MODULES.REMINDERS },
-  { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS },
-  { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote },
-  { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true },
+  { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS, subscriptionModule: "NOTIFICATIONS" },
+  { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote, subscriptionModule: "BILLING", requiredModule: UI_MODULES.BILLING },
+  { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true, subscriptionModule: "REPORTS", requiredModule: UI_MODULES.REPORTS },
   { id: "master-procedures", label: "Master Procedures", path: "/admin/master-procedures", icon: Clipboard, isAdminOnly: true, requiredModule: UI_MODULES.PROCEDURES },
   { id: "feedback", label: "Patient Feedback", path: "/hospital/feedback", icon: MessageSquare, isAdminOnly: true },
 ];
@@ -32,7 +33,7 @@ const doctorNavItems = [
   { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "FulfilledRecords", label: "Fulfilled Records", path: "/fulfilled-records", icon: Users, requiredModule: UI_MODULES.PATIENTS },
   { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
-  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles },
+  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles, subscriptionModule: "AI_ANALYSIS" },
   { id: "CancellationRequests", label: "Cancel Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
 ];
 
@@ -46,19 +47,39 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const user = useSelector((state) => state.auth.user);
   const { hospitalInfo } = useHospital();
   const { hasModule, loading: permissionsLoading } = usePermissions();
+  const { isModuleDisabled, loading: subscriptionLoading } = useSubscription();
 
   const isDoctor = user?.role?.toLowerCase() === "doctor" ||
     (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist");
   
   const filteredNavItems = isDoctor ? doctorNavItems : navigationItems;
 
-  const visibleNavItems = filteredNavItems.filter(item => {
+  const visibleNavItems = filteredNavItems.map(item => {
+    const isModuleRestricted = item.subscriptionModule && isModuleDisabled(item.subscriptionModule);
+    
+    // Soft gate: specifically for AI_ANALYSIS, show as locked instead of hiding
+    if (item.id === 'Copilot' && isModuleRestricted) {
+      return { ...item, isLocked: true };
+    }
+    
+    // Hard gate: hide everything else that is disabled
+    if (isModuleRestricted) return null;
+    
+    return item;
+  }).filter(item => {
+    if (!item) return false;
+
+    // 2. Hide everything else during loading to prevent flashing/gated UI leakage
+    if (permissionsLoading || subscriptionLoading) return false;
+
+    // 3. Admin-only restriction
     if (item.isAdminOnly) {
       const isAdmin = user?.role === 'Admin' || user?.designation_group === 'Admin' || user?.role === 'tenant_admin' || user?.role === 'HOSPITAL_ADMIN';
       if (!isAdmin) return false;
     }
+
+    // 4. RBAC (requiredModule)
     if (!item.requiredModule) return true;
-    if (permissionsLoading) return false;
     return hasModule(item.requiredModule);
   });
 
@@ -129,7 +150,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
           {/* Navigation Links */}
           <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-6 space-y-1 custom-scrollbar">
-            {permissionsLoading ? (
+            {permissionsLoading || subscriptionLoading ? (
               /* Skeleton Loader */
               Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className={`flex items-center ${isCollapsed ? 'justify-center' : 'px-3'} py-3`}>
@@ -143,17 +164,20 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
               visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
-                
-                const NavButton = (
+                               const NavButton = (
                   <button
                     onClick={() => {
+                      if (item.isLocked) return;
                       navigate(item.path);
                       if (window.innerWidth < 1024) onClose();
                     }}
+                    disabled={item.isLocked}
                     className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-3'} py-2.5 rounded-lg text-sm font-medium transition-all group ${
                       active 
                         ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" 
-                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white"
+                        : item.isLocked 
+                          ? "text-gray-400 cursor-not-allowed opacity-60"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white"
                     }`}
                   >
                     <div className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
@@ -163,8 +187,13 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                       )}
                     </div>
                     {!isCollapsed && active && <ChevronRight className="h-4 w-4 animate-in fade-in zoom-in duration-300" />}
+                    {!isCollapsed && item.isLocked && <Shield className="h-3.5 w-3.5 text-orange-500 animate-pulse" />}
                   </button>
                 );
+
+                const tooltipMessage = item.isLocked 
+                  ? "Your plan doesn't have AI features, please upgrade to access clinical copilot features." 
+                  : item.label;
 
                 return isCollapsed ? (
                   <Tooltip key={item.id}>
@@ -172,11 +201,27 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                       {NavButton}
                     </TooltipTrigger>
                     <TooltipContent side="right" className="font-medium">
-                      {item.label}
+                      {tooltipMessage}
                     </TooltipContent>
                   </Tooltip>
                 ) : (
-                  <div key={item.id}>{NavButton}</div>
+                  <div key={item.id}>
+                    {item.isLocked ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {NavButton}
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="font-semibold bg-gradient-to-r from-orange-600 to-amber-600 border-none text-white shadow-2xl px-4 py-2 text-sm max-w-xs leading-relaxed animate-in slide-in-from-bottom-2">
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                            {tooltipMessage}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      NavButton
+                    )}
+                  </div>
                 );
               })
             )}

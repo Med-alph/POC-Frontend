@@ -55,9 +55,13 @@ import staffApi from "../api/staffapi"
 import FilterDialog from "./FilterDialog"
 import ConfirmationModal from "@/components/ui/confirmation-modal"
 
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip"
+import { useSubscription } from "../hooks/useSubscription"
+
 export default function Doctors() {
     const [doctors, setDoctors] = useState([])
     const [loading, setLoading] = useState(false)
+    const { isReadOnly } = useSubscription()
     const navigate = useNavigate()
     const [searchTerm, setSearchTerm] = useState("")
     const debouncedSearchTerm = useDebounce(searchTerm, 300)
@@ -504,13 +508,16 @@ export default function Doctors() {
                                     <Download className="h-4 w-4" />
                                     Export
                                 </Button>
-                                <Button
-                                    className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md"
-                                    onClick={() => setOpenDialog(true)}
-                                >
-                                    <UserPlus className="h-4 w-4 mr-2" />
-                                    Add Staff
-                                </Button>
+                                <ReadOnlyTooltip>
+                                    <Button
+                                        className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md disabled:opacity-50"
+                                        onClick={() => setOpenDialog(true)}
+                                        disabled={isReadOnly}
+                                    >
+                                        <UserPlus className="h-4 w-4 mr-2" />
+                                        Add Staff
+                                    </Button>
+                                </ReadOnlyTooltip>
                             </div>
                         </div>
                     </div>
@@ -639,40 +646,55 @@ export default function Doctors() {
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0"
-                                                        onClick={() => handleEditDoctor(doctor)}
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
+                                                    <ReadOnlyTooltip>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0"
+                                                            onClick={() => handleEditDoctor(doctor)}
+                                                            disabled={isReadOnly}
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                    </ReadOnlyTooltip>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                                                 <MoreHorizontal className="h-4 w-4" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem>
-                                                                <Phone className="h-4 w-4 mr-2" />
-                                                                Call Doctor
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem>
-                                                                <Mail className="h-4 w-4 mr-2" />
-                                                                Send Message
-                                                            </DropdownMenuItem>
-                                                             <DropdownMenuItem 
-                                                                className="cursor-pointer"
-                                                                onClick={() => navigate('/appointments', { state: { doctorId: doctor.id } })}
-                                                            >
-                                                                <Calendar className="h-4 w-4 mr-2" />
-                                                                View Schedule
-                                                            </DropdownMenuItem>
-                                                                    <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => handleOpenArchiveModal(doctor)}>
-                                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                                Archive Doctor
-                                                            </DropdownMenuItem>
+                                                        <DropdownMenuContent align="end" className="w-48">
+                                                            <ReadOnlyTooltip className="w-full">
+                                                                <DropdownMenuItem className="cursor-pointer disabled:opacity-30 p-2" disabled={isReadOnly}>
+                                                                    <Phone className="h-4 w-4 mr-2" />
+                                                                    Call Doctor
+                                                                </DropdownMenuItem>
+                                                            </ReadOnlyTooltip>
+                                                            <ReadOnlyTooltip className="w-full">
+                                                                <DropdownMenuItem className="cursor-pointer disabled:opacity-30 p-2" disabled={isReadOnly}>
+                                                                    <Mail className="h-4 w-4 mr-2" />
+                                                                    Send Message
+                                                                </DropdownMenuItem>
+                                                            </ReadOnlyTooltip>
+                                                             <ReadOnlyTooltip className="w-full">
+                                                                <DropdownMenuItem 
+                                                                    className="cursor-pointer disabled:opacity-30 p-2"
+                                                                    onClick={() => navigate('/appointments', { state: { doctorId: doctor.id } })}
+                                                                    disabled={isReadOnly}
+                                                                >
+                                                                    <Calendar className="h-4 w-4 mr-2" />
+                                                                    View Schedule
+                                                                </DropdownMenuItem>
+                                                            </ReadOnlyTooltip>
+                                                            <ReadOnlyTooltip className="w-full">
+                                                                <DropdownMenuItem 
+                                                                    className="flex items-center gap-2 cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20 font-medium p-2 disabled:opacity-30 disabled:cursor-not-allowed" 
+                                                                    onClick={() => handleOpenArchiveModal(doctor)}
+                                                                    disabled={isReadOnly}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" /> Archive Doctor
+                                                                </DropdownMenuItem>
+                                                            </ReadOnlyTooltip>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </div>

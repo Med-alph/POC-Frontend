@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Save, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import toast from 'react-hot-toast';
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 
 export default function ConsentTextEditor({
   initialText = '',
   onTextChange,
   onSave,
-  saving = false
+  saving = false,
+  isReadOnly = false
 }) {
   const [text, setText] = useState(initialText);
   const [lastSaved, setLastSaved] = useState(null);
@@ -142,14 +144,16 @@ export default function ConsentTextEditor({
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            onClick={handleManualSave}
-            disabled={!isValid || saving}
-            className="flex items-center gap-2"
-          >
-            <Save className="h-4 w-4" />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
+          <ReadOnlyTooltip>
+            <Button
+              onClick={handleManualSave}
+              disabled={!isValid || saving || isReadOnly}
+              className="flex items-center gap-2 disabled:opacity-50"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </ReadOnlyTooltip>
         </div>
       </div>
 

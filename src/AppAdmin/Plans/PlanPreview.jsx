@@ -81,6 +81,11 @@ const PlanPreview = ({ plan, features }) => {
                  plan.status || 'Unknown'}
               </span>
             </span>
+            {plan.trial_days > 0 && (
+              <span className="bg-indigo-600 px-2 py-1 rounded-full text-[10px] font-bold text-white shadow-sm border border-indigo-400">
+                {plan.trial_days} DAY TRIAL
+              </span>
+            )}
           </div>
         </div>
 

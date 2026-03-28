@@ -8,6 +8,7 @@ import { store } from './app/store'
 import { queryClient } from './lib/queryClient'
 import { ToastProvider } from './components/ui/toast'
 import { AuthProvider } from './contexts/AuthContext'
+import { SubscriptionProvider } from './hooks/useSubscription'
 // Initialize API interceptor (must be imported before other modules that use fetch)
 import './services/apiInterceptor'
 import './index.css'
@@ -21,7 +22,9 @@ if (rootElement) {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <AuthProvider>
-            <App />
+            <SubscriptionProvider>
+              <App />
+            </SubscriptionProvider>
           </AuthProvider>
         </ToastProvider>
       </QueryClientProvider>

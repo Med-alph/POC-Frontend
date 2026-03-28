@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { useDebounce } from "../hooks/useDebounce"
 import { useNavigate } from "react-router-dom"
+import { useSubscription } from "../hooks/useSubscription"
 
 import { patientsAPI } from "../api/patientsapi"
 import { appointmentsAPI } from "../api/appointmentsapi"
@@ -49,6 +50,7 @@ import EditPatientDialog from "./EditPatient"
 import ConsentStatusIndicator from "@/components/compliance/ConsentStatusIndicator"
 import ComplianceFooter from "@/components/compliance/ComplianceFooter"
 import ConfirmationModal from "@/components/ui/confirmation-modal"
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip"
 
 export default function Patients() {
     const [patients, setPatients] = useState([])
@@ -85,6 +87,7 @@ export default function Patients() {
     const [currentPage, setCurrentPage] = useState(1)
     const [totalCount, setTotalCount] = useState(0)
     const PAGE_SIZE = 10
+    const { isReadOnly } = useSubscription()
 
     const [isAdmin, setIsAdmin] = useState(false)
 
@@ -397,14 +400,12 @@ export default function Patients() {
 
             // Add the new patient to the list and refresh the table
             setPatients(prev => [...prev.filter(p => p.id !== createdPatient.id), createdPatient])
-            toast.success(`Patient "${createdPatient.patient_name}" added successfully!`)
-
+            
             // Refresh the patient list to ensure we have the latest data
             fetchPatients()
             return createdPatient
         } catch (error) {
             console.error("Add patient error:", error)
-            toast.error("Failed to add patient, please try again.")
             throw error // Re-throw so AddPatient component knows it failed
         }
     }
@@ -590,13 +591,16 @@ export default function Patients() {
                                     <Download className="h-4 w-4" />
                                     Export
                                 </Button>
-                                <Button
-                                    className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md"
-                                    onClick={() => setOpenDialog(true)}
-                                >
-                                    <UserPlus className="h-4 w-4 mr-2" />
-                                    Add Patient
-                                </Button>
+                                <ReadOnlyTooltip>
+                                    <Button
+                                        className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md"
+                                        onClick={() => setOpenDialog(true)}
+                                        disabled={isReadOnly}
+                                    >
+                                        <UserPlus className="h-4 w-4 mr-2" />
+                                        Add Patient
+                                    </Button>
+                                </ReadOnlyTooltip>
                             </div>
                         </div>
                     </div>
@@ -641,14 +645,17 @@ export default function Patients() {
                                                         {patients.length === 0 ? 'No patients found' : 'No patients match your filters'}
                                                     </p>
                                                     {patients.length === 0 && (
-                                                        <Button
-                                                            variant="outline"
-                                                            className="mt-4"
-                                                            onClick={() => setOpenDialog(true)}
-                                                        >
-                                                            <UserPlus className="h-4 w-4 mr-2" />
-                                                            Add First Patient
-                                                        </Button>
+                                                        <ReadOnlyTooltip>
+                                                            <Button
+                                                                variant="outline"
+                                                                className="mt-4"
+                                                                onClick={() => setOpenDialog(true)}
+                                                                disabled={isReadOnly}
+                                                            >
+                                                                <UserPlus className="h-4 w-4 mr-2" />
+                                                                Add First Patient
+                                                            </Button>
+                                                        </ReadOnlyTooltip>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -783,15 +790,17 @@ export default function Patients() {
                                                         >
                                                             <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                                         </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                            onClick={() => handleEditPatient(patient)}
-                                                            title="Edit patient"
-                                                        >
-                                                            <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                                        </Button>
+                                                        <ReadOnlyTooltip>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30"
+                                                                onClick={() => handleEditPatient(patient)}
+                                                                disabled={isReadOnly}
+                                                            >
+                                                                <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                                            </Button>
+                                                        </ReadOnlyTooltip>
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
                                                                 <Button
@@ -804,28 +813,37 @@ export default function Patients() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end" className="w-48">
-                                                                <DropdownMenuItem className="cursor-pointer">
-                                                                    <Phone className="h-4 w-4 mr-2" />
-                                                                    Call Patient
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem className="cursor-pointer">
-                                                                    <Mail className="h-4 w-4 mr-2" />
-                                                                    Send Message
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem 
-                                                                    className="cursor-pointer"
-                                                                    onClick={() => navigate('/appointments', { state: { autoBook: true, patient } })}
-                                                                >
-                                                                    <Calendar className="h-4 w-4 mr-2" />
-                                                                    Schedule Appointment
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem 
-                                                                    className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
-                                                                    onClick={() => handleOpenArchiveModal(patient)}
-                                                                >
-                                                                    <Trash2 className="h-4 w-4 mr-2" />
-                                                                    Archive Patient
-                                                                </DropdownMenuItem>
+                                                                <ReadOnlyTooltip className="w-full">
+                                                                    <DropdownMenuItem className="cursor-pointer disabled:opacity-30" disabled={isReadOnly}>
+                                                                        <Phone className="h-4 w-4 mr-2" />
+                                                                        Call Patient
+                                                                    </DropdownMenuItem>
+                                                                </ReadOnlyTooltip>
+                                                                <ReadOnlyTooltip className="w-full">
+                                                                    <DropdownMenuItem className="cursor-pointer disabled:opacity-30" disabled={isReadOnly}>
+                                                                        <Mail className="h-4 w-4 mr-2" />
+                                                                        Send Message
+                                                                    </DropdownMenuItem>
+                                                                </ReadOnlyTooltip>
+                                                                <ReadOnlyTooltip className="w-full">
+                                                                    <DropdownMenuItem
+                                                                        className="cursor-pointer disabled:opacity-30"
+                                                                        onClick={() => navigate('/appointments', { state: { autoBook: true, patient } })}
+                                                                        disabled={isReadOnly}
+                                                                    >
+                                                                        <Calendar className="h-4 w-4 mr-2" />
+                                                                        Schedule Appointment
+                                                                    </DropdownMenuItem>
+                                                                </ReadOnlyTooltip>
+                                                                <ReadOnlyTooltip className="w-full">
+                                                                    <DropdownMenuItem
+                                                                        className="flex items-center gap-2 cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20 font-medium p-2 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                        onClick={() => handleOpenArchiveModal(patient)}
+                                                                        disabled={isReadOnly}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" /> Archive Patient
+                                                                    </DropdownMenuItem>
+                                                                </ReadOnlyTooltip>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </div>

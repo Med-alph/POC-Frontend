@@ -5,8 +5,11 @@ import { Input } from "@/components/ui/input";
 import proceduresAPI from "../../api/proceduresapi";
 import designationapi from "../../api/designationapi";
 import toast from "react-hot-toast";
+import { useSubscription } from "@/hooks/useSubscription";
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 
 const AddProcedureDialog = ({ open, onOpenChange, hospitalId, procedure, onSuccess }) => {
+    const { isReadOnly } = useSubscription();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
@@ -191,9 +194,11 @@ const AddProcedureDialog = ({ open, onOpenChange, hospitalId, procedure, onSucce
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
-                            {loading ? "Saving..." : procedure ? "Update Procedure" : "Add Procedure"}
-                        </Button>
+                        <ReadOnlyTooltip>
+                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50" disabled={loading || isReadOnly}>
+                                {loading ? "Saving..." : procedure ? "Update Procedure" : "Add Procedure"}
+                            </Button>
+                        </ReadOnlyTooltip>
                     </DialogFooter>
                 </form>
             </DialogContent>

@@ -37,7 +37,9 @@ class SocketService {
       reconnectionDelay: this.reconnectDelay,
       reconnectionDelayMax: 5000,
       timeout: 10000,
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      path: '/socket.io/',
+      withCredentials: true
     });
 
     this._setupConnectionHandlers();
@@ -381,7 +383,8 @@ class SocketService {
         timeout: 10000,
         transports: ['websocket', 'polling'],
         // Ensure we use the standard path that Lite Proxy handles
-        path: '/socket.io/'
+        path: '/socket.io/',
+        withCredentials: true
       });
 
       this.notificationsSocket.on('connect', () => {

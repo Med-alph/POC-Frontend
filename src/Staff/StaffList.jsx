@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import CreateStaffDialog from "./AddStaff"
 import { toast } from "react-hot-toast"
-import staffApi from "@/api/staffapi" // Import your staff API client
+import staffApi from "@/api/staffapi" 
+import { useSubscription } from "@/hooks/useSubscription"
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip"
 
 export default function StaffListPage() {
   const [hospitalId, setHospitalId] = useState(null)
   const [staffList, setStaffList] = useState([])
   const [openDialog, setOpenDialog] = useState(false)
+  const { isReadOnly } = useSubscription()
 
   useEffect(() => {
     // Get hospital_id from localStorage user object on mount
@@ -59,12 +62,15 @@ export default function StaffListPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">👩‍⚕️ Staff Management</h1>
-        <Button
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-          onClick={() => setOpenDialog(true)}
-        >
-          <PlusCircle size={18} /> Add Staff
-        </Button>
+        <ReadOnlyTooltip>
+          <Button
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => setOpenDialog(true)}
+            disabled={isReadOnly}
+          >
+            <PlusCircle size={18} /> Add Staff
+          </Button>
+        </ReadOnlyTooltip>
       </div>
 
       {/* Staff Table */}

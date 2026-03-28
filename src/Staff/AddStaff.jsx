@@ -5,13 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Plus, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { Trash2, Plus, Clock, AlertCircle, Loader2, Shield } from "lucide-react";
 
 import designationapi from "@/api/designationapi";
 import staffApi from "@/api/staffapi";
 import { rolesAPI } from "@/api/rolesapi";
 import RoleAssignmentDropdown from "../TenantAdmin/RoleManagement/RoleAssignmentDropdown";
 import { PHONE_REGEX, SUPPORTED_COUNTRY_CODES } from "@/constants/Constant";
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 
 
 const WEEKDAYS = [
@@ -448,229 +449,244 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-[700px] h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl font-semibold">{editStaff ? "Edit Staff" : "Create New Staff"}</DialogTitle>
-          <DialogDescription id="staff-form-dialog-description">
-            {editStaff ? "Update staff member information and role assignment." : "Create a new staff member with role assignment."}
+      <DialogContent className="max-w-[750px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+        <DialogHeader className="px-6 py-4 border-b bg-gray-50/50 dark:bg-gray-900/20 shrink-0">
+          <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
+            {editStaff ? "Update Staff Member" : "Register New Staff"}
+          </DialogTitle>
+          <DialogDescription id="staff-form-dialog-description" className="text-xs">
+            {editStaff ? "Modify account details and clinic schedule for this staff member." : "Setup profile and availability for a new hospital team member."}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto mt-4 pr-2 space-y-1">
-          <form id="staff-form" onSubmit={handleSubmit} className="space-y-4" aria-describedby="staff-form-dialog-description">
-            {/* Basic Information */}
-            <div className="space-y-4 pb-4 border-b">
-              <h3 className="font-semibold text-sm text-gray-700">Basic Information</h3>
-              <div>
-                <label className="text-sm font-medium text-gray-600 mb-1 block">
-                  Staff Name <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  name="staff_name"
-                  placeholder="Enter full name"
-                  value={formData.staff_name}
-                  onChange={handleChange}
-                  required
-                  aria-invalid={!!formErrors.staff_name}
-                />
-                {formErrors.staff_name && <p className="text-xs text-red-500 mt-1">{formErrors.staff_name}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600 mb-1 block">
-                    Department <span className="text-red-500">*</span>
-                  </label>
-                  <Select onValueChange={handleDepartmentChange} value={formData.department}>
-                    <SelectTrigger aria-invalid={!!formErrors.department}>
-                      <SelectValue placeholder="Select Department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((dep) => (
-                        <SelectItem key={dep} value={dep}>
-                          {dep}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {formErrors.department && <p className="text-xs text-red-500 mt-1">{formErrors.department}</p>}
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="px-6 py-6 space-y-10">
+            <form id="staff-form" onSubmit={handleSubmit} className="space-y-10" aria-describedby="staff-form-dialog-description">
+              
+              {/* Basic Information */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <div className="h-4 w-1 bg-blue-600 rounded-full" />
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Primary Details</h3>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600 mb-1 block">
-                    Designation <span className="text-red-500">*</span>
-                  </label>
-                  <Select onValueChange={handleDesignationChange} value={formData.designation} disabled={!formData.department}>
-                    <SelectTrigger aria-invalid={!!formErrors.designation}>
-                      <SelectValue placeholder="Select Designation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData.department &&
-                        designations[formData.department]?.map((designation) => (
-                          <SelectItem key={designation.id.toString()} value={designation.id.toString()}>
-                            {designation.name}
-                          </SelectItem>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Full Legal Name <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      name="staff_name"
+                      placeholder="e.g. Dr. Sarah Johnson"
+                      value={formData.staff_name}
+                      onChange={handleChange}
+                      className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                      required
+                    />
+                    {formErrors.staff_name && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.staff_name}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Primary Department <span className="text-red-500">*</span>
+                    </label>
+                    <Select onValueChange={handleDepartmentChange} value={formData.department}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Choose Department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departments.map((dep) => (
+                          <SelectItem key={dep} value={dep}>{dep}</SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                  {formErrors.designation && <p className="text-xs text-red-500 mt-1">{formErrors.designation}</p>}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600 mb-1 block">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="tel"
-                  name="contact_info"
-                  placeholder="+91 1234567890"
-                  value={formData.contact_info}
-                  onChange={handleChange}
-                  required
-                  aria-invalid={!!formErrors.contact_info}
-                />
-                {formErrors.contact_info && <p className="text-xs text-red-500 mt-1">{formErrors.contact_info}</p>}
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600 mb-1 block">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="email"
-                  name="email"
-                  placeholder="email@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  aria-invalid={!!formErrors.email}
-                />
-                {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
-              </div>
-
-              {/* Role Assignment */}
-              <div>
-                <RoleAssignmentDropdown
-                  value={formData.role_id}
-                  onChange={(roleId) => setFormData(prev => ({ ...prev, role_id: roleId }))}
-                  required={false}
-                  label="Assign Role (Optional)"
-                  placeholder="Select a role for this staff member"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-600 mb-1 block">Experience (Years)</label>
-                <Input
-                  type="number"
-                  name="experience"
-                  placeholder="0"
-                  min="0"
-                  max="50"
-                  value={formData.experience}
-                  onChange={handleChange}
-                  aria-invalid={!!formErrors.experience}
-                />
-                {formErrors.experience && <p className="text-xs text-red-500 mt-1">{formErrors.experience}</p>}
-              </div>
-            </div>
-
-            {/* Availability Section */}
-            <div className="space-y-4 pb-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm text-gray-700">
-                  Weekly Availability <span className="text-red-500">*</span>
-                </h3>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-blue-800">
-                    Using 24-hour format. Enable days to add time slots.
+                      </SelectContent>
+                    </Select>
+                    {formErrors.department && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.department}</p>}
                   </div>
-                </div>
-                {formErrors.availability && <p className="text-xs text-red-500 mt-2 font-medium">{formErrors.availability}</p>}
-              </div>
 
-              {/* Render Day Rows */}
-              <div className="space-y-4">
-                {/* Weekdays Group */}
-                <div className="border rounded-md p-3 space-y-3">
-                  <div className="flex items-center justify-between border-b pb-2 mb-2">
-                    <span className="font-medium text-sm">Weekdays</span>
-                    {formData.availability["Monday"].active && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs h-6 text-blue-600 hover:text-blue-800"
-                        onClick={() => copyToOtherDays("Monday", ["Tuesday", "Wednesday", "Thursday", "Friday"])}
-                      >
-                        Copy Mon to All Weekdays
-                      </Button>
-                    )}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Designation <span className="text-red-500">*</span>
+                    </label>
+                    <Select onValueChange={handleDesignationChange} value={formData.designation} disabled={!formData.department}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Choose Designation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData.department &&
+                          designations[formData.department]?.map((designation) => (
+                            <SelectItem key={designation.id.toString()} value={designation.id.toString()}>
+                              {designation.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {formErrors.designation && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.designation}</p>}
                   </div>
-                  {WEEKDAYS.map(day => (
-                    <DayRow
-                      key={day}
-                      day={day}
-                      data={formData.availability[day]}
-                      errors={availabilityErrors}
-                      onToggle={handleDayToggle}
-                      onSessionChange={handleSessionChange}
-                      onAddSession={addSession}
-                      onRemoveSession={removeSession}
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Secure Contact Phone <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="tel"
+                      name="contact_info"
+                      placeholder="+91 12345 67890"
+                      value={formData.contact_info}
+                      onChange={handleChange}
+                      className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                      required
                     />
-                  ))}
-                </div>
-
-                {/* Weekend Group */}
-                <div className="border rounded-md p-3 space-y-3">
-                  <div className="flex items-center justify-between border-b pb-2 mb-2">
-                    <span className="font-medium text-sm">Weekend</span>
-                    {formData.availability["Saturday"].active && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs h-6 text-blue-600 hover:text-blue-800"
-                        onClick={() => copyToOtherDays("Saturday", ["Sunday"])}
-                      >
-                        Copy Sat to Sun
-                      </Button>
-                    )}
+                    {formErrors.contact_info && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.contact_info}</p>}
                   </div>
-                  {WEEKEND.map(day => (
-                    <DayRow
-                      key={day}
-                      day={day}
-                      data={formData.availability[day]}
-                      errors={availabilityErrors}
-                      onToggle={handleDayToggle}
-                      onSessionChange={handleSessionChange}
-                      onAddSession={addSession}
-                      onRemoveSession={removeSession}
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Work Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="email"
+                      name="email"
+                      placeholder="sarah@medalph.clinic"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                      required
                     />
-                  ))}
+                    {formErrors.email && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.email}</p>}
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <RoleAssignmentDropdown
+                      value={formData.role_id}
+                      onChange={(roleId) => setFormData(prev => ({ ...prev, role_id: roleId }))}
+                      required={false}
+                      label="Governance Role (Optional)"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Clinical Experience (Years)</label>
+                    <Input
+                      type="number"
+                      name="experience"
+                      placeholder="0"
+                      min="0"
+                      max="50"
+                      value={formData.experience}
+                      onChange={handleChange}
+                      className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          </form>
+
+              {/* Availability Section */}
+              <div className="space-y-6 pb-6">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-1 bg-amber-500 rounded-full" />
+                    <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Practicing Schedule</h3>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-lg p-4 flex items-start gap-3">
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-tight">Clock Configuration</p>
+                    <p className="text-xs text-amber-800 dark:text-amber-300/80 leading-relaxed">
+                      Schedules use military (24h) time. Enable specific days below to configure multiple consulting sessions.
+                    </p>
+                    {formErrors.availability && <p className="text-[11px] font-bold text-red-500 mt-2">{formErrors.availability}</p>}
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  {/* Weekdays Group */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Business Days</span>
+                      {formData.availability["Monday"].active && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-[10px] h-6 font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2 rounded"
+                          onClick={() => copyToOtherDays("Monday", ["Tuesday", "Wednesday", "Thursday", "Friday"])}
+                        >
+                          Clone Monday to Weekdays
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      {WEEKDAYS.map(day => (
+                        <DayRow
+                          key={day}
+                          day={day}
+                          data={formData.availability[day]}
+                          errors={availabilityErrors}
+                          onToggle={handleDayToggle}
+                          onSessionChange={handleSessionChange}
+                          onAddSession={addSession}
+                          onRemoveSession={removeSession}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Weekend Group */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Weekend Schedule</span>
+                      {formData.availability["Saturday"].active && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-[10px] h-6 font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2 rounded"
+                          onClick={() => copyToOtherDays("Saturday", ["Sunday"])}
+                        >
+                          Clone Sat to Sun
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      {WEEKEND.map(day => (
+                        <DayRow
+                          key={day}
+                          day={day}
+                          data={formData.availability[day]}
+                          errors={availabilityErrors}
+                          onToggle={handleDayToggle}
+                          onSessionChange={handleSessionChange}
+                          onAddSession={addSession}
+                          onRemoveSession={removeSession}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
-          <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+        <div className="px-6 py-4 border-t bg-gray-50/50 dark:bg-gray-900/20 flex items-center justify-between shrink-0">
+          <Button type="button" variant="ghost" className="text-gray-500 hover:text-gray-700" onClick={() => setOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" form="staff-form" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {editStaff ? "Saving..." : "Creating..."}
-              </>
-            ) : (
-              editStaff ? "Save Changes" : "Create Staff"
-            )}
-          </Button>
-
+          <ReadOnlyTooltip>
+            <Button type="submit" form="staff-form" className="bg-blue-600 hover:bg-blue-700 text-white min-w-[140px] shadow-md hover:shadow-lg transition-all active:scale-95" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                editStaff ? "Update Records" : "Confirm & Register"
+              )}
+            </Button>
+          </ReadOnlyTooltip>
         </div>
       </DialogContent>
     </Dialog>
@@ -682,19 +698,19 @@ function DayRow({ day, data, errors, onToggle, onSessionChange, onAddSession, on
   const { active, sessions } = data;
 
   return (
-    <div className={`p-4 rounded-xl border transition-all duration-200 w-full ${active ? 'bg-blue-50/50 border-blue-100 shadow-sm' : 'bg-transparent border-transparent hover:bg-gray-50'}`}>
-      <div className="flex flex-col sm:flex-row gap-4 w-full">
+    <div className={`rounded-xl border transition-colors duration-150 w-full ${active ? 'bg-blue-50/20 dark:bg-blue-900/5 border-blue-200/50 dark:border-blue-800/40 shadow-sm' : 'bg-transparent border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700'}`}>
+      <div className="flex flex-col sm:flex-row p-3 gap-4 w-full">
         {/* Checkbox and Label */}
-        <div className="flex items-center gap-3 pt-1 sm:w-[130px] shrink-0">
+        <div className="flex items-center gap-3 sm:w-[130px] shrink-0">
           <Checkbox
             id={`day-${day}`}
             checked={active}
             onCheckedChange={(checked) => onToggle(day, checked)}
-            className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 mt-0.5"
+            className="h-5 w-5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
           />
           <label
             htmlFor={`day-${day}`}
-            className={`text-sm font-medium cursor-pointer select-none ${active ? 'text-gray-900' : 'text-gray-500'}`}
+            className={`text-sm font-bold cursor-pointer select-none ${active ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-600'}`}
           >
             {day}
           </label>
@@ -703,40 +719,39 @@ function DayRow({ day, data, errors, onToggle, onSessionChange, onAddSession, on
         {/* Sessions */}
         <div className="flex-1 min-w-0 w-full">
           {active ? (
-            <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-200 w-full">
+            <div className="flex flex-col gap-3 w-full">
               {sessions.map((session, index) => {
                 const errorKey = `${day}_${index}`;
                 const hasError = errors[errorKey];
 
                 return (
                   <div key={index} className="w-full">
-                    <div className="flex items-center gap-2 w-full">
+                    <div className="flex items-center gap-3 w-full">
                       <div className="relative flex-1 min-w-0">
                         <Input
                           type="time"
                           value={session.start}
                           onChange={(e) => onSessionChange(day, index, 'start', e.target.value)}
-                          className={`w-full h-9 bg-white text-sm transition-colors ${hasError ? 'border-red-500 focus-visible:ring-red-200' : 'focus-visible:ring-blue-200'}`}
+                          className={`h-9 bg-white dark:bg-gray-950 text-[13px] border-gray-200 dark:border-gray-800 transition-colors ${hasError ? 'border-red-500 ring-1 ring-red-100' : 'focus:ring-2 focus:ring-blue-500/20'}`}
                         />
                       </div>
-                      <span className="text-gray-400 text-xs font-medium uppercase px-1 shrink-0">to</span>
+                      <span className="text-gray-400 text-[10px] font-bold uppercase tracking-tighter shrink-0">to</span>
                       <div className="relative flex-1 min-w-0">
                         <Input
                           type="time"
                           value={session.end}
                           onChange={(e) => onSessionChange(day, index, 'end', e.target.value)}
-                          className={`w-full h-9 bg-white text-sm transition-colors ${hasError ? 'border-red-500 focus-visible:ring-red-200' : 'focus-visible:ring-blue-200'}`}
+                          className={`h-9 bg-white dark:bg-gray-950 text-[13px] border-gray-200 dark:border-gray-800 transition-colors ${hasError ? 'border-red-500 ring-1 ring-red-100' : 'focus:ring-2 focus:ring-blue-500/20'}`}
                         />
                       </div>
 
-                      {/* Delete Button Container - Fixed Width */}
                       <div className="w-8 flex justify-center shrink-0">
                         {sessions.length > 1 && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                            className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full"
                             onClick={() => onRemoveSession(day, index)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -744,7 +759,7 @@ function DayRow({ day, data, errors, onToggle, onSessionChange, onAddSession, on
                         )}
                       </div>
                     </div>
-                    {hasError && <p className="text-xs text-red-500 pl-1 mt-1">{hasError}</p>}
+                    {hasError && <p className="text-[10px] font-bold text-red-500 mt-1 pl-1 capitalize">{hasError.toLowerCase()}</p>}
                   </div>
                 );
               })}
@@ -752,17 +767,17 @@ function DayRow({ day, data, errors, onToggle, onSessionChange, onAddSession, on
               <div className="pt-1">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => onAddSession(day)}
-                  className="text-xs h-8 px-3 border-dashed text-blue-600 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                  className="text-[11px] h-7 px-3 font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10"
                 >
-                  <Plus className="h-3 w-3 mr-1.5" /> Add Session
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Consulting Window
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="pt-1.5 text-sm text-gray-400 italic font-light">Unavailable</div>
+            <div className="h-9 flex items-center px-1 text-xs text-gray-300 dark:text-gray-700 font-medium italic">Office Closed</div>
           )}
         </div>
       </div>

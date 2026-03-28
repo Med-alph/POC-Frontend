@@ -163,10 +163,10 @@ export default function AppointmentForm() {
       });
       setRegisteredPatient(newPatient);
       setShowAddPatientDialog(false);
-      toast.success("Patient registered successfully!");
       setTimeout(() => setStep(2), 500);
-    } catch {
-      toast.error("Failed to register patient");
+    } catch (error) {
+      console.error("Add patient error:", error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -344,7 +344,15 @@ export default function AppointmentForm() {
       navigate("/confirmation", { state: { appointment: created } });
     } catch (error) {
       console.error("Error booking appointment:", error);
-      toast.error("Failed to book appointment");
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message
+      const isUsageLimit =
+        error?.response?.status === 403 ||
+        apiMessage?.toLowerCase().includes("usage limit")
+      toast.error(apiMessage || "Failed to book appointment");
+      if (isUsageLimit) navigate(-1);
     } finally {
       setLoading(false);
     }
@@ -481,7 +489,15 @@ export default function AppointmentForm() {
       }
     } catch (error) {
       console.error("Error booking appointment:", error);
-      toast.error("Failed to create appointment");
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message
+      const isUsageLimit =
+        error?.response?.status === 403 ||
+        apiMessage?.toLowerCase().includes("usage limit")
+      toast.error(apiMessage || "Failed to create appointment");
+      if (isUsageLimit) navigate(-1);
     } finally {
       setLoading(false);
     }

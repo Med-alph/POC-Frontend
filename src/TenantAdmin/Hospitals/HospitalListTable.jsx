@@ -14,6 +14,8 @@ import toast from "react-hot-toast";
 import AddHospitalDialog from "./AddHospitalDialog";
 import HospitalSettings from "./HospitalSettings";
 import { Settings as SettingsIcon, ArrowLeft } from "lucide-react";
+import { useSubscription } from "../../hooks/useSubscription";
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 
 const PAGE_SIZE = 10;
 
@@ -28,6 +30,7 @@ export default function HospitalListTable() {
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showSettingsFor, setShowSettingsFor] = useState(null);
+  const { isReadOnly } = useSubscription();
 
   const fetchHospitals = async () => {
     setLoading(true);
@@ -345,16 +348,21 @@ export default function HospitalListTable() {
               setPage(1);
             }}
           />
-          <AddHospitalDialog
-            onAdd={(newHospital) => {
-              handleAddHospital(newHospital);
-              toast.success("Hospital added successfully");
-            }}
-          >
-            <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 text-white rounded-lg px-4 py-2 transition">
-              <PlusCircle size={20} /> Add Hospital
-            </Button>
-          </AddHospitalDialog>
+          <ReadOnlyTooltip isReadOnly={isReadOnly}>
+            <AddHospitalDialog
+              onAdd={(newHospital) => {
+                handleAddHospital(newHospital);
+              }}
+              disabled={isReadOnly}
+            >
+              <Button 
+                disabled={isReadOnly}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 text-white rounded-lg px-4 py-2 transition"
+              >
+                <PlusCircle size={20} /> Add Hospital
+              </Button>
+            </AddHospitalDialog>
+          </ReadOnlyTooltip>
           {selectedIds.size > 0 && (
             <Button
               variant="destructive"
@@ -473,31 +481,42 @@ export default function HospitalListTable() {
                     </div>
                   </TableCell>
                   <TableCell className="px-6 py-4 text-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSettingsFor(hospital)}
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                      aria-label={`Settings for ${hospital.name}`}
-                    >
-                      <SettingsIcon size={16} />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditHospital(hospital)}
-                      aria-label={`Edit ${hospital.name}`}
-                    >
-                      <Edit size={16} />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleteHospital(hospital)}
-                      aria-label={`Delete ${hospital.name}`}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
+                    <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isReadOnly}
+                        onClick={() => setShowSettingsFor(hospital)}
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        aria-label={`Settings for ${hospital.name}`}
+                      >
+                        <SettingsIcon size={16} />
+                      </Button>
+                    </ReadOnlyTooltip>
+                    
+                    <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isReadOnly}
+                        onClick={() => setEditHospital(hospital)}
+                        aria-label={`Edit ${hospital.name}`}
+                      >
+                        <Edit size={16} />
+                      </Button>
+                    </ReadOnlyTooltip>
+
+                    <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={isReadOnly}
+                        onClick={() => setDeleteHospital(hospital)}
+                        aria-label={`Delete ${hospital.name}`}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </ReadOnlyTooltip>
                   </TableCell>
                 </TableRow>
               ))

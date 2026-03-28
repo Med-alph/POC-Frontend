@@ -28,12 +28,13 @@ const apiRequest = async (endpoint, options = {}) => {
   // Get session ID from secure storage
   const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID)
 
+  const isAuthEndpoint = endpoint.includes('/login') || endpoint.includes('/register');
   const config = {
     ...options,
     credentials: 'include', // SOC 2: Required for httpOnly cookies
     headers: {
       ...API_CONFIG.headers,
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(token && !isAuthEndpoint && { Authorization: `Bearer ${token}` }),
       ...(sessionId && { 'X-Session-Id': sessionId }),
       ...options.headers,
     },

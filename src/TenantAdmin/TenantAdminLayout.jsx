@@ -5,6 +5,7 @@ import TenantAdminSidebar from "./TenantAdminSidebar";
 import TenantAdminNavbar from "./TenantAdminNavbar";
 import tenantsuperadminapi from "../api/tenantsuperadminapi";
 import { Loader2 } from "lucide-react";
+import SubscriptionBanner from "../components/SubscriptionBanner";
 
 export default function TenantAdminLayout() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);

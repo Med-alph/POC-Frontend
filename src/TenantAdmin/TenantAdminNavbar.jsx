@@ -4,6 +4,7 @@ import {
   Bell, Menu, LogOut, ChevronDown, 
   Settings, User, HelpCircle, Layout
 } from "lucide-react";
+import SubscriptionBanner from "../components/SubscriptionBanner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +39,8 @@ export default function TenantAdminNavbar({ onMenuClick, tenantInfo }) {
           </h2>
         </div>
       </div>
+      
+      <SubscriptionBanner variant="navbar" />
 
       <div className="flex items-center gap-2 sm:gap-4">
         {/* Profile Dropdown */}

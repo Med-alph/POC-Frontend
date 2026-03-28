@@ -37,7 +37,7 @@ export default function TermsAcceptanceModal({
       console.log('Accepting terms with data:', termsData);
       await complianceAPI.acceptTerms(termsData);
 
-      toast.success("Terms of Service accepted successfully");
+      toast.success("Terms of Service accepted successfully", { duration: 1800 });
       onAccepted();
     } catch (error) {
       console.error('Failed to accept terms:', error);

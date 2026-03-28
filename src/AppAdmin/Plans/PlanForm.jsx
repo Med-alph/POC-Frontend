@@ -208,6 +208,44 @@ const PlanForm = ({ plan, features, onSave, onPlanChange, saving, isEditing }) =
             </select>
             {errors.billing_cycle && <p className="mt-1 text-sm text-red-600">{errors.billing_cycle}</p>}
           </div>
+
+          <div>
+            <label htmlFor="trial_days" className="block text-sm font-medium text-gray-700">
+              Trial Period (Days)
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <input
+                type="number"
+                id="trial_days"
+                name="trial_days"
+                min="0"
+                value={formData.trial_days || 0}
+                onChange={handleInputChange}
+                className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., 14"
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-gray-500">Number of days for the initial reverse trial.</p>
+          </div>
+
+          <div>
+            <label htmlFor="grace_period_hours" className="block text-sm font-medium text-gray-700">
+              Grace Period (Hours)
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <input
+                type="number"
+                id="grace_period_hours"
+                name="grace_period_hours"
+                min="0"
+                value={formData.grace_period_hours || 0}
+                onChange={handleInputChange}
+                className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., 48"
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-gray-500">Hours of full access after trial expires before Read-Only mode.</p>
+          </div>
         </div>
       </div>
 

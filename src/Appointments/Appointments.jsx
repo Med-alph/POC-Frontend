@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react"
 import { useSelector } from "react-redux"
 import { useLocation } from "react-router-dom"
+import { useSubscription } from "../hooks/useSubscription"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -35,12 +36,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip"
 
 export default function Appointments() {
   const { hospitalInfo } = useHospital()
   const user = useSelector((state) => state.auth.user)
   const location = useLocation()
   const HOSPITAL_ID = user?.hospital_id || hospitalInfo?.hospital_id
+  const { isReadOnly, isModuleDisabled } = useSubscription()
+  const isBillingDisabled = isModuleDisabled('BILLING')
 
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(false)
@@ -183,6 +187,18 @@ export default function Appointments() {
       setPatients(Array.isArray(result.data) ? result.data : [])
     } catch {
       toast.error("Failed to load patients.")
+    }
+  }
+
+  const handleAddPatient = async (newPatient) => {
+    try {
+      const response = await patientsAPI.create({ ...newPatient, hospital_id: HOSPITAL_ID })
+      const createdPatient = response?.patient ?? response?.data ?? response
+      fetchPatients()
+      return createdPatient
+    } catch (error) {
+      console.error("Add patient error:", error)
+      throw error
     }
   }
 
@@ -341,8 +357,20 @@ export default function Appointments() {
       setOpen(false)
       resetModal()
       fetchAppointments()
-    } catch {
-      toast.error("Failed to book appointment")
+    } catch (error) {
+      // Extract the real error message from the API response
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message
+      const isUsageLimit =
+        error?.response?.status === 403 ||
+        apiMessage?.toLowerCase().includes("usage limit")
+      toast.error(apiMessage || "Failed to book appointment")
+      if (isUsageLimit) {
+        setOpen(false)
+        resetModal()
+      }
     } finally {
       setFormLoading(false)
     }
@@ -436,10 +464,12 @@ export default function Appointments() {
           'Time': a.appointment_time || 'N/A',
           'Type': a.appointment_type || 'N/A',
           'Status': a.status || 'N/A',
-          'Payment Status': isPaid ? 'Paid' : 'Unpaid',
-          'Total Bill': totalAmount.toFixed(2),
-          'Amount Paid': totalPaid.toFixed(2),
-          'Balance': (totalAmount - totalPaid).toFixed(2)
+          ...(isBillingDisabled ? {} : {
+            'Payment Status': isPaid ? 'Paid' : 'Unpaid',
+            'Total Bill': totalAmount.toFixed(2),
+            'Amount Paid': totalPaid.toFixed(2),
+            'Balance': (totalAmount - totalPaid).toFixed(2)
+          })
         };
       });
 
@@ -489,9 +519,15 @@ export default function Appointments() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Appointments</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">Manage medical schedules and patient visits</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700 h-10 shadow-lg transition-all" onClick={() => { setIsEditing(false); setOpen(true); setStep(1); }}>
-            <Plus className="h-4 w-4 mr-2" /> Book Appointment
-          </Button>
+          <ReadOnlyTooltip>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 h-10 shadow-lg transition-all disabled:opacity-50" 
+              onClick={() => { setIsEditing(false); setOpen(true); setStep(1); }}
+              disabled={isReadOnly}
+            >
+              <Plus className="h-4 w-4 mr-2" /> Book Appointment
+            </Button>
+          </ReadOnlyTooltip>
         </div>
 
         {/* Statistics Cards */}
@@ -611,7 +647,7 @@ export default function Appointments() {
                 <TableHead className="font-semibold text-gray-900 dark:text-white py-4">ID</TableHead>
                 <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Patient</TableHead>
                 <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Schedule</TableHead>
-                <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Payment</TableHead>
+                {!isBillingDisabled && <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Payment</TableHead>}
                 <TableHead className="font-semibold text-gray-900 dark:text-white py-4">Status</TableHead>
                 <TableHead className="text-right font-semibold text-gray-900 dark:text-white py-4 w-28">Actions</TableHead>
               </TableRow>
@@ -676,11 +712,13 @@ export default function Appointments() {
                           <span className="text-xs text-gray-500 flex items-center gap-1.5 font-bold"><Clock className="h-4 w-4 text-blue-500" /> {appt.appointment_time}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="py-5">
-                        <div className="scale-110 origin-left">
-                          {renderPaymentBadge(appt.orders)}
-                        </div>
-                      </TableCell>
+                      {!isBillingDisabled && (
+                        <TableCell className="py-5">
+                          <div className="scale-110 origin-left">
+                            {renderPaymentBadge(appt.orders)}
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell className="py-5">
                         <div className="scale-110 origin-left">
                           {renderStatusBadge(appt.status)}
@@ -698,15 +736,29 @@ export default function Appointments() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-2xl border-gray-200">
-                              <DropdownMenuItem className="text-sm font-medium py-2.5 px-3 rounded-md cursor-pointer" onClick={() => handleEditClick(appt)}>
-                                <EditIcon className="h-4 w-4 mr-2.5 text-blue-500" /> Edit Timing
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-sm font-medium py-2.5 px-3 rounded-md cursor-pointer" onClick={() => window.location.href = `/billing/${appt.id}`} disabled={!['fulfilled', 'completed'].includes(appt.status?.toLowerCase())}>
-                                <Clock className="h-4 w-4 mr-2.5 text-green-500" /> Open Billing
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-sm font-medium py-2.5 px-3 rounded-md text-red-500 focus:text-white focus:bg-red-600 cursor-pointer" onClick={() => handleCancelClick(appt)}>
-                                <Ban className="h-4 w-4 mr-2.5" /> Cancel Visit
-                              </DropdownMenuItem>
+                              <ReadOnlyTooltip>
+                                <DropdownMenuItem 
+                                  className="text-sm font-medium py-2.5 px-3 rounded-md cursor-pointer disabled:opacity-30" 
+                                  onClick={() => handleEditClick(appt)}
+                                  disabled={isReadOnly}
+                                >
+                                  <EditIcon className="h-4 w-4 mr-2.5 text-blue-500" /> Edit Timing
+                                </DropdownMenuItem>
+                              </ReadOnlyTooltip>
+                              {!isBillingDisabled && (
+                                <DropdownMenuItem className="text-sm font-medium py-2.5 px-3 rounded-md cursor-pointer" onClick={() => window.location.href = `/billing/${appt.id}`} disabled={!['fulfilled', 'completed'].includes(appt.status?.toLowerCase())}>
+                                  <Clock className="h-4 w-4 mr-2.5 text-green-500" /> Open Billing
+                                </DropdownMenuItem>
+                              )}
+                              <ReadOnlyTooltip>
+                                <DropdownMenuItem 
+                                  className="text-sm font-medium py-2.5 px-3 rounded-md text-red-500 focus:text-white focus:bg-red-600 cursor-pointer disabled:opacity-30" 
+                                  onClick={() => handleCancelClick(appt)}
+                                  disabled={isReadOnly}
+                                >
+                                  <Ban className="h-4 w-4 mr-2.5" /> Cancel Visit
+                                </DropdownMenuItem>
+                              </ReadOnlyTooltip>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -763,9 +815,11 @@ export default function Appointments() {
                     }
                   </div>
                 </div>
-                <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700" disabled={editLoading || !editSelectedSlot} onClick={handleUpdateConfirm}>
-                  {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
-                </Button>
+                <ReadOnlyTooltip>
+                  <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700" disabled={editLoading || !editSelectedSlot || isReadOnly} onClick={handleUpdateConfirm}>
+                    {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+                  </Button>
+                </ReadOnlyTooltip>
               </div>
             ) : (
               <div>
@@ -787,7 +841,9 @@ export default function Appointments() {
                       ))}
                     </div>
                     <div className="flex gap-3">
-                      <Button variant="outline" className="flex-1 h-11" onClick={() => setShowAddPatientDialog(true)}><Plus className="h-4 w-4 mr-2" /> New Patient</Button>
+                      <ReadOnlyTooltip>
+                        <Button variant="outline" className="flex-1 h-11" onClick={() => setShowAddPatientDialog(true)} disabled={isReadOnly}><Plus className="h-4 w-4 mr-2" /> New Patient</Button>
+                      </ReadOnlyTooltip>
                       <Button className="flex-1 h-11" disabled={!selectedPatient} onClick={() => setStep(2)}>Next</Button>
                     </div>
                   </div>
@@ -864,7 +920,9 @@ export default function Appointments() {
                     </div>
                     <div className="flex gap-3 pt-2">
                       <Button variant="outline" className="h-11 px-6" onClick={() => setStep(3)}>Back</Button>
-                      <Button className="flex-1 h-11 bg-blue-600 hover:bg-blue-700" disabled={formLoading} onClick={handleCreateConfirm}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Booking"}</Button>
+                      <ReadOnlyTooltip>
+                        <Button className="flex-1 h-11 bg-blue-600 hover:bg-blue-700" disabled={formLoading || isReadOnly} onClick={handleCreateConfirm}>{formLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Booking"}</Button>
+                      </ReadOnlyTooltip>
                     </div>
                   </div>
                 )}
@@ -887,14 +945,21 @@ export default function Appointments() {
               </div>
               <div className="flex gap-3 justify-end">
                 <Button variant="outline" className="h-11 px-6" onClick={() => setCancelModalOpen(false)}>Go Back</Button>
-                <Button variant="destructive" className="h-11 px-6" disabled={cancelLoading} onClick={handleConfirmCancel}>{cancelLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Cancellation"}</Button>
+                <ReadOnlyTooltip>
+                  <Button variant="destructive" className="h-11 px-6" disabled={cancelLoading || isReadOnly} onClick={handleConfirmCancel}>{cancelLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Cancellation"}</Button>
+                </ReadOnlyTooltip>
               </div>
             </div>
           </DialogContent>
         </Dialog>
 
         {/* Patient Register Dialog */}
-        <AddPatientDialog open={showAddPatientDialog} setOpen={setShowAddPatientDialog} onComplete={fetchPatients} />
+        <AddPatientDialog
+          open={showAddPatientDialog}
+          setOpen={setShowAddPatientDialog}
+          onAdd={handleAddPatient}
+          onComplete={fetchPatients}
+        />
 
         {/* Appointment View Modal */}
         <ViewModal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} data={selectedAppointment} type="appointment" />

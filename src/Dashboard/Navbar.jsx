@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote, FileText, Clipboard, MessageSquareText, Menu } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Home, Users, Stethoscope, Calendar, Clock, Settings, X, Package, Sparkles, MessageSquare, Shield, Mail, Monitor, Banknote, FileText, Clipboard, MessageSquareText, Menu, AlertCircle } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -22,19 +22,22 @@ import { useHospital } from "../contexts/HospitalContext";
 import { useAuth } from "../contexts/AuthContext";
 import ActiveSessions from "../components/ActiveSessions";
 import SupportHubDialog from "../components/support/SupportHubDialog";
+import SubscriptionBanner from "../components/SubscriptionBanner";
+import { useSubscription } from "../hooks/useSubscription";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: Home, requiredModule: UI_MODULES.DASHBOARD },
   { id: "patients", label: "Patients", path: "/patients", icon: Users, requiredModule: UI_MODULES.PATIENTS },
   { id: "doctors", label: "Doctors", path: "/doctors", icon: Stethoscope, requiredModule: UI_MODULES.DOCTORS },
   { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar, requiredModule: UI_MODULES.APPOINTMENTS },
-  { id: "inventory", label: "Inventory", path: "/inventory", icon: Package, requiredModule: UI_MODULES.INVENTORY },
+  { id: "inventory", label: "Inventory", path: "/inventory", icon: Package, requiredModule: UI_MODULES.INVENTORY, subscriptionModule: "INVENTORY" },
   { id: "leave-management", label: "Leave Management", path: "/leave-management", icon: Calendar, requiredModule: UI_MODULES.LEAVE_MANAGEMENT },
   { id: "attendance-management", label: "Attendance Management", path: "/admin/attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock, requiredModule: UI_MODULES.REMINDERS },
-  { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS },
-  { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote },
-  { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true },
+  { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS, subscriptionModule: "NOTIFICATIONS" },
+  { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote, subscriptionModule: "BILLING", requiredModule: UI_MODULES.BILLING },
+  { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true, subscriptionModule: "REPORTS", requiredModule: UI_MODULES.REPORTS },
   { id: "master-procedures", label: "Master Procedures", path: "/admin/master-procedures", icon: Clipboard, isAdminOnly: true, requiredModule: UI_MODULES.PROCEDURES },
   { id: "feedback", label: "Patient Feedback", path: "/hospital/feedback", icon: MessageSquare, isAdminOnly: true },
 ];
@@ -44,7 +47,7 @@ const doctorNavItems = [
   { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "FulfilledRecords", label: "Fulfilled Patient Records", path: "/fulfilled-records", icon: Users, requiredModule: UI_MODULES.PATIENTS },
   { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
-  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles },
+  { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles, subscriptionModule: "AI_ANALYSIS" },
   { id: "CancellationRequests", label: "Cancellation Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
 ];
 
@@ -56,6 +59,7 @@ export default function Navbar({ onMenuClick }) {
   const { hospitalInfo } = useHospital();
   const { hasModule, loading: permissionsLoading } = usePermissions();
   const { logout } = useAuth();
+  const { isModuleDisabled, loading: subscriptionLoading } = useSubscription();
   const [activeTab, setActiveTab] = useState("");
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showCopilotChat, setShowCopilotChat] = useState(false);
@@ -163,18 +167,32 @@ export default function Navbar({ onMenuClick }) {
   console.log('Using nav items:', isDoctor ? 'doctorNavItems' : 'navigationItems');
 
   // Filter navigation items based on user permissions
-  const visibleNavItems = filteredNavItems.filter(item => {
-    // 1. Check Admin Only restriction
+  const visibleNavItems = filteredNavItems.map(item => {
+    const isModuleRestricted = item.subscriptionModule && isModuleDisabled(item.subscriptionModule);
+    
+    // Soft gate: specifically for AI_ANALYSIS, show as locked instead of hiding
+    if (item.id === 'Copilot' && isModuleRestricted) {
+      return { ...item, isLocked: true };
+    }
+    
+    // Hard gate: hide everything else that is disabled
+    if (isModuleRestricted) return null;
+    
+    return item;
+  }).filter(item => {
+    if (!item) return false;
+
+    // 2. While loading, hide items to prevent unauthorized module flashing
+    if (permissionsLoading || subscriptionLoading) return false;
+
+    // 3. Admin Only restriction
     if (item.isAdminOnly) {
       const isAdmin = user?.role === 'Admin' || user?.designation_group === 'Admin' || user?.role === 'tenant_admin' || user?.role === 'HOSPITAL_ADMIN';
       if (!isAdmin) return false;
     }
 
-    // 2. Check Module restriction
+    // 4. RBAC Check (requiredModule)
     if (!item.requiredModule) return true;
-
-    // If permissions are still loading, wait
-    if (permissionsLoading) return false;
 
     // Check if user has permission for this module
     return hasModule(item.requiredModule);
@@ -261,64 +279,90 @@ export default function Navbar({ onMenuClick }) {
           </button>
         </div>
 
+        {/* Integrated Subscription Banner (Middle) */}
+        <SubscriptionBanner variant="navbar" />
+
         <div className="flex items-center gap-2 sm:gap-4">
           {isDoctor && (
-            <button
-              className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={() => setShowCopilotChat(!showCopilotChat)}
-              aria-label="Clinical Copilot"
-              title={currentPatientId ? "Clinical Copilot" : "Open a patient to use Copilot"}
-            >
-              <MessageSquare className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-              {!currentPatientId && (
-                <span className="absolute -top-0.5 -right-0.5 text-xs font-semibold bg-gray-400 rounded-full h-3 w-3 flex items-center justify-center" title="No patient selected" />
-              )}
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className={`relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${isModuleDisabled('AI_ANALYSIS') ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      if (isModuleDisabled('AI_ANALYSIS')) return;
+                      setShowCopilotChat(!showCopilotChat);
+                    }}
+                    aria-label="Clinical Copilot"
+                  >
+                    <MessageSquare className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                    {isModuleDisabled('AI_ANALYSIS') ? (
+                      <Shield className="absolute -top-1.5 -right-1.5 h-3 w-3 text-orange-500 animate-pulse" />
+                    ) : !currentPatientId && (
+                      <span className="absolute -top-0.5 -right-0.5 text-xs font-semibold bg-gray-400 rounded-full h-3 w-3 flex items-center justify-center" title="No patient selected" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="bg-gradient-to-r from-orange-600 to-amber-600 border-none text-white shadow-2xl px-4 py-2 text-sm max-w-[280px] leading-relaxed animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2">
+                    {isModuleDisabled('AI_ANALYSIS') && <AlertCircle className="h-4 w-4 shrink-0" />}
+                    <p className="font-semibold">
+                      {isModuleDisabled('AI_ANALYSIS') 
+                        ? "Your plan doesn't have AI features, please upgrade to access clinical copilot features."
+                        : "Clinical Copilot" 
+                      }
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
-          <div className="relative">
-            <button
-              className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={toggleNotifications}
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 text-xs font-semibold bg-red-600 rounded-full h-4 w-4 flex items-center justify-center text-white text-[10px]">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
+          {!isModuleDisabled('NOTIFICATIONS') && (
+            <div className="relative">
+              <button
+                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={toggleNotifications}
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 text-xs font-semibold bg-red-600 rounded-full h-4 w-4 flex items-center justify-center text-white text-[10px]">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {showNotifDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowNotifDropdown(false)} />
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[500px] overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 border border-gray-200 dark:border-gray-700">
+                    <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+                      <h3 className="text-sm font-bold flex items-center gap-2">
+                        Notifications {unreadCount > 0 && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
+                      </h3>
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {notificationsList.length === 0 ? (
+                        <div className="py-10 text-center text-gray-500 text-sm">No new notifications</div>
+                      ) : (
+                        <ul className="divide-y divide-gray-50 dark:divide-gray-800">
+                          {notificationsList.slice(0, 10).map((notif, idx) => {
+                            const id = notif.notificationId || idx;
+                            return (
+                              <li key={id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer" onClick={() => handleNotificationClick(notif, idx)}>
+                                <p className="text-sm text-gray-800 dark:text-gray-200 mb-1">{notif.message}</p>
+                                <p className="text-[10px] text-gray-400">{notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString() : ""}</p>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
-            </button>
-            {showNotifDropdown && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowNotifDropdown(false)} />
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[500px] overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 border border-gray-200 dark:border-gray-700">
-                  <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
-                    <h3 className="text-sm font-bold flex items-center gap-2">
-                       Notifications {unreadCount > 0 && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
-                    </h3>
-                  </div>
-                  <div className="max-h-[400px] overflow-y-auto">
-                    {notificationsList.length === 0 ? (
-                      <div className="py-10 text-center text-gray-500 text-sm">No new notifications</div>
-                    ) : (
-                      <ul className="divide-y divide-gray-50 dark:divide-gray-800">
-                        {notificationsList.slice(0, 10).map((notif, idx) => {
-                          const id = notif.notificationId || idx;
-                          return (
-                            <li key={id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer" onClick={() => handleNotificationClick(notif, idx)}>
-                              <p className="text-sm text-gray-800 dark:text-gray-200 mb-1">{notif.message}</p>
-                              <p className="text-[10px] text-gray-400">{notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString() : ""}</p>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+            </div>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -348,9 +392,11 @@ export default function Navbar({ onMenuClick }) {
                   <DropdownMenuItem onClick={() => navigate('/hospital/consent')}>
                     <Shield className="h-4 w-4 mr-2 text-blue-500" /> Manage Patient Consent
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/hospital/email-notifications')}>
-                    <Mail className="h-4 w-4 mr-2 text-purple-500" /> Email Notifications
-                  </DropdownMenuItem>
+                  {!isModuleDisabled('EMAIL_TEMPLATES') && (
+                    <DropdownMenuItem onClick={() => navigate('/hospital/email-notifications')}>
+                      <Mail className="h-4 w-4 mr-2 text-purple-500" /> Email Notifications
+                    </DropdownMenuItem>
+                  )}
                 </>
               )}
               <DropdownMenuSeparator />

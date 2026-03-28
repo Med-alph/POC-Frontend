@@ -3,10 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Clock, User, Stethoscope, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useSubscription } from "../../hooks/useSubscription";
 
 const LiveAppointmentList = ({ appointments = [] }) => {
     const navigate = useNavigate();
     const user = useSelector((state) => state.auth.user);
+    const { isModuleDisabled } = useSubscription();
+    const isBillingDisabled = isModuleDisabled('BILLING');
+
     const isAdmin = user?.role?.toLowerCase() === 'admin' ||
         user?.designation_group?.toLowerCase() === 'admin' ||
         user?.role?.toLowerCase() === 'tenant_admin' ||
@@ -112,7 +116,7 @@ const LiveAppointmentList = ({ appointments = [] }) => {
                                     {getPaymentBadge(appt.orders)}
                                 </div>
                                 <div className="w-[16%] flex justify-center">
-                                    {(isFinished && isAdmin) ? (
+                                    {(isFinished && isAdmin && !isBillingDisabled) ? (
                                         <Button
                                             variant="outline"
                                             className="border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-[10px] font-bold uppercase flex items-center gap-1 rounded-md px-2 py-1 h-7 shadow-sm"
@@ -122,7 +126,7 @@ const LiveAppointmentList = ({ appointments = [] }) => {
                                         </Button>
                                     ) : (
                                         <p className="text-[10px] text-gray-400 dark:text-gray-500 italic uppercase font-medium">
-                                            {status === 'cancelled' ? 'No action' : 'In progress'}
+                                            {status === 'cancelled' ? 'No action' : isFinished ? 'Completed' : 'In progress'}
                                         </p>
                                     )}
                                 </div>

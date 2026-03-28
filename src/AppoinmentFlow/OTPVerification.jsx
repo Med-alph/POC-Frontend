@@ -128,7 +128,6 @@ const OTPVerification = () => {
       return newPatient;
     } catch (error) {
       console.error("Error creating new patient:", error);
-      toast.error(error.message || "Failed to register patient");
       throw error;
     } finally {
       setLoading(false);
@@ -146,7 +145,6 @@ const OTPVerification = () => {
       setAuthData(token, patient);
       localStorage.setItem("isAuthenticated", "true");
 
-      toast.success("Registration complete!");
       navigate("/patient-dashboard", { replace: true });
     } else {
       navigate("/landing");
