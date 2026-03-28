@@ -11,12 +11,13 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import toast from 'react-hot-toast';
-import { Lock } from "lucide-react";
+import { Lock, Shield } from "lucide-react";
 import PatientConsentModal from "@/components/compliance/PatientConsentModal";
 import { complianceAPI } from "@/api/complianceapi";
 import DataProtectionNotice from "@/components/compliance/DataProtectionNotice";
 import StaffConsentRecording from "@/components/compliance/StaffConsentRecording";
 import { PHONE_REGEX, SUPPORTED_COUNTRY_CODES } from "@/constants/Constant";
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 
 
 export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isSelfRegistration = false, onComplete }) {
@@ -239,6 +240,8 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
             setFormErrors({});
             setOpen(false);
 
+            toast.success(`Patient "${createdPatient.patient_name}" added successfully!`);
+
             if (onComplete) {
                 // Pass normalized createdPatient but also preserve response if needed for tokens
                 onComplete(response);
@@ -246,230 +249,270 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
 
         } catch (error) {
             console.error('Error creating patient with consent:', error);
-            toast.error("Failed to create patient. Please try again.");
+            // Show specific error message from backend if available, otherwise generic
+            const errorMessage = error.message || "Failed to create patient. Please try again.";
+            toast.error(errorMessage);
+            
+            // Automatically close the dialogs on error as requested
+            setShowConsentModal(false);
+            setOpen(false);
+            setPendingPatientData(null);
         }
     };
 
     return (
         <>
             <Dialog open={open && !showConsentModal} onOpenChange={setOpen}>
-                <DialogContent className="max-w-[600px] h-[85vh] sm:h-[90vh] flex flex-col modal-content">
-                    <DialogHeader className="flex-shrink-0">
-                        <DialogTitle>Add New Patient</DialogTitle>
+                <DialogContent className="max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+                    <DialogHeader className="px-6 py-4 border-b bg-gray-50/50 dark:bg-gray-900/20 shrink-0">
+                        <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Add New Patient</DialogTitle>
                     </DialogHeader>
 
-                    {/* Data Protection Notice */}
-                    <DataProtectionNotice context="patient" />
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                        <div className="px-6 py-6 space-y-8">
+                            {/* Data Protection Notice */}
+                            <DataProtectionNotice context="patient" />
 
-                    <div className="flex-1 overflow-y-auto mt-4 pr-2 scrollbar-thin">
-                        <form id="patient-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
-
-                            {/* Basic Information */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="patient_name">Full Name *</Label>
-                                        <Input
-                                            id="patient_name"
-                                            name="patient_name"
-                                            placeholder="Enter patient's full name"
-                                            value={formData.patient_name}
-                                            onChange={handleChange}
-                                            required
-                                            aria-invalid={!!formErrors.patient_name}
-                                        />
-                                        {formErrors.patient_name && <p className="text-xs text-red-500 mt-1">{formErrors.patient_name}</p>}
+                            <form id="patient-form" onSubmit={handleSubmit} className="space-y-8" noValidate>
+                                {/* Basic Information */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 border-b pb-2">
+                                        <div className="h-4 w-1 bg-blue-600 rounded-full" />
+                                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Basic Information</h3>
                                     </div>
-                                    <div>
-                                        <Label htmlFor="dob">Date of Birth *</Label>
-                                        <Input
-                                            id="dob"
-                                            name="dob"
-                                            type="date"
-                                            value={formData.dob}
-                                            onChange={handleChange}
-                                            max={new Date().toISOString().split('T')[0]}
-                                            required
-                                            aria-invalid={!!formErrors.dob}
-                                        />
-                                        {formErrors.dob && <p className="text-xs text-red-500 mt-1">{formErrors.dob}</p>}
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="contact_info">Contact Number *</Label>
-                                        <Input
-                                            id="contact_info"
-                                            name="contact_info"
-                                            type="tel"
-                                            placeholder="Enter contact number"
-                                            value={formData.contact_info}
-                                            onChange={handleChange}
-                                            required
-                                            aria-invalid={!!formErrors.contact_info}
-                                        />
-                                        {formErrors.contact_info && <p className="text-xs text-red-500 mt-1">{formErrors.contact_info}</p>}
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="email">Email Address *</Label>
-                                        <Input
-                                            id="email"
-                                            name="email"
-                                            type="email"
-                                            placeholder="Enter email address"
-                                            value={formData.email}
-                                            onChange={handleChange}
-                                            required
-                                            aria-invalid={!!formErrors.email}
-                                        />
-                                        {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Address Information */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Address Information</h3>
-                                <div>
-                                    <Label htmlFor="address">Address *</Label>
-                                    <Input
-                                        id="address"
-                                        name="address"
-                                        placeholder="Enter full address"
-                                        value={formData.address}
-                                        onChange={handleChange}
-                                        required
-                                        aria-invalid={!!formErrors.address}
-                                    />
-                                    {formErrors.address && <p className="text-xs text-red-500 mt-1">{formErrors.address}</p>}
-                                </div>
-                                <div>
-                                    <Label htmlFor="emergency_contact">Emergency Contact</Label>
-                                    <Input
-                                        id="emergency_contact"
-                                        name="emergency_contact"
-                                        placeholder="Emergency contact number"
-                                        value={formData.emergency_contact}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Insurance Information */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Insurance Information</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="insurance_provider" className="flex items-center h-5 mb-1.5">Insurance Provider</Label>
-                                        <Select
-                                            value={formData.insurance_provider}
-                                            onValueChange={(value) => handleSelectChange('insurance_provider', value)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select insurance provider" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Blue Cross">Blue Cross</SelectItem>
-                                                <SelectItem value="Aetna">Aetna</SelectItem>
-                                                <SelectItem value="Cigna">Cigna</SelectItem>
-                                                <SelectItem value="UnitedHealth">UnitedHealth</SelectItem>
-                                                <SelectItem value="Medicare">Medicare</SelectItem>
-                                                <SelectItem value="Medicaid">Medicaid</SelectItem>
-                                                <SelectItem value="Other">Other</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="insurance_number" className="flex items-center gap-1 h-5 mb-1.5">
-                                            Insurance Number
-                                            <Lock className="h-3 w-3 text-blue-500" title="This field is encrypted at the application level" />
-                                        </Label>
-                                        <Input
-                                            id="insurance_number"
-                                            name="insurance_number"
-                                            placeholder="Enter insurance number"
-                                            value={formData.insurance_number}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Medical Information */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Medical Information</h3>
-                                <div>
-                                    <Label htmlFor="medical_history">Medical History</Label>
-                                    <textarea
-                                        id="medical_history"
-                                        name="medical_history"
-                                        placeholder="Enter medical history, previous conditions, surgeries, etc."
-                                        value={formData.medical_history}
-                                        onChange={handleChange}
-                                        className="w-full p-3 border border-gray-300 rounded-md resize-none"
-                                        rows={3}
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="allergies">Allergies</Label>
-                                    <textarea
-                                        id="allergies"
-                                        name="allergies"
-                                        placeholder="Enter known allergies, medications, food allergies, etc."
-                                        value={formData.allergies}
-                                        onChange={handleChange}
-                                        className="w-full p-3 border border-gray-300 rounded-md resize-none"
-                                        rows={2}
-                                    />
-                                </div>
-
-                                {/* Credit Information (Admin Only) */}
-                                {isAdmin && (
-                                    <div className="space-y-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-md">
-                                        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300">Credit Information</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <Label htmlFor="is_credit_eligible">Credit Eligible</Label>
-                                                <Select
-                                                    value={formData.is_credit_eligible}
-                                                    onValueChange={(value) => handleSelectChange('is_credit_eligible', value)}
-                                                >
-                                                    <SelectTrigger className="bg-white dark:bg-gray-800">
-                                                        <SelectValue placeholder="Select eligibility" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="yes">Yes</SelectItem>
-                                                        <SelectItem value="no">No</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            {formData.is_credit_eligible === "yes" && (
-                                                <div>
-                                                    <Label htmlFor="credit_amount">Credit Amount (₹)</Label>
-                                                    <Input
-                                                        id="credit_amount"
-                                                        name="credit_amount"
-                                                        type="number"
-                                                        placeholder="Enter credit limit"
-                                                        value={formData.credit_amount}
-                                                        onChange={handleChange}
-                                                        className="bg-white dark:bg-gray-800"
-                                                    />
-                                                </div>
-                                            )}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="patient_name" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Full Name *</Label>
+                                            <Input
+                                                id="patient_name"
+                                                name="patient_name"
+                                                placeholder="Enter patient's full name"
+                                                value={formData.patient_name}
+                                                onChange={handleChange}
+                                                className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                                                required
+                                                aria-invalid={!!formErrors.patient_name}
+                                            />
+                                            {formErrors.patient_name && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.patient_name}</p>}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="dob" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Date of Birth *</Label>
+                                            <Input
+                                                id="dob"
+                                                name="dob"
+                                                type="date"
+                                                value={formData.dob}
+                                                onChange={handleChange}
+                                                className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                                                max={new Date().toISOString().split('T')[0]}
+                                                required
+                                                aria-invalid={!!formErrors.dob}
+                                            />
+                                            {formErrors.dob && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.dob}</p>}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="contact_info" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Contact Number *</Label>
+                                            <Input
+                                                id="contact_info"
+                                                name="contact_info"
+                                                type="tel"
+                                                placeholder="+91 XXXXX XXXXX"
+                                                value={formData.contact_info}
+                                                onChange={handleChange}
+                                                className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                                                required
+                                                aria-invalid={!!formErrors.contact_info}
+                                            />
+                                            {formErrors.contact_info && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.contact_info}</p>}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="email" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Email Address *</Label>
+                                            <Input
+                                                id="email"
+                                                name="email"
+                                                type="email"
+                                                placeholder="patient@example.com"
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                                                required
+                                                aria-invalid={!!formErrors.email}
+                                            />
+                                            {formErrors.email && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.email}</p>}
                                         </div>
                                     </div>
-                                )}
-                            </div>
+                                </div>
 
-                        </form>
+                                {/* Address Information */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 border-b pb-2">
+                                        <div className="h-4 w-1 bg-blue-600 rounded-full" />
+                                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Contact & Address</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-5">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="address" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Full Address *</Label>
+                                            <Input
+                                                id="address"
+                                                name="address"
+                                                placeholder="House No, Street, Landmark, City, State, PIN"
+                                                value={formData.address}
+                                                onChange={handleChange}
+                                                className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                                                required
+                                                aria-invalid={!!formErrors.address}
+                                            />
+                                            {formErrors.address && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.address}</p>}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="emergency_contact" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Emergency Contact Number</Label>
+                                            <Input
+                                                id="emergency_contact"
+                                                name="emergency_contact"
+                                                placeholder="Relative/Friend's contact number"
+                                                value={formData.emergency_contact}
+                                                onChange={handleChange}
+                                                className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Insurance Information */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 border-b pb-2">
+                                        <div className="h-4 w-1 bg-blue-600 rounded-full" />
+                                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Insurance (Optional)</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="insurance_provider" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Insurance Provider</Label>
+                                            <Select
+                                                value={formData.insurance_provider}
+                                                onValueChange={(value) => handleSelectChange('insurance_provider', value)}
+                                            >
+                                                <SelectTrigger className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20">
+                                                    <SelectValue placeholder="Select insurance provider" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Blue Cross">Blue Cross</SelectItem>
+                                                    <SelectItem value="Aetna">Aetna</SelectItem>
+                                                    <SelectItem value="Cigna">Cigna</SelectItem>
+                                                    <SelectItem value="UnitedHealth">UnitedHealth</SelectItem>
+                                                    <SelectItem value="Medicare">Medicare</SelectItem>
+                                                    <SelectItem value="Medicaid">Medicaid</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="insurance_number" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                                                <div className="flex items-center gap-1.5">
+                                                    Insurance ID
+                                                    <Lock className="h-3 w-3 text-blue-500/70" title="Application-level encryption active" />
+                                                </div>
+                                            </Label>
+                                            <Input
+                                                id="insurance_number"
+                                                name="insurance_number"
+                                                placeholder="Policy or Membership ID"
+                                                value={formData.insurance_number}
+                                                onChange={handleChange}
+                                                className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Medical Information */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 border-b pb-2">
+                                        <div className="h-4 w-1 bg-blue-600 rounded-full" />
+                                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Clinical History</h3>
+                                    </div>
+                                    <div className="space-y-5">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="medical_history" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Previous Conditions/Surgeries</Label>
+                                            <textarea
+                                                id="medical_history"
+                                                name="medical_history"
+                                                placeholder="Describe any chronic conditions or past surgical procedures..."
+                                                value={formData.medical_history}
+                                                onChange={handleChange}
+                                                className="w-full p-3 text-sm border border-gray-200 dark:border-gray-800 rounded-lg dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all min-h-[100px] resize-none"
+                                                rows={3}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="allergies" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Medication & Food Allergies</Label>
+                                            <textarea
+                                                id="allergies"
+                                                name="allergies"
+                                                placeholder="List all known allergies to medications, food, or other substances..."
+                                                value={formData.allergies}
+                                                onChange={handleChange}
+                                                className="w-full p-3 text-sm border border-gray-200 dark:border-gray-800 rounded-lg dark:bg-gray-950 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all min-h-[80px] resize-none"
+                                                rows={2}
+                                            />
+                                        </div>
+
+                                        {/* Credit Information (Admin Only) */}
+                                        {isAdmin && (
+                                            <div className="p-5 bg-blue-50/40 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/20 rounded-xl space-y-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded">
+                                                        <Shield className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                                    </div>
+                                                    <h3 className="text-sm font-bold text-blue-900 dark:text-blue-300 uppercase tracking-tight">Credit Governance</h3>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                                    <div className="space-y-1.5">
+                                                        <Label htmlFor="is_credit_eligible" className="text-xs font-bold text-blue-800/70 dark:text-blue-400/70">Eligibility Status</Label>
+                                                        <Select
+                                                            value={formData.is_credit_eligible}
+                                                            onValueChange={(value) => handleSelectChange('is_credit_eligible', value)}
+                                                        >
+                                                            <SelectTrigger className="h-9 bg-white dark:bg-gray-900 border-blue-200/50 dark:border-blue-800/30">
+                                                                <SelectValue placeholder="Select" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="yes">Eligible for Credit</SelectItem>
+                                                                <SelectItem value="no">Not Eligible</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    {formData.is_credit_eligible === "yes" && (
+                                                        <div className="space-y-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
+                                                            <Label htmlFor="credit_amount" className="text-xs font-bold text-blue-800/70 dark:text-blue-400/70">Credit Limit (₹)</Label>
+                                                            <Input
+                                                                id="credit_amount"
+                                                                name="credit_amount"
+                                                                type="number"
+                                                                placeholder="e.g. 5000"
+                                                                value={formData.credit_amount}
+                                                                onChange={handleChange}
+                                                                className="h-9 bg-white dark:bg-gray-900 border-blue-200/50 dark:border-blue-800/30"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
-                        <Button type="button" variant="outline" onClick={() => { setOpen(false); }}>
+
+                    <div className="px-6 py-4 border-t bg-gray-50/50 dark:bg-gray-900/20 flex items-center justify-between shrink-0">
+                        <Button type="button" variant="ghost" className="text-gray-500 hover:text-gray-700" onClick={() => { setOpen(false); }}>
                             Cancel
                         </Button>
-                        <Button type="submit" form="patient-form" className="bg-blue-600 hover:bg-blue-700 text-white">
-                            {isSelfRegistration ? "Next: Review Consent" : "Continue to Record Consent"}
-                        </Button>
+                        <ReadOnlyTooltip>
+                            <Button type="submit" form="patient-form" className="bg-blue-600 hover:bg-blue-700 text-white px-6 shadow-md hover:shadow-lg transition-all active:scale-95">
+                                {isSelfRegistration ? "Next: Review Consent" : "Continue to Record Consent"}
+                            </Button>
+                        </ReadOnlyTooltip>
                     </div>
                 </DialogContent>
             </Dialog>

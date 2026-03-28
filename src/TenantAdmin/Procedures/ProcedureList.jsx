@@ -25,11 +25,14 @@ import hospitalsapi from "../../api/hospitalsapi";
 import toast from "react-hot-toast";
 import AddProcedureDialog from "./AddProcedureDialog";
 import ConfirmationModal from "../../components/ui/confirmation-modal";
+import { useSubscription } from "@/hooks/useSubscription";
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 
 const PAGE_SIZE = 10;
 
 export default function ProcedureList({ fixedHospitalId = null, isHospitalAdmin = false }) {
     const user = useSelector((state) => state.auth.user);
+    const { isReadOnly } = useSubscription();
     const [procedures, setProcedures] = useState([]);
     const [hospitals, setHospitals] = useState([]);
     const [selectedHospitalId, setSelectedHospitalId] = useState(fixedHospitalId || user?.hospital_id || "");
@@ -208,16 +211,18 @@ export default function ProcedureList({ fixedHospitalId = null, isHospitalAdmin 
                         </select>
                     </div>
 
-                    <Button
-                        className="mt-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                        onClick={() => {
-                            setEditProcedure(null);
-                            setAddDialogOpen(true);
-                        }}
-                        disabled={!selectedHospitalId}
-                    >
-                        <PlusCircle size={20} /> Add Procedure
-                    </Button>
+                    <ReadOnlyTooltip>
+                        <Button
+                            className="mt-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                            onClick={() => {
+                                setEditProcedure(null);
+                                setAddDialogOpen(true);
+                            }}
+                            disabled={!selectedHospitalId || isReadOnly}
+                        >
+                            <PlusCircle size={20} /> Add Procedure
+                        </Button>
+                    </ReadOnlyTooltip>
                 </div>
             </div>
 
@@ -273,25 +278,31 @@ export default function ProcedureList({ fixedHospitalId = null, isHospitalAdmin 
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right space-x-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => {
-                                                setEditProcedure(proc);
-                                                setAddDialogOpen(true);
-                                            }}
-                                            className="text-blue-600 hover:text-blue-800"
-                                        >
-                                            <Edit size={16} />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleDelete(proc.id)}
-                                            className="text-red-600 hover:text-red-800"
-                                        >
-                                            <Trash2 size={16} />
-                                        </Button>
+                                        <ReadOnlyTooltip>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setEditProcedure(proc);
+                                                    setAddDialogOpen(true);
+                                                }}
+                                                className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                                                disabled={isReadOnly}
+                                            >
+                                                <Edit size={16} />
+                                            </Button>
+                                        </ReadOnlyTooltip>
+                                        <ReadOnlyTooltip>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleDelete(proc.id)}
+                                                className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                                disabled={isReadOnly}
+                                            >
+                                                <Trash2 size={16} />
+                                            </Button>
+                                        </ReadOnlyTooltip>
                                     </TableCell>
                                 </TableRow>
                             ))

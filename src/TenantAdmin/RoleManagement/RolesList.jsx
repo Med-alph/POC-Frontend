@@ -12,11 +12,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useSubscription } from '@/hooks/useSubscription';
+import { ReadOnlyTooltip } from '@/components/ui/read-only-tooltip';
 import { UI_MODULE_LABELS } from '../../constants/Constant';
 
 const RolesList = ({ roles, onEdit, onDelete }) => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const { isReadOnly } = useSubscription();
 
   const handleDelete = async (role) => {
     try {
@@ -99,23 +102,29 @@ const RolesList = ({ roles, onEdit, onDelete }) => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit(role)}
-                      className="text-blue-600 hover:text-blue-700"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteConfirm(role)}
-                      className="text-red-600 hover:text-red-700"
-                      disabled={role.staff_count > 0}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isReadOnly}
+                        onClick={() => onEdit(role)}
+                        className="text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </ReadOnlyTooltip>
+
+                    <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteConfirm(role)}
+                        className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                        disabled={isReadOnly || role.staff_count > 0}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </ReadOnlyTooltip>
                   </div>
                   {role.staff_count > 0 && (
                     <div className="text-xs text-gray-500 mt-1">

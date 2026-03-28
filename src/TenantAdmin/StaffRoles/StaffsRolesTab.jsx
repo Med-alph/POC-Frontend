@@ -3,6 +3,8 @@ import hospitalsapi from "../../api/hospitalsapi";
 import staffApi from "../../api/staffapi";
 import toast from "react-hot-toast";
 import CreateStaffDialog from "../../Staff/AddStaff";
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
+import { useSubscription } from "@/hooks/useSubscription";
 
 function formatAvailability(availString) {
   if (!availString) return "-";
@@ -28,6 +30,7 @@ const StaffsRolesTab = () => {
   const [selectedHospitalId, setSelectedHospitalId] = useState(null);
   const [editStaff, setEditStaff] = useState(null);
   const [dialogKey, setDialogKey] = useState(0);
+  const { isReadOnly } = useSubscription();
 
   // Delete modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -160,12 +163,15 @@ const StaffsRolesTab = () => {
                   </div>
                 </div>
                 <div className="mb-4">
-                  <button
-                    onClick={() => openCreateStaffDialog(id)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition"
-                  >
-                    + Create Staff
-                  </button>
+                  <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                    <button
+                      onClick={() => openCreateStaffDialog(id)}
+                      disabled={isReadOnly}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition disabled:opacity-50"
+                    >
+                      + Create Staff
+                    </button>
+                  </ReadOnlyTooltip>
                 </div>
                 {staffsLoading ? (
                   <p className="text-center py-5 text-gray-500 italic">Loading staffs...</p>
@@ -220,20 +226,27 @@ const StaffsRolesTab = () => {
                               <div className="whitespace-pre-line text-xs">{formatAvailability(staff.availability)}</div>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap space-x-2">
-                              <button
-                                onClick={() => openEditStaffDialog(id, staff)}
-                                className="text-blue-600 hover:text-blue-800"
-                                aria-label={`Edit ${staff.staff_name}`}
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                onClick={(e) => confirmDeleteStaff(staff, id, e)}
-                                className="text-red-600 hover:text-red-800"
-                                aria-label={`Delete ${staff.staff_name}`}
-                              >
-                                🗑️
-                              </button>
+                              <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                                <button
+                                  onClick={() => openEditStaffDialog(id, staff)}
+                                  className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                                  disabled={isReadOnly}
+                                  aria-label={`Edit ${staff.staff_name}`}
+                                >
+                                  ✏️
+                                </button>
+                              </ReadOnlyTooltip>
+                              
+                              <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                                <button
+                                  onClick={(e) => confirmDeleteStaff(staff, id, e)}
+                                  className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                  disabled={isReadOnly}
+                                  aria-label={`Delete ${staff.staff_name}`}
+                                >
+                                  🗑️
+                                </button>
+                              </ReadOnlyTooltip>
                             </td>
                           </tr>
                         ))}

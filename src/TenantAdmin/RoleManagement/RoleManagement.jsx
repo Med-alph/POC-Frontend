@@ -5,6 +5,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import RolesList from './RolesList';
 import CreateRoleModal from './CreateRoleModal';
 import { rolesAPI } from '../../api/rolesapi';
+import { useSubscription } from '@/hooks/useSubscription';
+import { ReadOnlyTooltip } from '@/components/ui/read-only-tooltip';
 
 const RoleManagement = () => {
   const [roles, setRoles] = useState([]);
@@ -12,6 +14,7 @@ const RoleManagement = () => {
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
+  const { isReadOnly } = useSubscription();
 
   useEffect(() => {
     fetchRoles();
@@ -94,13 +97,16 @@ const RoleManagement = () => {
             <p className="text-gray-600">Manage staff roles and module permissions</p>
           </div>
         </div>
-        <Button 
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Create Role</span>
-        </Button>
+        <ReadOnlyTooltip isReadOnly={isReadOnly}>
+          <Button 
+            disabled={isReadOnly}
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create Role</span>
+          </Button>
+        </ReadOnlyTooltip>
       </div>
 
       {/* Error Alert */}

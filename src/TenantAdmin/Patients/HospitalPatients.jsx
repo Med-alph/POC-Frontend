@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import CreatePatientsDialog from "../../Patients/AddPatient";
 import EditPatientDialog from "./EditPatientDialog";
 import patientsAPI from "../../api/patientsapi";
+import { useSubscription } from "@/hooks/useSubscription";
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -13,6 +15,7 @@ function formatDate(dateStr) {
 
 const HospitalPatients = () => {
   const [hospitals, setHospitals] = useState([]);
+  const { isReadOnly } = useSubscription();
   const [expandedHospitalIds, setExpandedHospitalIds] = useState([]);
   const [hospitalPatients, setHospitalPatients] = useState({});
   const [loadingHospitals, setLoadingHospitals] = useState(false);
@@ -159,12 +162,15 @@ const HospitalPatients = () => {
             {isExpanded && (
               <div id={`hospital-panel-${id}`} className="bg-white px-6 pt-4 pb-6" role="region" aria-labelledby={`hospital-${id}`}>
                 <div className="mb-4">
-                  <button
-                    onClick={() => openCreatePatientDialog(id)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition"
-                  >
-                    + Add Patient
-                  </button>
+                  <ReadOnlyTooltip>
+                    <button
+                      onClick={() => openCreatePatientDialog(id)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition"
+                      disabled={isReadOnly}
+                    >
+                      + Add Patient
+                    </button>
+                  </ReadOnlyTooltip>
                 </div>
                 {patientsLoading ? (
                   <p className="text-center py-5 text-gray-500 italic">Loading Patients...</p>
@@ -198,23 +204,29 @@ const HospitalPatients = () => {
                             <td className="px-4 py-3 whitespace-nowrap">{patient.medical_history || "-"}</td>
                             <td className="px-4 py-3 whitespace-nowrap">{patient.allergies || "-"}</td>
                             <td className="px-4 py-3 whitespace-nowrap space-x-2">
-                              <button
-                                onClick={() => openEditPatientDialog(id, patient)}
-                                className="text-blue-600 hover:text-blue-800"
-                                aria-label={`Edit ${patient.patient_name}`}
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setPatientToDelete(patient);
-                                  setDeleteModalOpen(true);
-                                }}
-                                className="text-red-600 hover:text-red-800"
-                                aria-label={`Delete ${patient.patient_name}`}
-                              >
-                                🗑️
-                              </button>
+                              <ReadOnlyTooltip>
+                                <button
+                                  onClick={() => openEditPatientDialog(id, patient)}
+                                  className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                                  aria-label={`Edit ${patient.patient_name}`}
+                                  disabled={isReadOnly}
+                                >
+                                  ✏️
+                                </button>
+                              </ReadOnlyTooltip>
+                              <ReadOnlyTooltip>
+                                <button
+                                  onClick={() => {
+                                    setPatientToDelete(patient);
+                                    setDeleteModalOpen(true);
+                                  }}
+                                  className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                  aria-label={`Delete ${patient.patient_name}`}
+                                  disabled={isReadOnly}
+                                >
+                                  🗑️
+                                </button>
+                              </ReadOnlyTooltip>
                             </td>
                           </tr>
                         ))}
@@ -279,16 +291,18 @@ const HospitalPatients = () => {
             >
               Cancel
             </button>
-            <button
-              onClick={handleDeleteConfirmed}
-              className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 flex items-center justify-center min-w-[90px]"
-              disabled={deleting}
-            >
-              {deleting && (
-                <span className="inline-block w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></span>
-              )}
-              {deleting ? "Deleting..." : "Delete"}
-            </button>
+            <ReadOnlyTooltip>
+              <button
+                onClick={handleDeleteConfirmed}
+                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 flex items-center justify-center min-w-[90px] disabled:opacity-50"
+                disabled={deleting || isReadOnly}
+              >
+                {deleting && (
+                  <span className="inline-block w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></span>
+                )}
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </ReadOnlyTooltip>
           </div>
         </div>
       )}

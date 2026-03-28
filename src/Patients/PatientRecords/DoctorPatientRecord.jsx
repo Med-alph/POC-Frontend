@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import consultationsAPI from "../../api/consultationsapi";
 import CopilotPanel from "@/components/CopilotPanel";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const tabs = ["Appointments", "SOAP Notes", "Procedures", "Medications", "Lab Results", "Allergies & Notes", 'Gallery'];
 
@@ -15,6 +16,7 @@ const DoctorPatientRecord = () => {
     const { patientId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const { isModuleDisabled } = useSubscription();
     const [activeTab, setActiveTab] = useState(tabs[0]);
 
     // Check if navigation state contains activeTab
@@ -339,13 +341,15 @@ const DoctorPatientRecord = () => {
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Back
                         </Button>
-                        <Button
-                            onClick={() => setIsCopilotOpen(true)}
-                            className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-                        >
-                            <Sparkles className="h-4 w-4" />
-                            AI Insights
-                        </Button>
+                        {!isModuleDisabled('AI_ANALYSIS') && (
+                            <Button
+                                onClick={() => setIsCopilotOpen(true)}
+                                className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                            >
+                                <Sparkles className="h-4 w-4" />
+                                AI Insights
+                            </Button>
+                        )}
                         <Button
                             onClick={downloadAllSOAPNotes}
                             disabled={consultations.length === 0}

@@ -6,9 +6,12 @@ import { Activity, Search, Filter } from "lucide-react";
 import proceduresAPI from "../api/proceduresapi";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
+import { useSubscription } from "../hooks/useSubscription";
 
 const ProceduresPage = () => {
     const user = useSelector((state) => state.auth.user);
+    const { isModuleDisabled } = useSubscription();
+    const isBillingDisabled = isModuleDisabled('BILLING');
     const [procedures, setProcedures] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -102,7 +105,7 @@ const ProceduresPage = () => {
                                             <TableHead className="w-[300px] font-bold text-gray-700 dark:text-gray-300">Procedure Name</TableHead>
                                             <TableHead className="font-bold text-gray-700 dark:text-gray-300">Category</TableHead>
                                             <TableHead className="font-bold text-gray-700 dark:text-gray-300">Duration (min)</TableHead>
-                                            <TableHead className="font-bold text-gray-700 dark:text-gray-300 text-right">Standard Price</TableHead>
+                                            {!isBillingDisabled && <TableHead className="font-bold text-gray-700 dark:text-gray-300 text-right">Standard Price</TableHead>}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -122,9 +125,11 @@ const ProceduresPage = () => {
                                                 <TableCell className="text-gray-600 dark:text-gray-400">
                                                     {proc.duration} mins
                                                 </TableCell>
-                                                <TableCell className="text-right font-bold text-gray-900 dark:text-white">
-                                                    ₹{proc.price.toLocaleString('en-IN')}
-                                                </TableCell>
+                                                {!isBillingDisabled && (
+                                                    <TableCell className="text-right font-bold text-gray-900 dark:text-white">
+                                                        ₹{proc.price.toLocaleString('en-IN')}
+                                                    </TableCell>
+                                                )}
                                             </TableRow>
                                         ))}
                                     </TableBody>

@@ -82,9 +82,9 @@ export default function SimpleAppointmentPage() {
       });
       setRegisteredPatient(newPatient);
       setShowAddPatientDialog(false);
-      toast.success("Patient registered successfully!");
-    } catch {
-      toast.error("Failed to register patient");
+    } catch (error) {
+      console.error("Add patient error:", error);
+      throw error;
     } finally {
       setLoading(false);
     }

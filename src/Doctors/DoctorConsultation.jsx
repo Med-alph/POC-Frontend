@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
+import { useSubscription } from "../hooks/useSubscription";
 import { 
     User as UserIcon, 
     ClipboardList, 
@@ -42,11 +43,13 @@ import proceduresAPI from "../api/proceduresapi";
 import ProcedureAutocomplete from "../components/ProcedureAutocomplete";
 import { baseUrl } from "../constants/Constant";
 import { getAuthToken } from "../utils/auth";
+import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 
 
 const DoctorConsultation = () => {
     const { appointmentId } = useParams();
     const user = useSelector((state) => state.auth.user);
+    const { isReadOnly } = useSubscription();
 
     const [appointmentData, setAppointmentData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -699,13 +702,16 @@ const DoctorConsultation = () => {
             {!isCompleted && !isCancelled && (
                 <div className="flex gap-3 justify-end">
                     {canStartConsultation && (
-                        <button
-                            onClick={handleStartConsultation}
-                            className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                        >
-                            <Play className="h-4 w-4" />
-                            Start Consultation
-                        </button>
+                        <ReadOnlyTooltip>
+                            <button
+                                onClick={handleStartConsultation}
+                                disabled={isReadOnly}
+                                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Play className="h-4 w-4" />
+                                Start Consultation
+                            </button>
+                        </ReadOnlyTooltip>
                     )}
 
                     {/* {isConsultationStarted && user?.id && (
@@ -747,13 +753,16 @@ const DoctorConsultation = () => {
                     )} */}
 
                     {canCancelAppointment && !cancelRequested && (
-                        <button
-                            onClick={() => setShowCancelModal(true)}
-                            className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                        >
-                            <XCircle className="h-4 w-4" />
-                            Cancel Appointment
-                        </button>
+                        <ReadOnlyTooltip>
+                            <button
+                                onClick={() => setShowCancelModal(true)}
+                                disabled={isReadOnly}
+                                className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <XCircle className="h-4 w-4" />
+                                Cancel Appointment
+                            </button>
+                        </ReadOnlyTooltip>
                     )}
                     {cancelRequested && (
                         <button
@@ -922,13 +931,16 @@ const DoctorConsultation = () => {
                         )}
                     </h2>
                     {isConsultationStarted && !isCompleted && (
-                        <button
-                            onClick={() => setShowUploadModal(true)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors"
-                        >
-                            <Camera className="h-4 w-4" />
-                            Upload Images
-                        </button>
+                        <ReadOnlyTooltip>
+                            <button
+                                onClick={() => setShowUploadModal(true)}
+                                disabled={isReadOnly}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Camera className="h-4 w-4" />
+                                Upload Images
+                            </button>
+                        </ReadOnlyTooltip>
                     )}
                 </div>
 
@@ -963,27 +975,29 @@ const DoctorConsultation = () => {
                         <Pill className="h-5 w-5 text-blue-500" /> Prescriptions
                     </h2>
                     {isConsultationStarted && !isCompleted && (
-                        <button
-                            id="ai-safety-scan-btn"
-                            onClick={handleCheckPrescriptionSafety}
-                            disabled={isCheckingSafety}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${
-                                isCheckingSafety 
-                                ? 'bg-gray-100 text-gray-400' 
-                                : safetyReport?.status?.toLowerCase() === 'high risk'
-                                    ? 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 shake-animation'
-                                    : safetyReport?.status?.toLowerCase() === 'caution'
-                                        ? 'bg-amber-50 text-amber-600 border-2 border-amber-200 hover:bg-amber-100'
-                                        : 'bg-indigo-50 text-indigo-600 border-2 border-indigo-100 hover:bg-indigo-100'
-                            }`}
-                        >
-                            {isCheckingSafety ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Sparkles className="h-4 w-4" />
-                            )}
-                            {isCheckingSafety ? "Analyzing Safety..." : "Scan for Allergies & Conflicts"}
-                        </button>
+                        <ReadOnlyTooltip>
+                            <button
+                                id="ai-safety-scan-btn"
+                                onClick={handleCheckPrescriptionSafety}
+                                disabled={isCheckingSafety || isReadOnly}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    isCheckingSafety 
+                                    ? 'bg-gray-100 text-gray-400' 
+                                    : safetyReport?.status?.toLowerCase() === 'high risk'
+                                        ? 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 shake-animation'
+                                        : safetyReport?.status?.toLowerCase() === 'caution'
+                                            ? 'bg-amber-50 text-amber-600 border-2 border-amber-200 hover:bg-amber-100'
+                                            : 'bg-indigo-50 text-indigo-600 border-2 border-indigo-100 hover:bg-indigo-100'
+                                }`}
+                            >
+                                {isCheckingSafety ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Sparkles className="h-4 w-4" />
+                                )}
+                                {isCheckingSafety ? "Analyzing Safety..." : "Scan for Allergies & Conflicts"}
+                            </button>
+                        </ReadOnlyTooltip>
                     )}
                 </div>
 
@@ -1102,13 +1116,15 @@ const DoctorConsultation = () => {
                 ))}
 
                 {!isCompleted && (
-                    <button
-                        onClick={addPrescription}
-                        className="mt-2 text-blue-500 text-sm font-semibold hover:underline"
-                        disabled={!isConsultationStarted}
-                    >
-                        + Add Prescription
-                    </button>
+                    <ReadOnlyTooltip>
+                        <button
+                            onClick={addPrescription}
+                            className="mt-2 text-blue-500 text-sm font-semibold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                            disabled={!isConsultationStarted || isReadOnly}
+                        >
+                            + Add Prescription
+                        </button>
+                    </ReadOnlyTooltip>
                 )}
             </div>
 
@@ -1148,13 +1164,15 @@ const DoctorConsultation = () => {
                 ))}
 
                 {!isCompleted && (
-                    <button
-                        onClick={addLabOrder}
-                        className="mt-2 text-blue-500 text-sm font-semibold hover:underline"
-                        disabled={!isConsultationStarted}
-                    >
-                        + Add Lab Order
-                    </button>
+                    <ReadOnlyTooltip>
+                        <button
+                            onClick={addLabOrder}
+                            className="mt-2 text-blue-500 text-sm font-semibold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                            disabled={!isConsultationStarted || isReadOnly}
+                        >
+                            + Add Lab Order
+                        </button>
+                    </ReadOnlyTooltip>
                 )}
             </div>
 
@@ -1221,26 +1239,30 @@ const DoctorConsultation = () => {
                             />
                         </div>
                         <div className="md:col-span-1 flex justify-center pt-2">
-                            <button
-                                onClick={() => removeProcedure(index)}
-                                className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
-                                title="Remove Procedure"
-                                disabled={!isConsultationStarted || isCompleted}
-                            >
-                                <Trash2 size={18} />
-                            </button>
+                            <ReadOnlyTooltip>
+                                <button
+                                    onClick={() => removeProcedure(index)}
+                                    className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Remove Procedure"
+                                    disabled={!isConsultationStarted || isCompleted || isReadOnly}
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </ReadOnlyTooltip>
                         </div>
                     </div>
                 ))}
 
                 {!isCompleted && (
-                    <button
-                        onClick={addProcedure}
-                        className="mt-2 text-blue-500 text-sm font-semibold hover:underline flex items-center gap-1"
-                        disabled={!isConsultationStarted}
-                    >
-                        <PlusCircle size={14} /> Add Another Procedure
-                    </button>
+                    <ReadOnlyTooltip>
+                        <button
+                            onClick={addProcedure}
+                            className="mt-2 text-blue-500 text-sm font-semibold hover:underline flex items-center gap-1 disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                            disabled={!isConsultationStarted || isReadOnly}
+                        >
+                            <PlusCircle size={14} /> Add Another Procedure
+                        </button>
+                    </ReadOnlyTooltip>
                 )}
             </div>
 
@@ -1364,23 +1386,25 @@ const DoctorConsultation = () => {
                 </button>
 
                 {canEndConsultation && (
-                    <button
-                        onClick={handleEndConsultation}
-                        disabled={isSaving}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                    >
-                        {isSaving ? (
-                            <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <StopCircle className="h-4 w-4" />
-                                End & Save Consultation
-                            </>
-                        )}
-                    </button>
+                    <ReadOnlyTooltip>
+                        <button
+                            onClick={handleEndConsultation}
+                            disabled={isSaving || isReadOnly}
+                            className={`flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                            {isSaving ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <StopCircle className="h-4 w-4" />
+                                    End & Save Consultation
+                                </>
+                            )}
+                        </button>
+                    </ReadOnlyTooltip>
                 )}
             </div>
 

@@ -55,11 +55,22 @@ export const isTenantSuperAdminPortal = () => {
     if (hostname === 'localhost' || hostname === '127.0.0.1') return false;
     const parts = hostname.split('.');
 
+    if (parts[0] !== 'superadmin') return false;
+
     if (hostname.endsWith('.localhost')) {
-        return parts[0] === 'superadmin' && parts.length >= 3;
+        return parts.length >= 3;
     }
 
-    return parts[0] === 'superadmin' && parts.length >= 4;
+    // Production:
+    // Platform admin: superadmin.medalph.com (3 labels) OR superadmin.frontend-emr.medalph.com (4 labels)
+    // Tenant admin portal: superadmin.tenant.medalph.com (4 labels) OR superadmin.tenant.frontend-emr.medalph.com (5 labels)
+    
+    // We check if it's the special platform subdomain 'frontend-emr'
+    if (parts.length === 4 && parts[1] === 'frontend-emr') {
+        return false;
+    }
+
+    return parts.length >= 4;
 };
 
 /** Medalph platform admin only (excludes tenant superadmin portal on superadmin.* hosts). */

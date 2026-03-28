@@ -112,9 +112,9 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const { access_token, user } = action.payload
+      const { access_token, user, uiModules } = action.payload
       state.token = access_token
-      state.user = user
+      state.user = { ...user, uiModules: uiModules || user?.uiModules }
       state.isAuthenticated = true
       state.error = null
 
@@ -167,9 +167,9 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false
-        const { access_token, user } = action.payload
+        const { access_token, user, uiModules } = action.payload
         state.token = access_token
-        state.user = user
+        state.user = { ...user, uiModules: uiModules || user?.uiModules }
         state.isAuthenticated = true
         state.error = null
 
@@ -209,9 +209,9 @@ const authSlice = createSlice({
         state.loading = true
       })
       .addCase(checkAuth.fulfilled, (state, action) => {
-        const { user, access_token } = action.payload
+        const { user, access_token, uiModules } = action.payload
         state.loading = false
-        state.user = user
+        state.user = { ...user, uiModules: uiModules || user?.uiModules }
         state.token = access_token
         state.isAuthenticated = true
         state.error = null

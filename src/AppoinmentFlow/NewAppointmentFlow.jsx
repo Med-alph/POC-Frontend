@@ -207,7 +207,18 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
       else navigate("/confirmation", { state: { appointment: created } });
     } catch (error) {
       console.error("Booking error:", error);
-      toast.error("Failed to book appointment");
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message
+      const isUsageLimit =
+        error?.response?.status === 403 ||
+        apiMessage?.toLowerCase().includes("usage limit")
+      toast.error(apiMessage || "Failed to book appointment");
+      if (isUsageLimit) {
+        if (onSuccess) onSuccess(null);
+        else navigate(-1);
+      }
     } finally {
       setSubmitting(false);
     }

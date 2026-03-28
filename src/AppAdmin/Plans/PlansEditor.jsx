@@ -18,6 +18,8 @@ const PlansEditor = () => {
     billing_cycle: 'monthly',
     status: 'draft',
     description: '',
+    trial_days: 14,
+    grace_period_hours: 48,
     features: []
   });
 
@@ -67,6 +69,8 @@ const PlansEditor = () => {
         billing_cycle: response.billing_cycle,
         status: response.status,
         description: response.description || '',
+        trial_days: response.trial_days || 0,
+        grace_period_hours: response.grace_period_hours || 48,
         features: planFeatures
       });
     } catch (error) {

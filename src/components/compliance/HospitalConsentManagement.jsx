@@ -7,10 +7,12 @@ import { complianceAPI } from "@/api/complianceapi";
 import toast from 'react-hot-toast';
 import ConsentTextEditor from "./ConsentTextEditor";
 import ConsentPreview from "./ConsentPreview";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export default function HospitalConsentManagement() {
   const user = useSelector((state) => state.auth.user);
   const hospitalId = user?.hospital_id;
+  const { isReadOnly } = useSubscription();
 
   const [consentConfig, setConsentConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -301,6 +303,7 @@ If you have questions, please contact our Privacy Officer.`;
                 onTextChange={handleConsentTextChange}
                 onSave={() => handleSave(consentConfig.consent_text)}
                 saving={saving}
+                isReadOnly={isReadOnly}
               />
             ) : (
               <ConsentTextEditor
@@ -309,6 +312,7 @@ If you have questions, please contact our Privacy Officer.`;
                 onTextChange={handleNPPTextChange}
                 onSave={() => handleSave(consentConfig.npp_text)}
                 saving={saving}
+                isReadOnly={isReadOnly}
               />
             )}
           </CardContent>

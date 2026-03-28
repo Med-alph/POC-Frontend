@@ -16,6 +16,7 @@ import {
 import { Mail, Lock, Eye, EyeOff, Shield } from "lucide-react"
 import { useToast } from "@/components/ui/toast"; // ✅ shadcn 
 import { Link } from "react-router-dom"
+import { useHospital } from "../contexts/HospitalContext"
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
@@ -32,13 +33,18 @@ export default function Login() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { addToast: toast } = useToast()
+  const { hospitalInfo } = useHospital()
 
   const handleLogin = async () => {
     try {
       setError("")
       setIsLoading(true)
 
-      const response = await authAPI.login({ email, password })
+      const response = await authAPI.login({ 
+        email, 
+        password,
+        hospital_id: hospitalInfo?.hospital_id || hospitalInfo?.id 
+      })
 
       if (response.access_token && response.user) {
         // Store complete response in Redux (including uiModules and session_id)

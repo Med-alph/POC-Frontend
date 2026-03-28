@@ -82,7 +82,7 @@ export default function TenantAdminDashboard() {
             />
             <div className="grid grid-cols-1 gap-3">
               <div className="flex justify-between items-center text-sm p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                <span className="text-gray-500 dark:text-gray-400">Start Date</span>
+                <span className="text-gray-500 dark:text-gray-400">Member Since</span>
                 <span className="font-bold">{tenantInfo.plan_start ? new Date(tenantInfo.plan_start).toLocaleDateString() : "N/A"}</span>
               </div>
               <div className="flex justify-between items-center text-sm p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">

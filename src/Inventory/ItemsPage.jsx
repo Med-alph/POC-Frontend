@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSubscription } from '../hooks/useSubscription';
 import { useInventory } from '../contexts/InventoryContext';
 import { Plus, Search, Filter, MoreHorizontal, Package, AlertTriangle, RefreshCw, Download, Users, Edit, Archive, RotateCcw, Upload } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -22,6 +23,7 @@ import { getExpiryStatus, getExpiryStatusIcon } from '../utils/batchUtils';
 
 export default function ItemsPage() {
   const { items, categories, loading, filters, setFilters, loadItems, loadCategories } = useInventory();
+  const { isReadOnly } = useSubscription();
   const [showStockModal, setShowStockModal] = useState(false);
   const [showBatchStockInModal, setShowBatchStockInModal] = useState(false);
   const [showBatchStockOutModal, setShowBatchStockOutModal] = useState(false);
@@ -419,6 +421,7 @@ export default function ItemsPage() {
                 <Button
                   variant="outline"
                   onClick={() => setShowBulkImportModal(true)}
+                  disabled={isReadOnly}
                   className="flex items-center gap-2"
                 >
                   <Upload className="h-4 w-4" />
@@ -426,6 +429,7 @@ export default function ItemsPage() {
                 </Button>
                 <Button
                   className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md"
+                  disabled={isReadOnly}
                   onClick={() => setShowAddModal(true)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -555,7 +559,7 @@ export default function ItemsPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleStockAction(item, 'IN')}
-                            disabled={!item.is_active}
+                            disabled={!item.is_active || isReadOnly}
                             className="h-8 px-2"
                           >
                             In
@@ -564,7 +568,7 @@ export default function ItemsPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleStockAction(item, 'OUT')}
-                            disabled={!item.is_active || item.current_stock === 0}
+                            disabled={!item.is_active || item.current_stock === 0 || isReadOnly}
                             className="h-8 px-2"
                           >
                             Out

@@ -10,6 +10,7 @@ import JitsiMeeting from "@/components/JitsiMeeting";
 import socketService from "@/services/socketService";
 import { videoCallAPI } from "@/api/videocallapi";
 import { generateRoomName, generateMeetingUrl } from "@/utils/callUtils";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const DoctorAppointments = ({ appointments, loading, doctorName }) => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -22,6 +23,8 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
 
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
+  const { isModuleDisabled } = useSubscription();
+  const isVideoDisabled = isModuleDisabled('VIDEO_CONSULTATIONS');
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -464,21 +467,23 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  {(existingActiveCall || (activeCallId && activeRoomName && !showCall)) ? (
-                    <Button
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 text-sm font-medium rounded-md"
-                      onClick={rejoinCallHandler}
-                    >
-                      Rejoin Active Call
-                    </Button>
-                  ) : (
-                    <Button
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-9 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={startCallHandler}
-                      disabled={isInitiatingCall || !socketService.isConnected()}
-                    >
-                      {isInitiatingCall ? 'Starting Call...' : 'Start Call'}
-                    </Button>
+                  {!isVideoDisabled && (
+                    (existingActiveCall || (activeCallId && activeRoomName && !showCall)) ? (
+                      <Button
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 text-sm font-medium rounded-md"
+                        onClick={rejoinCallHandler}
+                      >
+                        Rejoin Active Call
+                      </Button>
+                    ) : (
+                      <Button
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-9 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={startCallHandler}
+                        disabled={isInitiatingCall || !socketService.isConnected()}
+                      >
+                        {isInitiatingCall ? 'Starting Call...' : 'Start Call'}
+                      </Button>
+                    )
                   )}
                   <Button
                     variant="outline"

@@ -142,7 +142,9 @@ export default function TenantOnboardingDialog({
       const payload = {
         ...formData,
         plan_start: formData.plan_start ? new Date(formData.plan_start) : new Date(),
-        plan_end: formData.plan_end ? new Date(formData.plan_end) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+        plan_end: formData.plan_end 
+          ? new Date(formData.plan_end) 
+          : new Date(Date.now() + (selectedPlan?.trial_days || 14) * 24 * 60 * 60 * 1000), // Use trial_days from plan
         allowed_users: formData.allowed_users ? Number(formData.allowed_users) : selectedPlan?.maxUsers || 10,
         status: formData.status || "Active",
         plan_type: selectedPlan?.name || formData.plan_type,
