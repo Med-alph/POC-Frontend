@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { getGreeting } from '@/utils/dateUtils';
 import DoctorAppointments from "./DoctorAppointments";
 import { CalendarDays, UserX, Clock, CheckCircle2, Timer, LogIn, LogOut } from "lucide-react";
 // import TodaysSchedule from "./comps/TodaysSchedule"; // Commented out - using NextHoursChart instead
@@ -318,7 +319,7 @@ const DoctorDashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
-              Good Morning, {user?.name || "Doctor"}
+              {getGreeting()}, {user?.name || "Doctor"}
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Here's your live attendance tracker and today's schedule

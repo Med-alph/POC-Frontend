@@ -682,7 +682,7 @@ export default function Appointments() {
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
                           <Stethoscope className="h-5 w-5 text-blue-600" />
                         </div>
-                        <span className="font-bold text-lg text-gray-900 dark:text-gray-100">Dr. {group.name}</span>
+                        <span className="font-bold text-lg text-gray-900 dark:text-gray-100"> {group.name}</span>
                         <Badge variant="secondary" className="bg-white dark:bg-gray-800 text-xs h-6 px-3 border-none shadow-sm">{group.appointments.length} Appointments</Badge>
                       </div>
                     </TableCell>

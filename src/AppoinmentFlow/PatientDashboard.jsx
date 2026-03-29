@@ -181,16 +181,16 @@ export default function PatientDashboard() {
       console.log('Initializing Socket.IO for patient:', patient.id);
       socketService.connect(patient.id);
 
-      // Check connection status after a moment
-      setTimeout(() => {
-        const isConnected = socketService.isConnected();
-        console.log('Patient Socket.IO connection status:', isConnected);
-        if (isConnected) {
-          toast.success('Connected to call service');
-        } else {
-          toast.error('Failed to connect to call service');
-        }
-      }, 2000);
+      // The socket service will now automatically handle reconnections in the background
+      // without bothering the user with error toasts for initial handshake delays.
+      socketService.on('connect', () => {
+        console.log('Patient Socket.IO connected');
+        toast.success('Call service ready', { id: 'socket-status' });
+      });
+
+      socketService.on('connect_error', (error) => {
+        console.warn('Socket connection retry...', error.message);
+      });
 
       // Listen for incoming call events
       socketService.onIncomingCall((callData) => {

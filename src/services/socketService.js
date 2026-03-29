@@ -32,14 +32,26 @@ class SocketService {
         token: authToken,
         userId: userId
       },
+      // Reconnection settings
       reconnection: true,
-      reconnectionAttempts: this.maxReconnectAttempts,
-      reconnectionDelay: this.reconnectDelay,
+      reconnectionAttempts: Infinity, // Keep trying to reconnect
+      reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      timeout: 10000,
-      transports: ['websocket', 'polling'],
+      timeout: 20000, // Increased timeout for slow handshakes
+      
+      // Transport settings
+      // Starting with websocket is often more reliable in modern proxies if they support it
+      transports: ['websocket', 'polling'], 
+      upgrade: true,
+      rememberUpgrade: true,
+      
+      // Lite Proxy/Nginx requirements
       path: '/socket.io/',
-      withCredentials: true
+      withCredentials: true,
+      
+      // Extra resilience
+      forceNew: false,
+      closeOnBeforeunload: true
     });
 
     this._setupConnectionHandlers();
@@ -377,14 +389,17 @@ class SocketService {
         },
         query,
         reconnection: true,
-        reconnectionAttempts: this.maxReconnectAttempts,
-        reconnectionDelay: this.reconnectDelay,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 10000,
+        timeout: 20000,
         transports: ['websocket', 'polling'],
-        // Ensure we use the standard path that Lite Proxy handles
+        upgrade: true,
+        rememberUpgrade: true,
         path: '/socket.io/',
-        withCredentials: true
+        withCredentials: true,
+        forceNew: false,
+        closeOnBeforeunload: true
       });
 
       this.notificationsSocket.on('connect', () => {

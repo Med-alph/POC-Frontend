@@ -32,16 +32,15 @@ const DoctorAppointments = ({ appointments, loading, doctorName }) => {
       console.log('Initializing Socket.IO for doctor:', user.id);
       socketService.connect(user.id);
 
-      // Check connection status after a moment
-      setTimeout(() => {
-        const isConnected = socketService.isConnected();
-        console.log('Doctor Socket.IO connection status:', isConnected);
-        if (isConnected) {
-          toast.success('Connected to call service');
-        } else {
-          toast.error('Failed to connect to call service');
-        }
-      }, 2000);
+      // Background connection handler
+      socketService.on('connect', () => {
+        console.log('Doctor Socket.IO connected');
+        toast.success('Call service ready', { id: 'doctor-socket-status' });
+      });
+
+      socketService.on('connect_error', (error) => {
+        console.warn('Socket connection retry...', error.message);
+      });
 
       // Listen for call status events
       socketService.onCallStarted((data) => {

@@ -76,10 +76,18 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
         .map((s, idx) => {
           let label = "Session";
           const startH = parseInt(s.start.split(':')[0], 10);
+          const endH = parseInt(s.end.split(':')[0], 10);
+          const duration = endH - startH;
 
-          if (startH < 12) label = "Morning";
-          else if (startH < 17) label = "Afternoon";
-          else label = "Evening";
+          if (duration >= 8 || (startH < 12 && endH >= 18)) {
+            label = "Full Day";
+          } else if (startH < 12) {
+            label = "Morning";
+          } else if (startH < 17) {
+            label = "Afternoon";
+          } else {
+            label = "Evening";
+          }
 
           return {
             id: idx,
@@ -452,7 +460,7 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="text-center">
                 <h3 className="text-xl font-bold text-gray-900">Choose Available Time</h3>
-                <p className="text-gray-500 text-sm">Viewing slots for Dr. {selectedDoctor?.staff_name}</p>
+                <p className="text-gray-500 text-sm">Viewing slots for  {selectedDoctor?.staff_name}</p>
               </div>
               {loadingSlots ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-blue-600" /></div> : (
                 <>
