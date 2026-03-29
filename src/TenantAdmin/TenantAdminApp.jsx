@@ -12,6 +12,7 @@ import StaffsRolesTab from './StaffRoles/StaffsRolesTab';
 import RoleManagement from './RoleManagement/RoleManagement';
 import HospitalPatinets from './Patients/HospitalPatients';
 import SuperAdminSupportTickets from './SuperAdminSupportTickets';
+import TenantAdminFaq from './TenantAdminFaq';
 
 const TenantAdminApp = () => {
   return (
@@ -26,6 +27,7 @@ const TenantAdminApp = () => {
         <Route path="/tenant/staffs" element={<StaffsRolesTab />} />
         <Route path="/tenant/roles" element={<RoleManagement />} />
         <Route path="/tenant/patients" element={<HospitalPatinets />} />
+        <Route path="/tenant/faqs" element={<TenantAdminFaq />} />
         
         <Route
           path="/tenant/support"

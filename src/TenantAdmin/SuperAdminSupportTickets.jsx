@@ -9,8 +9,8 @@ import { getAuthToken } from "../utils/auth";
 import toast from "react-hot-toast";
 import socketService from "../services/socketService";
 
-async function fetchTenantHospitals(tenantId) {
-  const url = `${baseUrl}/hospitals/tenant/${encodeURIComponent(tenantId)}`;
+async function fetchTenantHospitals() {
+  const url = `${baseUrl}/hospitals/tenant`;
   const r = await fetch(url, {
     credentials: "include",
     headers: {
@@ -32,8 +32,8 @@ export default function SuperAdminSupportTickets() {
   const [priority, setPriority] = useState("");
 
   const hospitalsQuery = useQuery({
-    queryKey: ["tenant-hospitals", tenantId],
-    queryFn: () => fetchTenantHospitals(tenantId),
+    queryKey: ["tenant-hospitals"],
+    queryFn: () => fetchTenantHospitals(),
     enabled: !!tenantId,
   });
 

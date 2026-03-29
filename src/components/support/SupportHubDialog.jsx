@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MessageSquareText, Search, Loader2 } from "lucide-react";
+import { MessageSquareText, Search, Loader2, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,11 +44,12 @@ function priorityBadge(priority) {
 function canManageFaq(user) {
   if (!user) return false;
   const r = typeof user.role === "string" ? user.role.toLowerCase() : "";
-  if (r === "superadmin") return true;
+  const d = typeof user.designation_group === "string" ? user.designation_group.toLowerCase() : "";
   return (
-    user.role === "Admin" ||
-    user.designation_group === "Admin" ||
-    user.role === "HOSPITAL_ADMIN"
+    r === "superadmin" ||
+    r === "admin" ||
+    r === "hospital_admin" ||
+    d === "admin"
   );
 }
 
@@ -56,7 +57,6 @@ export default function SupportHubDialog({ open, onOpenChange, user }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const hospitalId = user?.hospital_id;
-  const [faqSearch, setFaqSearch] = useState("");
   const [raiseForm, setRaiseForm] = useState({
     title: "",
     description: "",
@@ -68,13 +68,13 @@ export default function SupportHubDialog({ open, onOpenChange, user }) {
     category: "General",
   });
   const [activeTab, setActiveTab] = useState("faqs");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const faqQuery = useQuery({
-    queryKey: ["support-faqs", hospitalId, faqSearch],
+    queryKey: ["support-faqs", hospitalId],
     queryFn: () =>
       supportTicketsApi.listFaqs({
-        hospitalId,
-        search: faqSearch.trim() || undefined,
+        hospitalId
       }),
     enabled: open && !!hospitalId,
   });
@@ -119,6 +119,16 @@ export default function SupportHubDialog({ open, onOpenChange, user }) {
     onError: (e) => toast.error(e.message || "Failed"),
   });
 
+  const deleteFaq = useMutation({
+    mutationFn: (id) => supportTicketsApi.deleteFaq(id),
+    onSuccess: () => {
+      toast.success("FAQ deleted");
+      setDeleteConfirm(null);
+      qc.invalidateQueries({ queryKey: ["support-faqs", hospitalId] });
+    },
+    onError: (e) => toast.error(e.message || "Failed to delete FAQ"),
+  });
+
   const groupedFaqs = useMemo(() => {
     const list = faqQuery.data || [];
     const m = new Map();
@@ -136,14 +146,15 @@ export default function SupportHubDialog({ open, onOpenChange, user }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageSquareText className="h-5 w-5" />
-            Support & queries
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquareText className="h-5 w-5" />
+              Support & queries
+            </DialogTitle>
+          </DialogHeader>
 
         <Tabs
           value={activeTab}
@@ -157,20 +168,6 @@ export default function SupportHubDialog({ open, onOpenChange, user }) {
           </TabsList>
 
           <TabsContent value="faqs" className="space-y-4 mt-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Search FAQs…"
-                value={faqSearch}
-                onChange={(e) => setFaqSearch(e.target.value)}
-              />
-            </div>
-            {faqQuery.isLoading && (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            )}
             {faqQuery.error && (
               <p className="text-sm text-red-600">{faqQuery.error.message}</p>
             )}
@@ -209,33 +206,61 @@ export default function SupportHubDialog({ open, onOpenChange, user }) {
                 </button>
               </div>
             )}
-            <div className="space-y-4">
-              {[...groupedFaqs.entries()].map(([category, items]) => (
-                <div key={category} className="rounded-lg border border-border">
-                  <div className="bg-muted/50 px-4 py-2 text-sm font-semibold">
-                    {category}
+            {(faqQuery.isLoading || faqQuery.isFetching) && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+                <p className="text-sm text-gray-500">Loading FAQs...</p>
+              </div>
+            )}
+            {!faqQuery.isLoading && !faqQuery.isFetching && groupedFaqs.size > 0 && (
+              <div className="space-y-4">
+                {[...groupedFaqs.entries()].map(([category, items]) => (
+                  <div key={category} className="rounded-lg border border-border">
+                    <div className="bg-muted/50 px-4 py-2 text-sm font-semibold">
+                      {category}
+                    </div>
+                    <div className="divide-y divide-border">
+                      {items.map((f) => {
+                        console.log("SupportHubDialog Rendering FAQ:", f.id, "canManageUser:", canManageFaq(user));
+                        return (
+                          <details key={f.id} className="group px-4 py-3">
+                            <summary className="cursor-pointer font-medium list-none flex items-start justify-between gap-4">
+                              <span className="flex-1">{f.question}</span>
+                              <div className="flex items-center gap-3">
+                                {canManageFaq(user) && (
+                                  <button
+                                    type="button"
+                                    className="text-red-500 hover:text-red-700 transition-colors p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                                    title="Delete FAQ"
+                                    disabled={deleteFaq.isPending}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      console.log("SupportHubDialog Delete clicked for:", f.id);
+                                      setDeleteConfirm(f);
+                                    }}
+                                  >
+                                    <Trash2 className="h-5 w-5" />
+                                  </button>
+                                )}
+                                <span className="text-muted-foreground text-xs mt-1">▼</span>
+                              </div>
+                            </summary>
+                            <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap pl-1">
+                              {f.answer}
+                            </p>
+                          </details>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="divide-y divide-border">
-                    {items.map((f) => (
-                      <details key={f.id} className="group px-4 py-3">
-                        <summary className="cursor-pointer font-medium list-none flex justify-between gap-2">
-                          <span>{f.question}</span>
-                          <span className="text-muted-foreground text-xs">▼</span>
-                        </summary>
-                        <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
-                          {f.answer}
-                        </p>
-                      </details>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              {!faqQuery.isLoading && groupedFaqs.size === 0 && (
+                ))}
+              </div>
+            )}
+              {!faqQuery.isLoading && !faqQuery.isFetching && groupedFaqs.size === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-6">
                   No FAQs yet.
                 </p>
               )}
-            </div>
           </TabsContent>
 
           <TabsContent value="raise" className="space-y-4 mt-4">
@@ -332,6 +357,42 @@ export default function SupportHubDialog({ open, onOpenChange, user }) {
           </TabsContent>
         </Tabs>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+      
+      {/* Nested Sibling Delete Confirm Modal */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="max-w-sm p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Delete FAQ</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Are you sure you want to delete this FAQ? This action cannot be undone.
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(null)}
+              disabled={deleteFaq.isPending}
+              className="px-4 py-2 text-sm font-medium rounded-md border border-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteConfirm) deleteFaq.mutate(deleteConfirm.id);
+              }}
+              disabled={deleteFaq.isPending}
+              className="px-4 py-2 text-sm font-medium rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 transition-colors"
+            >
+              {deleteFaq.isPending ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
