@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Sparkles, X, Search, User, AlertCircle } from 'lucide-react';
+import { Send, Loader2, Sparkles, X, Search, User, AlertCircle, Plus, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSelector } from 'react-redux';
@@ -10,8 +10,182 @@ import { appointmentsAPI } from '@/api/appointmentsapi';
 import { detectCopilotIntent } from '@/utils/copilotIntentDetection';
 
 /**
+ * AIVisitComparisonPanel - Specialized view for visit comparison insights
+ */
+const AIVisitComparisonPanel = ({ insights, suggestedActions, onActionClick }) => {
+  if (!insights) return null;
+
+  const { clinical_summary, key_changes, documentation_gaps, clinical_trend } = insights;
+
+  const parseCurrentPreviousList = (items = []) => {
+    return items.map((text) => {
+      const parts = text.split(';').map((p) => p.trim());
+      const current = parts.find((p) => p.toLowerCase().startsWith('current'));
+      const previous = parts.find((p) => p.toLowerCase().startsWith('previous'));
+      return { raw: text, current, previous };
+    });
+  };
+
+  const symptomChanges = parseCurrentPreviousList(key_changes?.symptoms || []);
+  const vitalChanges = parseCurrentPreviousList(key_changes?.vitals || []);
+  const medicationChanges = parseCurrentPreviousList(key_changes?.medications || []);
+  const investigationChanges = parseCurrentPreviousList(key_changes?.investigations || []);
+
+  const trend = (clinical_trend || 'unclear').toLowerCase();
+  const trendConfig = {
+    persistent: {
+      wrapper: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800',
+      dot: 'bg-orange-500'
+    },
+    improving: {
+      wrapper: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:border-green-800',
+      dot: 'bg-green-500'
+    },
+    worsening: {
+      wrapper: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:border-red-800',
+      dot: 'bg-red-500'
+    },
+    unclear: {
+      wrapper: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:border-gray-800',
+      dot: 'bg-gray-400'
+    },
+  };
+  const trendStyle = trendConfig[trend] || trendConfig.unclear;
+
+  return (
+    <div className="flex flex-col gap-4 animate-in fade-in duration-500">
+      {/* Clinical Summary Section */}
+      {clinical_summary && (
+        <div className="relative group">
+          <div className="absolute -left-3 top-0 bottom-0 w-1 bg-indigo-500 rounded-full" />
+          <div className="pl-1">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
+              Clinical Summary
+            </h4>
+            <p className="text-sm text-gray-800 dark:text-gray-100 leading-relaxed font-medium">
+              {clinical_summary}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Changes Table-like View */}
+      {(symptomChanges.length || vitalChanges.length || medicationChanges.length || investigationChanges.length) && (
+        <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+          <div className="bg-gray-50/50 dark:bg-gray-900/30 px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Visit Comparison Insights</span>
+          </div>
+          
+          <div className="p-3 space-y-4">
+            {/* Categorized Changes */}
+            {[
+              { label: 'Symptoms', data: symptomChanges, icon: '📋' },
+              { label: 'Vital Signs', data: vitalChanges, icon: '🫀' },
+              { label: 'Medications', data: medicationChanges, icon: '💊' },
+              { label: 'Investigations', data: investigationChanges, icon: '🔬' }
+            ].map((section, sidx) => section.data.length > 0 && (
+              <div key={sidx} className="space-y-1.5">
+                <div className="flex items-center gap-1.5 px-1">
+                  <span className="text-xs">{section.icon}</span>
+                  <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">{section.label}</span>
+                </div>
+                <div className="grid gap-1.5">
+                  {section.data.map((item, idx) => (
+                    <div key={idx} className="bg-gray-50/30 dark:bg-gray-900/10 rounded-lg p-2 border border-gray-100/50 dark:border-gray-700/50">
+                      {item.current && (
+                        <div className="flex gap-2 items-baseline">
+                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 w-12 shrink-0">Current:</span>
+                          <span className="text-xs text-gray-900 dark:text-gray-100">{item.current.replace(/^current:\s*/i, '')}</span>
+                        </div>
+                      )}
+                      {item.previous && (
+                        <div className="flex gap-2 items-baseline mt-1 opacity-80 border-t border-gray-100/50 dark:border-gray-700/50 pt-1">
+                          <span className="text-[10px] font-bold text-gray-500 w-12 shrink-0">Previous:</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400 italic font-medium">{item.previous.replace(/^previous:\s*/i, '')}</span>
+                        </div>
+                      )}
+                      {!item.current && !item.previous && (
+                        <p className="text-xs text-gray-700 dark:text-gray-300">• {item.raw}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footnotes: Gaps and Trend */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        {documentation_gaps?.length > 0 && (
+          <div className="flex-1">
+            <div className="flex flex-wrap gap-1.5">
+              {documentation_gaps.map((gap, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] md:text-[11px] font-bold text-amber-700 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300"
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  {gap.replace(/^missing\s*/i, 'Missing ')}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold shadow-sm ${trendStyle.wrapper}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${trendStyle.dot} animate-pulse`} />
+          Trend: {trend.charAt(0).toUpperCase() + trend.slice(1)}
+        </div>
+      </div>
+
+      {/* Actionable Suggestions */}
+      {suggestedActions && suggestedActions.length > 0 && (
+        <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+          <h5 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Suggested Next Steps</h5>
+          <div className="grid grid-cols-1 gap-3">
+            {suggestedActions.map((action, idx) => (
+              <button
+                key={idx}
+                onClick={() => onActionClick(action)}
+                className="w-full min-h-[72px] relative flex items-center gap-4 p-3.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-white dark:bg-gray-800/50 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/30 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm hover:shadow transition-all group overflow-hidden"
+              >
+                {/* Plus Icon Container */}
+                <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
+                  <Plus className="w-5 h-5" />
+                </div>
+                
+                {/* Text Container */}
+                <div className="flex-1 min-w-0 text-left py-0.5">
+                  <p className="text-[14px] font-bold text-indigo-950 dark:text-indigo-100 leading-snug">
+                    {action.label}
+                  </p>
+                  {action.description && (
+                    <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5 leading-normal font-medium">
+                      {action.description}
+                    </p>
+                  )}
+                </div>
+                
+                {/* Arrow Icon */}
+                <div className="shrink-0 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                  <div className="w-7 h-7 rounded-full bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center shadow-md">
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
  * CopilotChat - Patient-scoped clinical copilot chat component
- * Renders in header, operates only in context of currently opened patient
  */
 const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClose }) => {
   const user = useSelector((state) => state.auth.user);
@@ -253,17 +427,15 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
       timestamp: new Date().toISOString()
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setLoading(true);
-
-    // Add typing indicator
     const typingMessage = {
       role: 'system',
       content: 'typing',
       timestamp: new Date().toISOString()
     };
-    setMessages(prev => [...prev, typingMessage]);
+
+    setMessages(prev => [...prev, userMessage, typingMessage]);
+    setInputValue('');
+    setLoading(true);
 
     try {
       // Detect intent hint (non-authoritative, backend has final say)
@@ -347,225 +519,6 @@ const CopilotChat = ({ patientId: routePatientId, visitId = null, isOpen, onClos
     }
   };
 
-  const AIVisitComparisonPanel = ({ insights, suggestedActions, onActionClick }) => {
-    if (!insights) return null;
-
-    const { clinical_summary, key_changes, documentation_gaps, clinical_trend } = insights;
-
-    const parseCurrentPreviousList = (items = []) => {
-      // Try to split "Current: ...; Previous: ..." into lines
-      return items.map((text) => {
-        const parts = text.split(';').map((p) => p.trim());
-        const current = parts.find((p) => p.toLowerCase().startsWith('current'));
-        const previous = parts.find((p) => p.toLowerCase().startsWith('previous'));
-        return { raw: text, current, previous };
-      });
-    };
-
-    const symptomChanges = parseCurrentPreviousList(key_changes?.symptoms || []);
-    const vitalChanges = parseCurrentPreviousList(key_changes?.vitals || []);
-    const medicationChanges = parseCurrentPreviousList(key_changes?.medications || []);
-    const investigationChanges = parseCurrentPreviousList(key_changes?.investigations || []);
-
-    const trend = (clinical_trend || 'unclear').toLowerCase();
-    const trendConfig = {
-      persistent: 'bg-orange-100 text-orange-800 border-orange-200',
-      improving: 'bg-green-100 text-green-800 border-green-200',
-      worsening: 'bg-red-100 text-red-800 border-red-200',
-      unclear: 'bg-gray-100 text-gray-800 border-gray-200',
-    };
-    const trendClass = trendConfig[trend] || trendConfig.unclear;
-
-    return (
-      <div className="space-y-3 text-xs md:text-sm">
-        {/* Clinical Summary */}
-        {clinical_summary && (
-          <div className="rounded-lg border border-indigo-100 bg-indigo-50/80 dark:bg-indigo-900/20 dark:border-indigo-800 px-3 py-2.5">
-            <p className="text-[11px] md:text-xs font-semibold text-indigo-900 dark:text-indigo-200 mb-1">
-              Clinical Summary
-            </p>
-            <p className="text-xs md:text-sm text-indigo-950 dark:text-indigo-50 leading-snug line-clamp-2">
-              {clinical_summary}
-            </p>
-          </div>
-        )}
-
-        {/* Key Changes */}
-        {(symptomChanges.length ||
-          vitalChanges.length ||
-          medicationChanges.length ||
-          investigationChanges.length) && (
-          <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 px-3 py-2.5">
-            <p className="text-[11px] md:text-xs font-semibold text-gray-800 dark:text-gray-100 mb-1.5 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              Key Changes
-            </p>
-
-            <div className="space-y-2">
-              {/* Symptoms */}
-              {symptomChanges.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 mb-0.5">
-                    Symptoms
-                  </p>
-                  {symptomChanges.map((item, idx) => (
-                    <div key={idx} className="space-y-0.5">
-                      {item.current && (
-                        <p className="text-xs text-gray-800 dark:text-gray-100">
-                          • <span className="font-medium">Current:</span>{' '}
-                          {item.current.replace(/^current:\s*/i, '')}
-                        </p>
-                      )}
-                      {item.previous && (
-                        <p className="text-xs text-gray-700 dark:text-gray-300">
-                          • <span className="font-medium">Previous:</span>{' '}
-                          {item.previous.replace(/^previous:\s*/i, '')}
-                        </p>
-                      )}
-                      {!item.current && !item.previous && (
-                        <p className="text-xs text-gray-700 dark:text-gray-300">• {item.raw}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Vitals */}
-              {vitalChanges.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 mb-0.5">
-                    Vitals
-                  </p>
-                  {vitalChanges.map((item, idx) => (
-                    <div key={idx} className="space-y-0.5">
-                      {item.current && (
-                        <p className="text-xs text-gray-800 dark:text-gray-100">
-                          {item.current.toLowerCase().includes('not recorded') && '⚠ '}
-                          <span className="font-medium">Current:</span>{' '}
-                          {item.current.replace(/^current:\s*/i, '')}
-                        </p>
-                      )}
-                      {item.previous && (
-                        <p className="text-xs text-gray-700 dark:text-gray-300">
-                          <span className="font-medium">Previous:</span>{' '}
-                          {item.previous.replace(/^previous:\s*/i, '')}
-                        </p>
-                      )}
-                      {!item.current && !item.previous && (
-                        <p className="text-xs text-gray-700 dark:text-gray-300">• {item.raw}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Medications */}
-              {medicationChanges.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 mb-0.5">
-                    Medications
-                  </p>
-                  {medicationChanges.map((item, idx) => (
-                    <div key={idx} className="space-y-0.5">
-                      {item.current && (
-                        <p className="text-xs text-gray-800 dark:text-gray-100">
-                          <span className="font-medium">Current:</span>{' '}
-                          {item.current.replace(/^current:\s*/i, '')}
-                        </p>
-                      )}
-                      {item.previous && (
-                        <p className="text-xs text-gray-700 dark:text-gray-300">
-                          <span className="font-medium">Previous:</span>{' '}
-                          {item.previous.replace(/^previous:\s*/i, '')}
-                        </p>
-                      )}
-                      {!item.current && !item.previous && (
-                        <p className="text-xs text-gray-700 dark:text-gray-300">• {item.raw}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Investigations */}
-              {investigationChanges.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-200 mb-0.5">
-                    Investigations
-                  </p>
-                  {investigationChanges.map((item, idx) => (
-                    <p key={idx} className="text-xs text-gray-700 dark:text-gray-300">
-                      • {item.raw}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Documentation Gaps + Trend */}
-        {(documentation_gaps?.length || trend) && (
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
-            {/* Documentation Gaps */}
-            {documentation_gaps?.length > 0 && (
-              <div className="flex-1">
-                <p className="text-[11px] md:text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1 flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-orange-500" />
-                  Documentation Gaps
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {documentation_gaps.map((gap, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] text-orange-800 dark:border-orange-700 dark:bg-orange-900/30 dark:text-orange-100"
-                    >
-                      ⚠ {gap.replace(/^missing\s*/i, 'Missing ')}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Trend */}
-            <div className="md:self-start">
-              <p className="text-[11px] md:text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1">
-                Trend
-              </p>
-              <span
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${trendClass}`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                {trend.charAt(0).toUpperCase() + trend.slice(1)}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Suggested Actions */}
-        {suggestedActions && suggestedActions.length > 0 && (
-          <div className="pt-1 border-t border-dashed border-gray-200 dark:border-gray-700 mt-1.5">
-            <p className="text-[11px] md:text-xs font-semibold text-gray-700 dark:text-gray-200 mb-1.5">
-              Suggested Actions
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {suggestedActions.map((action, idx) => (
-                <Button
-                  key={idx}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onActionClick(action)}
-                  className="h-7 md:h-8 px-2 md:px-3 text-[11px] md:text-xs bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 border-gray-200 dark:border-gray-600 rounded-full"
-                >
-                  {action.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const handleActionClick = (action) => {
     if (!activePatientId) return;

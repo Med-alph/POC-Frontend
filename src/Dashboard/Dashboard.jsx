@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getGreeting } from '@/utils/dateUtils';
 import Navbar from "./Navbar";
 import toast, { Toaster } from 'react-hot-toast';
 import { CalendarDays, Users, UserX, Stethoscope, TrendingUp, BarChart2, Clock, X, MessageSquare, ArrowRight } from "lucide-react";
@@ -483,7 +484,7 @@ export default function Dashboard() {
 
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">
-            Good Morning, {user.name || "Care Coordinator"}
+            {getGreeting()}, {user.name || "Care Coordinator"}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Here's your clinic overview for today
