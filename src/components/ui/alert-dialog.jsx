@@ -1,16 +1,18 @@
 import * as React from "react"
+import ReactDOM from "react-dom"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
 const AlertDialog = ({ open, onOpenChange, children }) => {
   if (!open) return null;
   
-  return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-      <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-lg rounded-lg">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-sm flex items-center justify-center">
+      <div className="z-[9999] grid w-full max-w-lg gap-4 border bg-white p-6 shadow-lg rounded-lg">
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { 
   LayoutDashboard, Users, Hospital, Shield, 
   Clipboard, MessageSquare, X, ChevronRight,
-  LogOut, Settings, Bell
+  LogOut, Settings, Bell, HelpCircle
 } from "lucide-react";
 import { 
   Tooltip, TooltipContent, TooltipTrigger, TooltipProvider 
@@ -18,6 +18,7 @@ const navigationItems = [
   { id: "staffs", label: "Hospitals Staffs", path: "/tenant/staffs", icon: Users },
   { id: "roles", label: "Roles & Access", path: "/tenant/roles", icon: Shield },
   { id: "patients", label: "Hospitals Patients", path: "/tenant/patients", icon: Users },
+  { id: "faqs", label: "FAQs Management", path: "/tenant/faqs", icon: HelpCircle },
   { id: "support", label: "Support Tickets", path: "/tenant/support", icon: MessageSquare, isSuperAdminOnly: true },
 ];
 

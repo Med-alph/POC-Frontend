@@ -34,10 +34,9 @@ const hospitalsAPI = {
     return apiRequest(`/hospitals/${id}`);
   },
 
-  getByTenant: async (tenantId) => {
-    // If tenantId is provided, use it; otherwise, the backend should determine from auth token
-    const endpoint = tenantId ? `/hospitals/tenant/${tenantId}` : '/hospitals/tenant';
-    return apiRequest(endpoint);
+  getByTenant: async () => {
+    // The backend determines the tenant from the auth token
+    return apiRequest('/hospitals/tenant');
   },
 
   create: async (hospitalData) => {
