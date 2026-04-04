@@ -48,7 +48,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     password: "",
     experience: "",
     designation: "",
-    role_id: "", // Add role assignment
+    role_id: [], // Array for multiple roles
     availability: createDefaultAvailability(),
     is_archived: false,
     status: "Active",
@@ -101,10 +101,10 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         }
       }
 
-      // Get the first role ID if roles exist
-      let roleId = "none";
+      // Multi-role support
+      let roleIds = [];
       if (editStaff.roles && editStaff.roles.length > 0) {
-        roleId = editStaff.roles[0].id.toString();
+        roleIds = editStaff.roles.map(r => r.id.toString());
       }
 
       setFormData({
@@ -115,7 +115,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         password: "",
         experience: editStaff.experience != null ? editStaff.experience.toString() : "",
         designation: editStaff.designation_id ? editStaff.designation_id.toString() : "",
-        role_id: roleId,
+        role_id: roleIds,
         availability: newAvail,
         is_archived: editStaff.is_archived || false,
         status:
@@ -135,7 +135,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         password: "",
         experience: "",
         designation: "",
-        role_id: "none",
+        role_id: [],
         availability: createDefaultAvailability(),
         is_archived: false,
         status: "Active",
@@ -383,57 +383,21 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         is_archived: false,
         status: formData.status?.toLowerCase() || "active",
       };
+      // Add roles array natively for new backend Support
+      if (Array.isArray(formData.role_id) && formData.role_id.length > 0) {
+        payload.roles = formData.role_id;
+      }
+
       console.log("Payload: \n", payload);
-      console.log("Role ID for assignment:", formData.role_id);
-      console.log("Role ID is valid:", formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none");
 
       let saved;
-      let roleAssignmentSuccess = true;
 
       if (editStaff) {
-        // Update staff basic info
+        // Update staff basic info + roles natively
         saved = await staffApi.update(editStaff.id, payload);
-
-        // Separately assign role if role_id is provided and valid (not "none")
-        if (formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none") {
-          try {
-            console.log('Attempting role assignment with role_id:', formData.role_id);
-            console.log('Staff ID:', editStaff.id);
-            await rolesAPI.assignRoleToStaff(editStaff.id, formData.role_id); // Send as string, not number
-            console.log('Role assigned successfully');
-          } catch (roleError) {
-            console.error('Failed to assign role:', roleError);
-            roleAssignmentSuccess = false;
-          }
-        }
-
-        if (roleAssignmentSuccess || !formData.role_id || formData.role_id === "none") {
-          // Success handled by parent via onAdd
-        } else {
-          toast.error('Staff updated but role assignment failed. Please assign role manually.');
-        }
       } else {
-        // Create new staff
+        // Create new staff + roles natively
         saved = await staffApi.create(payload);
-
-        // Assign role to newly created staff if role_id is provided and valid (not "none")
-        if (formData.role_id && formData.role_id.trim() !== "" && formData.role_id !== "none" && saved.id) {
-          try {
-            console.log('Attempting role assignment for new staff with role_id:', formData.role_id);
-            console.log('New staff ID:', saved.id);
-            await rolesAPI.assignRoleToStaff(saved.id, formData.role_id); // Send as string, not number
-            console.log('Role assigned to new staff');
-          } catch (roleError) {
-            console.error('Failed to assign role to new staff:', roleError);
-            roleAssignmentSuccess = false;
-          }
-        }
-
-        if (roleAssignmentSuccess || !formData.role_id || formData.role_id === "none") {
-          // Success handled by parent via onAdd
-        } else {
-          toast.error('Staff created but role assignment failed. Please assign role manually.');
-        }
       }
 
       onAdd(saved);
