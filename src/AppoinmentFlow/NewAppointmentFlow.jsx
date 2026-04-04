@@ -278,16 +278,21 @@ export default function NewAppointmentFlow({ registeredPatient, phone, onSuccess
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Appointment Date</label>
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setSessions([]);
-                  }}
-                  className="h-12 border-gray-200 focus:ring-blue-500"
-                />
+                <div className="relative">
+                  <Input
+                    type={selectedDate ? "date" : "text"}
+                    onFocus={(e) => e.target.type = "date"}
+                    onBlur={(e) => !selectedDate && (e.target.type = "text")}
+                    value={selectedDate}
+                    min={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setSessions([]);
+                    }}
+                    placeholder="Select Appointment Date"
+                    className="h-12 border-gray-200 focus:ring-blue-500 w-full date-input-field"
+                  />
+                </div>
               </div>
               <Button
                 onClick={fetchSessions}

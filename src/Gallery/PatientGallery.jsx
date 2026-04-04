@@ -195,7 +195,6 @@ const DermImageComparison = ({ patient = dummyPatient, canManage = false }) => {
         try {
             const result = await imagesAPI.saveComparisonNotes(patient.patientId || patient.id, comparisonData);
             setSavedNotes(result);
-            toast.success('Notes saved successfully');
         } catch (error) {
             console.error('Failed to save notes:', error);
             throw error;
@@ -362,14 +361,13 @@ const DermImageComparison = ({ patient = dummyPatient, canManage = false }) => {
                 setRightAnnotations(annotationData.annotations);
             }
 
-            console.log('🎉 Closing modal and showing success');
+            console.log('🎉 Closing modal');
             setAnnotationModalOpen(false);
             setAnnotatingImage(null);
             setCurrentAnnotations(null);
-            toast.success('Annotations saved');
         } catch (error) {
             console.error('❌ Failed to save annotations:', error);
-            toast.error('Failed to save annotations: ' + error.message);
+            toast.error('Failed to save annotations: ' + error.message, { id: 'save-ann' });
         }
     };
 

@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart, GalleryThumbnails, Sparkles } from "lucide-react";
+import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart, GalleryThumbnails, Sparkles, Utensils } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import consultationsAPI from "../../api/consultationsapi";
+import dietAPI from "../../api/dietapi";
 import CopilotPanel from "@/components/CopilotPanel";
 import { useSubscription } from "@/hooks/useSubscription";
 
-const tabs = ["Appointments", "SOAP Notes", "Procedures", "Medications", "Lab Results", "Allergies & Notes", 'Gallery'];
+const tabs = ["Appointments", "SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes", 'Gallery'];
 
 const DoctorPatientRecord = () => {
     const { patientId } = useParams();
@@ -32,6 +33,7 @@ const DoctorPatientRecord = () => {
     const [consultations, setConsultations] = useState([]);
     const [appointments, setAppointments] = useState([]);
     const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+    const [dietPlans, setDietPlans] = useState([]);
 
     useEffect(() => {
         fetchPatientRecords();
@@ -52,10 +54,32 @@ const DoctorPatientRecord = () => {
 
                 if (response.consultations && response.consultations.length > 0) {
                     setConsultations(response.consultations);
+                    
+                    // Extract and sort diet plans from consultations
+                    const allDietPlans = response.consultations
+                        .filter(c => c.diet_plan)
+                        .map(c => ({
+                            ...c.diet_plan,
+                            consultation_date: c.consultation_date,
+                            staff_name: c.staff?.staff_name
+                        }))
+                        .sort((a, b) => new Date(b.consultation_date) - new Date(a.consultation_date));
+                    
+                    setDietPlans(allDietPlans);
                     toast.success("Patient records loaded");
                 } else {
                     setConsultations([]); // no consultations but patient data present
                     toast("No consultation records found");
+                }
+
+                // Fetch Diet Plans separately using the correct patient-scoped endpoint
+                try {
+                    const dietResponse = await dietAPI.getPatientPlans(patientId);
+                    // Handle wrapped data (if API returns { data: [] })
+                    const dietData = Array.isArray(dietResponse) ? dietResponse : (dietResponse.data || []);
+                    setDietPlans(dietData);
+                } catch (dietErr) {
+                    console.error("Failed to fetch diet plans:", dietErr);
                 }
             }
         } catch (err) {
@@ -428,6 +452,7 @@ const DoctorPatientRecord = () => {
                                     "Lab Results": FlaskConical,
                                     "Allergies & Notes": AlertCircle,
                                     "Gallery": GalleryThumbnails,
+                                    "Diet Plans": Utensils,
                                 };
                                 const Icon = tabIcons[tab] || FileText;
                                 return (
@@ -643,6 +668,67 @@ const DoctorPatientRecord = () => {
                                     <div className="text-center py-12">
                                         <Pill className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                                         <p className="text-gray-500 dark:text-gray-400">No medications prescribed</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === "Diet Plans" && (
+                            <div className="space-y-6">
+                                {dietPlans.length > 0 ? (
+                                    dietPlans.map((plan, i) => (
+                                        <Card key={i} className="border-0 shadow-lg overflow-hidden bg-white dark:bg-gray-800">
+                                            <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-4">
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                                            <Utensils className="h-5 w-5" />
+                                                            Diet Plan - {formatDate(plan.consultation?.consultation_date || plan.created_at)}
+                                                        </CardTitle>
+                                                        <p className="text-xs opacity-90 mt-1">Prescribed by {plan.assigner?.staff_name || 'Medical Staff'}</p>
+                                                    </div>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                                                    {[
+                                                        { label: 'Early Morning', icon: '🌅', val: plan.plan_data?.morning },
+                                                        { label: 'Breakfast', icon: '🍳', val: plan.plan_data?.breakfast },
+                                                        { label: 'Lunch', icon: '🍱', val: plan.plan_data?.lunch },
+                                                        { label: 'Evening', icon: '☕', val: plan.plan_data?.snack },
+                                                        { label: 'Dinner', icon: '🌙', val: plan.plan_data?.dinner }
+                                                    ].map((item, idx) => (
+                                                        <div key={idx} className="bg-emerald-50 dark:bg-emerald-900/10 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800/30">
+                                                            <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1">
+                                                                <span>{item.icon}</span> {item.label}
+                                                            </p>
+                                                            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed min-h-[40px]">
+                                                                {item.val || 'Not specified'}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                
+                                                {plan.plan_data?.instructions && (
+                                                    <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-dashed border-emerald-200 dark:border-emerald-800">
+                                                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-2">
+                                                            Additional Advice & Restrictions
+                                                        </p>
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                                                            "{plan.plan_data.instructions}"
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                                            <Utensils className="h-10 w-10 text-gray-300 dark:text-gray-600" />
+                                        </div>
+                                        <p className="text-gray-500 dark:text-gray-400 font-medium font-lg">No Diet Charts prescribed yet</p>
+                                        <p className="text-sm text-gray-400 mt-1">Once a doctor adds a diet plan during consultation, it will appear here.</p>
                                     </div>
                                 )}
                             </div>

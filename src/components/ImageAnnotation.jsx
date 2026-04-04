@@ -180,11 +180,10 @@ const ImageAnnotation = ({
         imageUrl: imageUrl,
         annotationCount: annotations.length
       });
-      toast.success(`${annotations.length} annotation(s) saved`);
       onClose();
     } catch (error) {
       console.error('Save failed:', error);
-      toast.error('Failed to save annotations');
+      toast.error('Failed to save annotations', { id: 'save-ann-ui' });
     } finally {
       setIsSaving(false);
     }
