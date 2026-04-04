@@ -263,7 +263,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
     return (
         <>
             <Dialog open={open && !showConsentModal} onOpenChange={setOpen}>
-                <DialogContent className="max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+                <DialogContent className="max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl touch-none sm:touch-auto">
                     <DialogHeader className="px-6 py-4 border-b bg-gray-50/50 dark:bg-gray-900/20 shrink-0">
                         <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Add New Patient</DialogTitle>
                     </DialogHeader>
@@ -297,17 +297,22 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label htmlFor="dob" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Date of Birth *</Label>
-                                            <Input
-                                                id="dob"
-                                                name="dob"
-                                                type="date"
-                                                value={formData.dob}
-                                                onChange={handleChange}
-                                                className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
-                                                max={new Date().toISOString().split('T')[0]}
-                                                required
-                                                aria-invalid={!!formErrors.dob}
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    id="dob"
+                                                    name="dob"
+                                                    type={formData.dob ? "date" : "text"}
+                                                    onFocus={(e) => e.target.type = "date"}
+                                                    onBlur={(e) => !formData.dob && (e.target.type = "text")}
+                                                    value={formData.dob}
+                                                    onChange={handleChange}
+                                                    placeholder="Select Date of Birth"
+                                                    className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20 w-full date-input-field"
+                                                    max={new Date().toISOString().split('T')[0]}
+                                                    required
+                                                    aria-invalid={!!formErrors.dob}
+                                                />
+                                            </div>
                                             {formErrors.dob && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.dob}</p>}
                                         </div>
                                         <div className="space-y-1.5">

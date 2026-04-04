@@ -11,6 +11,7 @@ import {
   Phone,
   Image,
   Menu,
+  FileText,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,6 +40,7 @@ const PATIENT_TABS = [
   { key: "reminders", label: "Reminders", icon: Bell },
   { key: "calls", label: "Calls", icon: Phone },
   { key: "images", label: "Images", icon: Image },
+  { key: "records", label: "My Records", icon: FileText },
   { key: "profile", label: "Profile", icon: UserCircle2 },
 ];
 

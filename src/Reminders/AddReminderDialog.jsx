@@ -314,13 +314,13 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="max-w-2xl h-[90vh] flex flex-col">
-                <DialogHeader className="flex-shrink-0">
+            <DialogContent className="max-w-2xl h-[90vh] flex flex-col overflow-hidden touch-none sm:touch-auto px-0">
+                <DialogHeader className="flex-shrink-0 px-6">
                     <DialogTitle className="text-xl font-semibold">
                         {editReminder ? "Edit Reminder" : "Add New Reminder"}
                     </DialogTitle>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto mt-4 pr-2 space-y-4">
+                <div className="flex-1 overflow-y-auto mt-4 px-6 space-y-4 custom-scrollbar">
                     <form id="reminder-form" onSubmit={handleSubmit} className="space-y-4">
                         {/* Patient Selection - Searchable */}
                         <div>
@@ -443,27 +443,38 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
                             />
                         </div>
 
-                        {/* Due Date */}
                         <div>
                             <Label>
                                 Due Date <span className="text-red-500">*</span>
                             </Label>
-                            <Input
-                                type="date"
-                                value={formData.due_date}
-                                onChange={(e) => handleChange("due_date", e.target.value)}
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    type={formData.due_date ? "date" : "text"}
+                                    onFocus={(e) => e.target.type = "date"}
+                                    onBlur={(e) => !formData.due_date && (e.target.type = "text")}
+                                    value={formData.due_date}
+                                    onChange={(e) => handleChange("due_date", e.target.value)}
+                                    placeholder="Select Due Date"
+                                    className="date-input-field"
+                                    required
+                                />
+                            </div>
                         </div>
 
                         {/* Reminder Time */}
                         <div>
                             <Label>Reminder Time</Label>
-                            <Input
-                                type="datetime-local"
-                                value={formData.reminder_time}
-                                onChange={(e) => handleChange("reminder_time", e.target.value)}
-                            />
+                            <div className="relative">
+                                <Input
+                                    type={formData.reminder_time ? "datetime-local" : "text"}
+                                    onFocus={(e) => e.target.type = "datetime-local"}
+                                    onBlur={(e) => !formData.reminder_time && (e.target.type = "text")}
+                                    value={formData.reminder_time}
+                                    onChange={(e) => handleChange("reminder_time", e.target.value)}
+                                    placeholder="Set Alert Time"
+                                    className="date-input-field"
+                                />
+                            </div>
                             <p className="text-xs text-gray-500 mt-1">
                                 When to send the reminder (defaults to due date if not set)
                             </p>
@@ -565,11 +576,11 @@ export default function AddReminderDialog({ open, setOpen, onSuccess, editRemind
                         </div>
                     </form>
                 </div>
-                <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-4">
+                <div className="flex-shrink-0 flex justify-end gap-2 p-4 border-t mt-4 bg-gray-50/50 dark:bg-gray-900/10">
                     <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
                         Cancel
                     </Button>
-                    <Button onClick={handleSubmit} disabled={loading}>
+                    <Button onClick={handleSubmit} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
                         {loading ? "Saving..." : editReminder ? "Update" : "Create"}
                     </Button>
                 </div>

@@ -44,6 +44,8 @@ import ProcedureAutocomplete from "../components/ProcedureAutocomplete";
 import { baseUrl } from "../constants/Constant";
 import { getAuthToken } from "../utils/auth";
 import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
+import DietPlanSection from "./DietPlanSection";
+import dietAPI from "../api/dietapi";
 
 
 const DoctorConsultation = () => {
@@ -102,10 +104,17 @@ const DoctorConsultation = () => {
     const [followUpSlot, setFollowUpSlot] = useState("");
     const [availableSlots, setAvailableSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
+    
+    // Diet Plan State
+    const [currentDietPlan, setCurrentDietPlan] = useState(null);
 
-    // AI Prescription Safety State
     const [safetyReport, setSafetyReport] = useState(null);
     const [isCheckingSafety, setIsCheckingSafety] = useState(false);
+
+    // Draft Recovery State
+    const [hasDraft, setHasDraft] = useState(false);
+    const [draftTimestamp, setDraftTimestamp] = useState(null);
+    const [showDraftBanner, setShowDraftBanner] = useState(false);
 
 
 
@@ -155,6 +164,96 @@ const DoctorConsultation = () => {
 
         fetchAppointmentDetails();
     }, [appointmentId, user?.id]);
+
+    // Moved initialization of status helpers up so draft logic can use them
+    const canStartConsultation = ['pending', 'arrived', 'booked'].includes(appointmentData?.status?.toLowerCase());
+    const canEndConsultation = appointmentData?.status?.toLowerCase() === 'in-progress';
+    const canCancelAppointment = !['fulfilled', 'completed', 'cancelled', 'in-progress'].includes(appointmentData?.status?.toLowerCase());
+    const isCompleted = ['fulfilled', 'completed'].includes(appointmentData?.status?.toLowerCase());
+    const isCancelled = appointmentData?.status?.toLowerCase() === 'cancelled';
+
+    // --- DRAFT SYSTEM LOGIC ---
+    const getDraftKey = () => `cons_draft_${user?.hospital_id || 'h'}_${user?.id || 'u'}_${appointmentId}`;
+
+    const clearDraft = () => {
+        sessionStorage.removeItem(getDraftKey());
+        setHasDraft(false);
+        setShowDraftBanner(false);
+    };
+
+    const saveDraft = () => {
+        if (!isConsultationStarted || isCompleted) return;
+        
+        const draftData = {
+            soapNotes,
+            prescriptions,
+            labOrders,
+            procedures,
+            isFollowUpRequired,
+            followUpDate,
+            followUpNote,
+            followUpSlot,
+            currentDietPlan,
+            timestamp: new Date().getTime()
+        };
+        
+        sessionStorage.setItem(getDraftKey(), JSON.stringify(draftData));
+    };
+
+    // Auto-save effect
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (isConsultationStarted && !isCompleted) {
+                saveDraft();
+            }
+        }, 3000); // Save every 3 seconds
+
+        return () => clearTimeout(timer);
+    }, [soapNotes, prescriptions, labOrders, procedures, isFollowUpRequired, followUpDate, followUpNote, followUpSlot, currentDietPlan]);
+
+    // Detect draft on start
+    useEffect(() => {
+        if (isConsultationStarted && !isCompleted) {
+            const saved = sessionStorage.getItem(getDraftKey());
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    const now = new Date().getTime();
+                    const fourHours = 4 * 60 * 60 * 1000;
+                    
+                    if (now - parsed.timestamp < fourHours) {
+                        setDraftTimestamp(new Date(parsed.timestamp).toLocaleTimeString());
+                        setHasDraft(true);
+                        setShowDraftBanner(true);
+                    } else {
+                        // Expired draft
+                        sessionStorage.removeItem(getDraftKey());
+                    }
+                } catch (e) {
+                    console.error("Failed to parse draft", e);
+                }
+            }
+        }
+    }, [isConsultationStarted]);
+
+    const handleRestoreDraft = () => {
+        const saved = sessionStorage.getItem(getDraftKey());
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.soapNotes) setSoapNotes(parsed.soapNotes);
+            if (parsed.prescriptions) setPrescriptions(parsed.prescriptions);
+            if (parsed.labOrders) setLabOrders(parsed.labOrders);
+            if (parsed.procedures) setProcedures(parsed.procedures);
+            if (parsed.isFollowUpRequired !== undefined) setIsFollowUpRequired(parsed.isFollowUpRequired);
+            if (parsed.followUpDate) setFollowUpDate(parsed.followUpDate);
+            if (parsed.followUpNote) setFollowUpNote(parsed.followUpNote);
+            if (parsed.followUpSlot) setFollowUpSlot(parsed.followUpSlot);
+            if (parsed.currentDietPlan) setCurrentDietPlan(parsed.currentDietPlan);
+            
+            toast.success("Draft restored successfully!");
+            setShowDraftBanner(false);
+        }
+    };
 
 
     useEffect(() => {
@@ -300,7 +399,23 @@ const DoctorConsultation = () => {
             };
 
 
-            await consultationsAPI.create(consultationData);
+            const consultationResult = await consultationsAPI.create(consultationData);
+            const consultationIdCreated = consultationResult.id;
+
+            // Save Diet Plan separately if included
+            if (currentDietPlan && consultationIdCreated) {
+                try {
+                    await dietAPI.saveConsultationPlan(consultationIdCreated, {
+                        plan_data: currentDietPlan,
+                        patient_id: appointmentData.patient_id,
+                        hospital_id: appointmentData.hospital_id
+                    });
+                    toast.success("Diet plan saved!");
+                } catch (dietErr) {
+                    console.error("Failed to save diet plan:", dietErr);
+                    toast.error("Failed to save diet plan, but consultation was successfull.");
+                }
+            }
 
             await appointmentsAPI.update(appointmentId, {
                 status: 'fulfilled',
@@ -309,6 +424,7 @@ const DoctorConsultation = () => {
             });
 
             toast.success("Consultation completed and saved successfully!");
+            clearDraft(); // Important: Clear draft on success
             setTimeout(() => {
                 window.history.back();
             }, 2000);
@@ -633,14 +749,39 @@ const DoctorConsultation = () => {
         insuranceProvider: appointmentData.patient?.insurance_provider || "N/A",
     };
 
-    const canStartConsultation = ['pending', 'arrived', 'booked'].includes(appointmentData.status?.toLowerCase());
-    const canEndConsultation = appointmentData.status?.toLowerCase() === 'in-progress';
-    const canCancelAppointment = !['fulfilled', 'completed', 'cancelled', 'in-progress'].includes(appointmentData.status?.toLowerCase());
-    const isCompleted = ['fulfilled', 'completed'].includes(appointmentData.status?.toLowerCase());
-    const isCancelled = appointmentData.status?.toLowerCase() === 'cancelled';
-
     return (
         <div className="min-h-screen bg-gray-50 p-6 space-y-6">
+            {/* Draft Restoration Banner */}
+            {showDraftBanner && (
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-amber-100 p-2 rounded-full">
+                                <ClipboardList className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-amber-900">Unsaved Consultation Draft Found</h4>
+                                <p className="text-xs text-amber-700">We found an unsaved session for this patient from <strong>{draftTimestamp}</strong>. Would you like to restore it?</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <button
+                                onClick={handleRestoreDraft}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Check className="h-3 w-3" /> Restore Draft
+                            </button>
+                            <button
+                                onClick={clearDraft}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-white border border-amber-200 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <X className="h-3 w-3" /> Discard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isConsultationStarted && !isCompleted && !isCancelled && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1265,6 +1406,17 @@ const DoctorConsultation = () => {
                     </ReadOnlyTooltip>
                 )}
             </div>
+
+            {/* Diet Plan Section */}
+            <DietPlanSection 
+                hospitalId={appointmentData?.hospital_id}
+                consultationId={null} // Will be created on save
+                isConsultationStarted={isConsultationStarted}
+                isCompleted={isCompleted}
+                isReadOnly={isReadOnly}
+                onDataChange={(plan) => setCurrentDietPlan(plan)}
+                initialData={currentDietPlan}
+            />
 
             {/* Follow-up Section */}
             <div className={`bg-white shadow rounded-lg p-5 border-l-4 border-indigo-500 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>

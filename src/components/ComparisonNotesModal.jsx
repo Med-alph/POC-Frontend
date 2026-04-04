@@ -63,7 +63,7 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
 
         setAiSuggestion({ plain: suggestionText, html: suggestionHtml });
         setShowSuggestion(true);
-        toast.success("AI analysis ready - Press Tab to accept");
+        toast.success("AI analysis ready - Press Tab to accept", { id: 'ai-toast' });
 
         // Focus textarea
         setTimeout(() => {
@@ -77,7 +77,7 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
 
     } catch (err) {
       console.error(err);
-      toast.error(err.message || "AI analysis failed");
+      toast.error(err.message || "AI analysis failed", { id: 'ai-toast' });
     } finally {
       setAiLoading(false);
     }
@@ -98,10 +98,10 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
     setSaving(true);
     try {
       await onSave(notes);
-      toast.success('Notes saved successfully');
+      toast.success('Notes saved successfully', { id: 'save-notes' });
       onClose();
     } catch (error) {
-      toast.error('Failed to save notes');
+      toast.error('Failed to save notes', { id: 'save-notes' });
     } finally {
       setSaving(false);
     }
