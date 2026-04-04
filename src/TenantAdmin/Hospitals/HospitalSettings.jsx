@@ -137,6 +137,7 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
         positive_btn_text: "Excellent",
         negative_btn_text: "Needs Work",
         negative_followup_msg: "We're sorry to hear that. What could we have done better?",
+        is_solo_practice: false,
     });
     const [timings, setTimings] = useState(createDefaultTimings());
 
@@ -345,19 +346,43 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
         </div>
     </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="address">Address</Label>
-                                <Textarea
-                                    id="address"
-                                    name="address"
-                                    value={settings.address}
-                                    onChange={handleChange}
-                                    rows={3}
-                                    placeholder="Full hospital address"
-                                    className="bg-white"
-                                />
-                            </div>
-                        </CardContent>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="address">Address</Label>
+                                    <Textarea
+                                        id="address"
+                                        name="address"
+                                        value={settings.address}
+                                        onChange={handleChange}
+                                        rows={3}
+                                        placeholder="Full hospital address"
+                                        className="bg-white"
+                                    />
+                                </div>
+
+                                <div className="pt-6 border-t mt-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h4 className="text-md font-semibold text-gray-900 flex items-center gap-2">
+                                                Solo Practice Mode
+                                                {settings.is_solo_practice && (
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 tracking-wider uppercase">Active</span>
+                                                )}
+                                            </h4>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Simplifies the interface for clinics with only a single doctor-admin. Hides staff and multi-user configurations.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Label htmlFor="is_solo_practice" className="text-sm font-medium">Enable</Label>
+                                            <Checkbox
+                                                id="is_solo_practice"
+                                                checked={settings.is_solo_practice}
+                                                onCheckedChange={(checked) => setSettings({ ...settings, is_solo_practice: checked })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
                     </Card>
                 </TabsContent>
 

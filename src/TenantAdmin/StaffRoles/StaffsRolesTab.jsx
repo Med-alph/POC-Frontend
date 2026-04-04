@@ -24,6 +24,7 @@ const StaffsRolesTab = () => {
   const [hospitals, setHospitals] = useState([]);
   const [expandedHospitalIds, setExpandedHospitalIds] = useState([]);
   const [hospitalStaffs, setHospitalStaffs] = useState({});
+  const [staffPagination, setStaffPagination] = useState({}); // { hospitalId: { total: 0, offset: 0, limit: 10 } }
   const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [loadingStaffs, setLoadingStaffs] = useState({});
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -52,12 +53,30 @@ const StaffsRolesTab = () => {
     fetchHospitals();
   }, []);
 
-  const fetchStaffsByHospital = async (hospitalId) => {
+  const fetchStaffsByHospital = async (hospitalId, isLoadMore = false) => {
+    const currentPagination = staffPagination[hospitalId] || { offset: 0, limit: 10, total: 0 };
+    const offset = isLoadMore ? currentPagination.offset + currentPagination.limit : 0;
+
     setLoadingStaffs((prev) => ({ ...prev, [hospitalId]: true }));
     try {
-      const response = await staffApi.getAll({ hospital_id: hospitalId });
-      const staffs = response?.data || [];
-      setHospitalStaffs((prev) => ({ ...prev, [hospitalId]: staffs }));
+      const response = await staffApi.getAll({ 
+        hospital_id: hospitalId, 
+        limit: currentPagination.limit, 
+        offset 
+      });
+      
+      const newStaffs = response?.data || [];
+      const total = response?.total || 0;
+
+      setHospitalStaffs((prev) => ({ 
+        ...prev, 
+        [hospitalId]: isLoadMore ? [...(prev[hospitalId] || []), ...newStaffs] : newStaffs 
+      }));
+
+      setStaffPagination(prev => ({
+        ...prev,
+        [hospitalId]: { ...currentPagination, offset, total }
+      }));
     } catch (error) {
       toast.error("Failed to load staffs for hospital: " + error.message);
     } finally {
@@ -173,85 +192,106 @@ const StaffsRolesTab = () => {
                     </button>
                   </ReadOnlyTooltip>
                 </div>
-                {staffsLoading ? (
+                {staffsLoading && staffs.length === 0 ? (
                   <p className="text-center py-5 text-gray-500 italic">Loading staffs...</p>
                 ) : staffs.length === 0 ? (
                   <p className="text-center py-5 text-gray-500 italic">No staffs found for this hospital.</p>
                 ) : (
-                  <div className="overflow-x-auto rounded-lg border border-gray-200">
-                    <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Staff Code</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Staff Name</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Department</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Designation</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Assigned Role</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Contact Info</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Experience (years)</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Availability</th>
-                          <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {staffs.map((staff) => (
-                          <tr key={staff.id} className="bg-white hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-900 font-medium">{staff.staff_code || "-"}</td>
-                            <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800">{staff.staff_name}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.department || "-"}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.designation?.name || "-"}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">
-                              {staff.roles && staff.roles.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {staff.roles.map((role, index) => (
-                                    <span
-                                      key={role.id || index}
-                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                                    >
-                                      {role.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 italic">No role assigned</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.contact_info || "-"}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.email || "-"}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.experience != null ? staff.experience : "-"}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.status || "-"}</td>
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">
-                              <div className="whitespace-pre-line text-xs">{formatAvailability(staff.availability)}</div>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap space-x-2">
-                              <ReadOnlyTooltip isReadOnly={isReadOnly}>
-                                <button
-                                  onClick={() => openEditStaffDialog(id, staff)}
-                                  className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                                  disabled={isReadOnly}
-                                  aria-label={`Edit ${staff.staff_name}`}
-                                >
-                                  ✏️
-                                </button>
-                              </ReadOnlyTooltip>
-                              
-                              <ReadOnlyTooltip isReadOnly={isReadOnly}>
-                                <button
-                                  onClick={(e) => confirmDeleteStaff(staff, id, e)}
-                                  className="text-red-600 hover:text-red-800 disabled:opacity-50"
-                                  disabled={isReadOnly}
-                                  aria-label={`Delete ${staff.staff_name}`}
-                                >
-                                  🗑️
-                                </button>
-                              </ReadOnlyTooltip>
-                            </td>
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto rounded-lg border border-gray-200">
+                      <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Staff Code</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Staff Name</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Department</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Designation</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Assigned Role</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Contact Info</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Experience (years)</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Availability</th>
+                            <th className="px-4 py-3 font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {staffs.map((staff) => (
+                            <tr key={staff.id} className="bg-white hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-900 font-medium">{staff.staff_code || "-"}</td>
+                              <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-800">{staff.staff_name}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.department || "-"}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.designation?.name || "-"}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                                {staff.roles && staff.roles.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {staff.roles.map((role, index) => (
+                                      <span
+                                        key={role.id || index}
+                                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                      >
+                                        {role.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400 italic">No role assigned</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.contact_info || "-"}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.email || "-"}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.experience != null ? staff.experience : "-"}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-700">{staff.status || "-"}</td>
+                              <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                                <div className="whitespace-pre-line text-xs">{formatAvailability(staff.availability)}</div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap space-x-2">
+                                <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                                  <button
+                                    onClick={() => openEditStaffDialog(id, staff)}
+                                    className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                                    disabled={isReadOnly}
+                                    aria-label={`Edit ${staff.staff_name}`}
+                                  >
+                                    ✏️
+                                  </button>
+                                </ReadOnlyTooltip>
+                                
+                                <ReadOnlyTooltip isReadOnly={isReadOnly}>
+                                  <button
+                                    onClick={(e) => confirmDeleteStaff(staff, id, e)}
+                                    className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                    disabled={isReadOnly}
+                                    aria-label={`Delete ${staff.staff_name}`}
+                                  >
+                                    🗑️
+                                  </button>
+                                </ReadOnlyTooltip>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {staffPagination[id] && staffs.length < staffPagination[id].total && (
+                      <div className="flex justify-center pt-2">
+                        <button
+                          onClick={() => fetchStaffsByHospital(id, true)}
+                          disabled={staffsLoading}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 py-2 px-4 rounded-md hover:bg-blue-50 transition-colors disabled:opacity-50"
+                        >
+                          {staffsLoading ? (
+                            <>
+                              <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                              Loading...
+                            </>
+                          ) : (
+                            `Load More (${staffPagination[id].total - staffs.length} remaining)`
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

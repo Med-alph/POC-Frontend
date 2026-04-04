@@ -283,7 +283,7 @@ export default function Navbar({ onMenuClick }) {
         <SubscriptionBanner variant="navbar" />
 
         <div className="flex items-center gap-2 sm:gap-4">
-          {isDoctor && (
+          {(isDoctor || (hospitalInfo?.is_solo_practice && (user?.roles?.includes('Admin') || user?.role === 'Admin'))) && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

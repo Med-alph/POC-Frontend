@@ -49,10 +49,43 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const { hasModule, loading: permissionsLoading } = usePermissions();
   const { isModuleDisabled, loading: subscriptionLoading } = useSubscription();
 
-  const isDoctor = user?.role?.toLowerCase() === "doctor" ||
-    (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist");
+  const isRoleMatch = (roles, targetRoles) => {
+    if (Array.isArray(roles)) {
+      return roles.some(r => targetRoles.includes(r?.toLowerCase()));
+    }
+    return targetRoles.includes(user?.role?.toLowerCase()) || 
+           (user?.designation_group && targetRoles.includes(user.designation_group.toLowerCase()));
+  };
+
+  const hasDoctorRole = isRoleMatch(user?.roles || user?.role, ["doctor"]);
+  const isAdminRole = isRoleMatch(user?.roles || user?.role, ["admin", "tenant_admin", "hospital_admin"]);
+  const isSoloPractice = hospitalInfo?.is_solo_practice === true;
   
-  const filteredNavItems = isDoctor ? doctorNavItems : navigationItems;
+  let filteredNavItems = [];
+
+  if (isSoloPractice && isAdminRole && hasDoctorRole) {
+    // Solo Practice Mode: Merge Admin and Doctor interfaces + hide staff management modules
+    const hiddenInSolo = ["doctors", "leave-management", "attendance-management"];
+    const merged = navigationItems
+      .filter(item => !hiddenInSolo.includes(item.id))
+      .map(item => item.id === "dashboard" ? { ...item, label: "Admin Dashboard" } : item);
+    
+    doctorNavItems.forEach(item => {
+        // Skip redundant or hidden items
+        if (item.id === "Attendance" || hiddenInSolo.includes(item.id)) return;
+        
+        if (!merged.find(m => m.id === item.id)) {
+            // Rename for clarity in solo mode
+            const newItem = item.id === "doctorDashboard" ? { ...item, label: "Doctor Dashboard" } : item;
+            merged.push(newItem);
+        }
+    });
+    filteredNavItems = merged;
+  } else if (hasDoctorRole && !isAdminRole) {
+    filteredNavItems = doctorNavItems;
+  } else {
+    filteredNavItems = navigationItems;
+  }
 
   const visibleNavItems = filteredNavItems.map(item => {
     const isModuleRestricted = item.subscriptionModule && isModuleDisabled(item.subscriptionModule);
@@ -74,8 +107,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
     // 3. Admin-only restriction
     if (item.isAdminOnly) {
-      const isAdmin = user?.role === 'Admin' || user?.designation_group === 'Admin' || user?.role === 'tenant_admin' || user?.role === 'HOSPITAL_ADMIN';
-      if (!isAdmin) return false;
+      if (!isAdminRole) return false;
     }
 
     // 4. RBAC (requiredModule)
