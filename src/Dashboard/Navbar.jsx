@@ -156,6 +156,20 @@ export default function Navbar({ onMenuClick }) {
     setShowNotifDropdown(false);
   };
 
+  const handleDismissAllNotifications = async () => {
+    console.log("🧹 Dismissing all notifications...");
+    try {
+      await notificationAPI.dismissAll();
+      if (refreshHistory) await refreshHistory();
+      setShowNotifDropdown(false);
+      setUnreadIds([]);
+      toast.success("All notifications cleared");
+    } catch (error) {
+      console.error("❌ Failed to clear notifications:", error);
+      toast.error("Failed to clear notifications");
+    }
+  };
+
   // Determine navigation items based on role first, then designation_group
   const isDoctor = user?.role?.toLowerCase() === "doctor" ||
     (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist");
@@ -340,22 +354,36 @@ export default function Navbar({ onMenuClick }) {
                       <h3 className="text-sm font-bold flex items-center gap-2">
                         Notifications {unreadCount > 0 && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
                       </h3>
+                      {notificationsList.length > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleDismissAllNotifications();
+                          }}
+                          className="text-[10px] font-semibold text-red-600 hover:text-red-700 hover:underline px-2 py-1 rounded transition-colors"
+                        >
+                          Clear All
+                        </button>
+                      )}
                     </div>
                     <div className="max-h-[400px] overflow-y-auto">
                       {notificationsList.length === 0 ? (
                         <div className="py-10 text-center text-gray-500 text-sm">No new notifications</div>
                       ) : (
-                        <ul className="divide-y divide-gray-50 dark:divide-gray-800">
-                          {notificationsList.slice(0, 10).map((notif, idx) => {
-                            const id = notif.notificationId || idx;
-                            return (
-                              <li key={id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer" onClick={() => handleNotificationClick(notif, idx)}>
-                                <p className="text-sm text-gray-800 dark:text-gray-200 mb-1">{notif.message}</p>
-                                <p className="text-[10px] text-gray-400">{notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString() : ""}</p>
-                              </li>
-                            );
-                          })}
-                        </ul>
+                        <>
+                          <ul className="divide-y divide-gray-50 dark:divide-gray-800">
+                            {notificationsList.slice(0, 10).map((notif, idx) => {
+                              const id = notif.notificationId || idx;
+                              return (
+                                <li key={id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer" onClick={() => handleNotificationClick(notif, idx)}>
+                                  <p className="text-sm text-gray-800 dark:text-gray-200 mb-1">{notif.message}</p>
+                                  <p className="text-[10px] text-gray-400">{notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString() : ""}</p>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </>
                       )}
                     </div>
                   </div>
