@@ -413,10 +413,10 @@ export default function ViewModal({
                                 </Badge>
                             </div>
                         </div>
-                        {assignedTo.name || assignedTo.staff_name ? (
+                        {(assignedTo.name || assignedTo.staff_name || data.assigned_staff) ? (
                             <div>
                                 <label className="text-sm font-medium text-gray-500">Assigned To</label>
-                                <p className="text-lg mt-1">{assignedTo.name || assignedTo.staff_name}</p>
+                                <p className="text-lg mt-1">{data.assigned_staff || assignedTo.name || assignedTo.staff_name}</p>
                             </div>
                         ) : null}
                         <div>

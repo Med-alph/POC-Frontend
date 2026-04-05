@@ -155,17 +155,18 @@ export default function Reminders() {
     const formatReminderData = (reminder) => {
         const patientName = reminder.patient?.patient_name || "Unknown Patient";
         const patientInitials = patientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-        const assignedToName = reminder.assigned_to?.name || reminder.assigned_to?.staff_name || "Not assigned";
+        const assignedToName = reminder.assigned_staff || reminder.assigned_to?.name || reminder.assigned_to?.staff_name || "Not assigned";
         const assignedInitials = assignedToName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-        const dueDate = reminder.due_date
-            ? new Date(reminder.due_date).toLocaleDateString()
+        const dueDate = (reminder.due_date || reminder.reminder_time)
+            ? new Date(reminder.due_date || reminder.reminder_time).toLocaleDateString()
             : "N/A";
-        const dueTime = reminder.due_date
-            ? new Date(reminder.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : reminder.reminder_time
-                ? new Date(reminder.reminder_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : "";
+        
+        // Prefer reminder_time for the actual time display as due_date often defaults to 5:30 AM (midnight UTC)
+        const timeSource = reminder.reminder_time || reminder.due_date;
+        const dueTime = timeSource
+            ? new Date(timeSource).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : "";
 
         const priorityColors = {
             high: "bg-red-100 text-red-700",

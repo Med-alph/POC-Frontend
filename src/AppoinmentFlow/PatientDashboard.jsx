@@ -420,6 +420,7 @@ export default function PatientDashboard() {
     try {
       const result = await remindersAPI.getAll({
         patient_id: patient.id,
+        hospital_id: HOSPITAL_ID,
         limit: 100,
         status: 'pending',
       });
@@ -1111,7 +1112,8 @@ export default function PatientDashboard() {
       }
     };
 
-    const formatDate = (dateString) => {
+    const formatReminderDate = (reminder) => {
+      const dateString = reminder.reminder_time || reminder.due_date;
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', {
@@ -1175,13 +1177,21 @@ export default function PatientDashboard() {
                           {reminder.message}
                         </p>
                       )}
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          <span>Due: {formatDate(reminder.due_date)}</span>
+                          <span>Due: {formatReminderDate(reminder)}</span>
                         </div>
                         {reminder.reminder_type && (
-                          <span className="capitalize">Type: {reminder.reminder_type}</span>
+                          <span className="capitalize bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">
+                            Type: {reminder.reminder_type}
+                          </span>
+                        )}
+                        {(reminder.assigned_staff || reminder.assigned_to?.staff_name || reminder.assigned_to?.name) && (
+                          <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                            <UserCircle2 className="w-4 h-4" />
+                            <span>Assigned: {reminder.assigned_staff || reminder.assigned_to?.staff_name || reminder.assigned_to?.name}</span>
+                          </div>
                         )}
                       </div>
                     </div>
