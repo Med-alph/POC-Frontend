@@ -3,8 +3,9 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Banknote, Search, User, Calendar, Receipt, ShieldCheck, AlertCircle } from "lucide-react";
+import { Loader2, Banknote, Search, User, Calendar, Receipt, ShieldCheck, AlertCircle, Smartphone } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Dialog,
     DialogContent,
@@ -26,6 +27,8 @@ export default function CashierDashboard() {
     // Modal State
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [paymentMode, setPaymentMode] = useState("CASH"); // CASH or UPI
+    const [txnId, setTxnId] = useState("");
 
     const user = useSelector((state) => state.auth.user);
 
@@ -56,14 +59,19 @@ export default function CashierDashboard() {
         if (!selectedOrder) return;
 
         const orderId = selectedOrder.id;
-        const amount = selectedOrder.totalAmount || selectedOrder.total_amount || 0;
 
         try {
             setSettlingId(orderId);
             setIsConfirmModalOpen(false);
-            await paymentsAPI.settleManually(orderId, user?.id);
-            toast.success("Payment settled successfully!");
+            await paymentsAPI.settleManually(orderId, user?.id, {
+                paymentMode,
+                transactionId: txnId
+            });
+            toast.success(`Payment settled successfully via ${paymentMode}!`);
             fetchPendingOrders(); // Refresh queue
+            // Reset state
+            setPaymentMode("CASH");
+            setTxnId("");
         } catch (error) {
             console.error("Settlement failed:", error);
             toast.error(error.message || "Failed to settle payment");
@@ -169,16 +177,16 @@ export default function CashierDashboard() {
                                             <TableCell className="text-right">
                                                 <Button
                                                     size="sm"
-                                                    className="bg-green-600 hover:bg-green-700 text-white gap-2 h-8 px-4"
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-8 px-4"
                                                     onClick={() => openConfirmModal(order)}
                                                     disabled={settlingId === order.id}
                                                 >
                                                     {settlingId === order.id ? (
                                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                     ) : (
-                                                        <Banknote className="h-3.5 w-3.5" />
+                                                        <ShieldCheck className="h-3.5 w-3.5" />
                                                     )}
-                                                    Receive Cash
+                                                    Settle Payment
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -197,51 +205,80 @@ export default function CashierDashboard() {
                         <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
                             <Banknote className="h-6 w-6 text-green-600" />
                         </div>
-                        <DialogTitle className="text-center text-xl">Confirm Cash Payment</DialogTitle>
+                        <DialogTitle className="text-center text-xl font-bold">Settle Payment</DialogTitle>
                         <DialogDescription className="text-center pt-2">
-                            Are you sure you want to mark this order as paid?
-                            Please verify that you have received the exact amount in physical cash.
+                           Verify payment details before settling. This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
 
                     {selectedOrder && (
-                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 my-4 space-y-3 border border-gray-100 dark:border-gray-700">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-500">Patient:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white">
-                                    {selectedOrder.patient?.patient_name || "Unknown Patient"}
-                                </span>
+                        <div className="space-y-4 py-4">
+                            <div className="bg-gray-50 dark:bg-gray-800/80 rounded-xl p-4 space-y-3 border border-gray-100 dark:border-gray-700 shadow-inner">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-500 font-medium">Patient:</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">
+                                        {selectedOrder.patient?.patient_name || "Unknown Patient"}
+                                    </span>
+                                </div>
+                                <div className="pt-2 border-t border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
+                                    <span className="text-gray-900 dark:text-white font-bold">Payable Amount:</span>
+                                    <span className="text-xl font-bold text-blue-600">
+                                        ₹{(parseFloat(selectedOrder.totalAmount || selectedOrder.total_amount || 0) / 100).toFixed(2)}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-500">Order ID:</span>
-                                <span className="font-mono text-blue-600">
-                                    {selectedOrder.orderNumber || selectedOrder.id.slice(0, 8)}
-                                </span>
+
+                            <div className="space-y-3 pt-2">
+                                <Label className="text-[10px] uppercase tracking-widest text-gray-500 font-black">Settlement Mode</Label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMode("CASH")}
+                                        className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${paymentMode === 'CASH' ? 'border-blue-600 bg-blue-50/50 text-blue-600' : 'border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+                                    >
+                                        <Banknote className="h-5 w-5" />
+                                        <span className="font-bold text-sm">Cash</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMode("UPI")}
+                                        className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${paymentMode === 'UPI' ? 'border-blue-600 bg-blue-50/50 text-blue-600' : 'border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+                                    >
+                                        <Smartphone className="h-5 w-5" />
+                                        <span className="font-bold text-sm">UPI QR</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                                <span className="text-gray-900 dark:text-white font-bold">Total Amount:</span>
-                                <span className="text-xl font-bold text-green-600">
-                                    ₹{(parseFloat(selectedOrder.totalAmount || selectedOrder.total_amount || 0) / 100).toFixed(2)}
-                                </span>
-                            </div>
+
+                            {paymentMode === "UPI" && (
+                                <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-1">
+                                    <Label className="text-[10px] uppercase tracking-widest text-gray-500 font-black">Transaction ID (Optional)</Label>
+                                    <Input
+                                        placeholder="Enter UPI Ref No."
+                                        value={txnId}
+                                        onChange={(e) => setTxnId(e.target.value)}
+                                        className="bg-white border-gray-200"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <DialogFooter className="gap-2 sm:gap-0 mt-4">
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="secondary"
                             onClick={() => setIsConfirmModalOpen(false)}
-                            className="flex-1"
+                            className="flex-1 rounded-xl h-11"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="button"
-                            className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                            className="bg-blue-600 hover:bg-blue-700 text-white flex-1 rounded-xl h-11 font-bold"
                             onClick={handleSettle}
                         >
-                            Confirm Receipt
+                            Settle Now
                         </Button>
                     </DialogFooter>
                 </DialogContent>

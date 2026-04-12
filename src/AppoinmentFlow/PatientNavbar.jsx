@@ -12,6 +12,7 @@ import {
   Image,
   Menu,
   FileText,
+  CreditCard,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,10 +38,11 @@ const patientNavItems = [
 
 const PATIENT_TABS = [
   { key: "appointments", label: "Appointments", icon: CalendarDays },
+  { key: "records", label: "My Records", icon: FileText },
+  { key: "payments", label: "Payments", icon: CreditCard },
   { key: "reminders", label: "Reminders", icon: Bell },
   { key: "calls", label: "Calls", icon: Phone },
   { key: "images", label: "Images", icon: Image },
-  { key: "records", label: "My Records", icon: FileText },
   { key: "profile", label: "Profile", icon: UserCircle2 },
 ];
 

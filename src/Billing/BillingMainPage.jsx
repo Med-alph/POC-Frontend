@@ -27,6 +27,7 @@ export default function BillingPage() {
   const [activeTab, setActiveTab] = useState("billing");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [showQrModal, setShowQrModal] = useState(false);
   const [patient, setPatient] = useState(null);
   const [appointment, setAppointment] = useState(null);
   const [items, setItems] = useState([]);
@@ -117,20 +118,53 @@ export default function BillingPage() {
               };
             });
           }
+
+          let labItems = [];
+          if (consultation && consultation.lab_orders) {
+            labItems = consultation.lab_orders.map((l, idx) => {
+              // Try to find matching item in inventory to get price (sometimes tests are in inventory)
+              const invMatch = inventoryItems.find(item =>
+                item.name.toLowerCase().trim() === l.test_name.toLowerCase().trim()
+              );
+
+              return {
+                id: l.id || `lab-${idx}`,
+                name: l.test_name,
+                type: "Service",
+                qty: 1,
+                unitPrice: invMatch ? parseFloat(invMatch.cost_per_unit) : 0,
+                payNow: true
+              };
+            });
+          }
+
+          let procedureItems = [];
+          if (consultation && consultation.procedures) {
+            procedureItems = consultation.procedures.map((p, idx) => {
+              return {
+                id: p.id || `proc-${idx}`,
+                name: p.procedure?.name || "Procedure",
+                type: "Service",
+                qty: 1,
+                unitPrice: parseFloat(p.actual_price_charged || p.procedure?.price || 0),
+                payNow: true
+              };
+            });
+          }
+
+          const consultationItem = {
+            id: "cons-1",
+            name: `Consultation - ${appt.staff?.staff_name || appt.staff_name || "Doctor"}`,
+            type: "Consultation",
+            qty: 1,
+            unitPrice: parseFloat(appt.staff?.consultation_fee || appt.hospital?.default_consultation_fee || 500),
+            payNow: true
+          };
+
+          setItems([consultationItem, ...prescriptionItems, ...labItems, ...procedureItems]);
         } catch (err) {
           console.error("No consultation found for this appointment", err);
         }
-
-        const consultationItem = {
-          id: "cons-1",
-          name: `Consultation - ${appt.staff?.staff_name || appt.staff_name || "Doctor"}`,
-          type: "Consultation",
-          qty: 1,
-          unitPrice: appt.consultation_fee || 500,
-          payNow: true
-        };
-
-        setItems([consultationItem, ...prescriptionItems]);
 
         // Mock pending payments for other appointments (if any)
         setPendingPayments([
@@ -172,7 +206,7 @@ export default function BillingPage() {
 
 
 
-  const amountToPay = totalToday + totalToday * 0.1; // total + tax
+  const amountToPay = totalToday;
 
   // handle payment initiation (multi-mode)
   const handlePaymentInitiation = async (mode) => {
@@ -184,18 +218,24 @@ export default function BillingPage() {
         patientId: patient?.id,
         appointmentId: appoinmentid,
         paymentModeCategory: mode.toLowerCase(), // digital, cash, credit
+        items: items.map(item => ({
+          name: item.name,
+          type: item.type,
+          unitPrice: item.unitPrice,
+          quantity: item.qty,
+          total: item.unitPrice * item.qty,
+          referenceId: item.id?.toString()
+        }))
       });
 
       if (mode === 'DIGITAL') {
-        const razorOrderId = orderResponse.razorpayOrderId || orderResponse.orderNumber;
-        setRazorpayOrderId(razorOrderId);
-        setOrderCreated(true);
-        setActiveTab("payment");
+        toast.success("Invoice posted successfully. Patient can now pay from their portal.", { duration: 5000 });
+        navigate('/appointments');
       } else if (mode === 'CASH') {
-        toast.success("Bill posted as UNPAID. Send patient to Cashier.", { duration: 4000 });
+        toast.success("Bill marked as Settle payment. Verify payment at counter.", { duration: 4000 });
         navigate('/cashier'); // Navigate to cashier tab as requested
       } else if (mode === 'CREDIT') {
-        toast.success("Payment settled via Patient Credit.");
+        toast.success("Invoice settled via Patient Credit.");
         navigate('/appointments');
       }
     } catch (error) {
@@ -214,6 +254,48 @@ export default function BillingPage() {
   const isPaymentEnabled = appointment?.hospital?.is_payment_enabled !== undefined
     ? appointment.hospital.is_payment_enabled
     : (hospitalInfo?.is_payment_enabled ?? false);
+
+  const renderQrModal = () => {
+    const upiId = appointment?.hospital?.upi_id || hospitalInfo?.upi_id;
+    if (!showQrModal || !upiId) return null;
+
+    const hospitalName = appointment?.hospital?.name || hospitalInfo?.name || "Clinic";
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(hospitalName)}&am=${amountToPay}&cu=INR`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}&bg=ffffff&color=000000`;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowQrModal(false)} />
+        <div className="relative z-50 w-full max-w-sm bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center">
+          <div className="w-full flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Scan to Pay</h3>
+            <button onClick={() => setShowQrModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <AlertCircle className="h-6 w-6 rotate-45" />
+            </button>
+          </div>
+
+          <div className="bg-white p-4 rounded-2xl shadow-inner border-4 border-blue-50 mb-6">
+            <img src={qrUrl} alt="Payment QR" className="w-[220px] h-[220px]" />
+          </div>
+
+          <div className="text-center space-y-2">
+            <p className="text-2xl font-black text-gray-900 dark:text-white">₹{amountToPay.toFixed(2)}</p>
+            <div className="flex flex-col items-center">
+              <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">UPI ID</p>
+              <p className="text-sm font-medium text-blue-600">{upiId}</p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-3 w-full opacity-60 grayscale scale-90">
+             <div className="bg-gray-100 dark:bg-gray-700 h-10 rounded-lg flex items-center justify-center font-black">GPay</div>
+             <div className="bg-gray-100 dark:bg-gray-700 h-10 rounded-lg flex items-center justify-center font-black">PhonePe</div>
+          </div>
+
+          <p className="mt-6 text-[10px] text-gray-400 text-center uppercase tracking-tighter">After payment, please click "Settle Payment" <br/> to mark the bill as paid.</p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -250,32 +332,21 @@ export default function BillingPage() {
                 >
                   Billing Details
                 </TabsTrigger>
-                <TabsTrigger
-                  value="payment"
-                  disabled={!orderCreated || isAlreadyPaid}
-                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md font-semibold transition-all"
-                >
-                  Payment
-                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="billing" className="mt-6">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  <div className="lg:col-span-3">
-                    <ItemTable items={items} onTotalChange={setTotalToday} />
-                  </div>
-                  <div className="lg:col-span-1">
-                    <PendingPayments appointments={pendingPayments} />
-                  </div>
+                <div className="w-full">
+                  <ItemTable items={items} onItemsChange={setItems} onTotalChange={setTotalToday} />
                 </div>
                 <BillingSummary
                   subtotal={totalToday}
-                  tax={totalToday * 0.1}
                   totalToday={amountToPay}
-                  pendingTotal={pendingPayments.reduce((sum, a) => sum + a.pendingAmount, 0)}
                   onPayNow={handlePaymentInitiation}
+                  onShowQr={() => setShowQrModal(true)}
+                  hospitalUpiId={appointment?.hospital?.upi_id || hospitalInfo?.upi_id}
+                  isPaymentEnabled={isPaymentEnabled}
                   loading={loading}
-                  showPayButton={isPaymentEnabled && !isAlreadyPaid}
+                  showPayButton={!isAlreadyPaid}
                   patient={patient}
                 />
                 {!isPaymentEnabled && !isAlreadyPaid && (
@@ -298,6 +369,7 @@ export default function BillingPage() {
                 />
               </TabsContent>
             </Tabs>
+            {renderQrModal()}
           </>
         )}
       </main>

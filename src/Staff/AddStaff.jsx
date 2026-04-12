@@ -50,6 +50,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
     designation: "",
     role_id: [], // Array for multiple roles
     availability: createDefaultAvailability(),
+    consultation_fee: "",
     is_archived: false,
     status: "Active",
   });
@@ -104,7 +105,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
       // Multi-role support
       let roleIds = [];
       if (editStaff.roles && editStaff.roles.length > 0) {
-        roleIds = editStaff.roles.map(r => r.id.toString());
+        roleIds = editStaff.roles.map(r => (typeof r === 'string' ? r : r.id?.toString())).filter(Boolean);
       }
 
       setFormData({
@@ -117,6 +118,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         designation: editStaff.designation_id ? editStaff.designation_id.toString() : "",
         role_id: roleIds,
         availability: newAvail,
+        consultation_fee: editStaff.consultation_fee != null ? editStaff.consultation_fee.toString() : "",
         is_archived: editStaff.is_archived || false,
         status:
           editStaff.status?.charAt(0).toUpperCase() + editStaff.status?.slice(1) || "Active",
@@ -137,6 +139,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         designation: "",
         role_id: [],
         availability: createDefaultAvailability(),
+        consultation_fee: "",
         is_archived: false,
         status: "Active",
       });
@@ -379,6 +382,7 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
         email: formData.email.trim() || null,
         ...(editStaff ? (formData.password ? { password: formData.password } : {}) : { password: formData.password }),
         experience: formData.experience ? Number(formData.experience) : 0,
+        consultation_fee: formData.consultation_fee ? Number(formData.consultation_fee) : 0,
         availability: JSON.stringify(availabilityMap),
         is_archived: false,
         status: formData.status?.toLowerCase() || "active",
@@ -539,6 +543,19 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                       value={formData.experience}
                       onChange={handleChange}
                       className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Consultation Fee (₹)</label>
+                    <Input
+                      type="number"
+                      name="consultation_fee"
+                      placeholder="500"
+                      min="0"
+                      value={formData.consultation_fee}
+                      onChange={handleChange}
+                      className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20 border-blue-100 dark:border-blue-900/30"
                     />
                   </div>
                 </div>
