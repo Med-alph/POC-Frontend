@@ -1910,7 +1910,7 @@ export default function PatientDashboard() {
                               </p>
                               <div className="flex items-center gap-2 mt-2">
                                  <div className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-[10px] font-bold text-gray-500 flex items-center gap-1">
-                                    <Stethoscope className="w-3 h-3" /> Dr. {bill.staff_name || 'Medical Team'}
+                                    <Stethoscope className="w-3 h-3" />  {bill.staff_name || 'Medical Team'}
                                  </div>
                                  <Button 
                                     variant="link" 
