@@ -39,11 +39,11 @@ const paymentsAPI = {
     });
   },
 
-  // Settle a cash order manually
-  settleManually: async (orderId, staffId) => {
+  // Settle a cash or UPI order manually
+  settleManually: async (orderId, staffId, settlementData = {}) => {
     return apiRequest(`/payments/orders/${orderId}/settle-manually`, {
       method: 'POST',
-      body: JSON.stringify({ staffId }),
+      body: JSON.stringify({ staffId, ...settlementData }),
     });
   },
 
@@ -76,6 +76,16 @@ const paymentsAPI = {
     });
   },
 
+  // Get all orders for a specific patient (includes hospital payment config)
+  getPatientOrders: async (patientId) => {
+    return apiRequest(`/payments/orders/patient/${patientId}`);
+  },
+
+  // Fetch rich metadata for a legal receipt
+  getInvoiceDetails: async (orderId) => {
+    return apiRequest(`/payments/invoice/${orderId}/details`);
+  },
+
   // Get paginated and filterable invoice reports
   getInvoiceReports: async (params = {}) => {
     const queryParams = new URLSearchParams();
@@ -86,6 +96,18 @@ const paymentsAPI = {
     });
     const queryString = queryParams.toString();
     const endpoint = queryString ? `/payments/invoice-reports?${queryString}` : '/payments/invoice-reports';
+    return apiRequest(endpoint);
+  },
+
+  // Get revenue aggregation summary
+  getRevenueSummary: async (startDate, endDate, page = 1, limit = 10) => {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.append('start_date', startDate);
+    if (endDate) queryParams.append('end_date', endDate);
+    if (page) queryParams.append('page', page);
+    if (limit) queryParams.append('limit', limit);
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/payments/revenue-summary?${queryString}` : '/payments/revenue-summary';
     return apiRequest(endpoint);
   },
 };

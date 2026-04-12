@@ -1,6 +1,6 @@
 import React from "react";
 import { 
-  CalendarDays, UserCircle2, Bell, Phone, Image, X, ChevronRight, Stethoscope, FileText
+  CalendarDays, UserCircle2, Bell, Phone, Image, X, ChevronRight, Stethoscope, FileText, CreditCard
 } from "lucide-react";
 import { useHospital } from "@/contexts/HospitalContext";
 import { 
@@ -9,10 +9,11 @@ import {
 
 const patientTabs = [
   { id: "appointments", label: "Appointments", icon: CalendarDays },
+  { id: "records", label: "My Records", icon: FileText },
+  { id: "payments", label: "Payments", icon: CreditCard },
   { id: "reminders", label: "Reminders", icon: Bell },
   { id: "calls", label: "Calls", icon: Phone },
   { id: "images", label: "Images", icon: Image },
-  { id: "records", label: "My Records", icon: FileText },
   { id: "profile", label: "Profile", icon: UserCircle2 },
 ];
 

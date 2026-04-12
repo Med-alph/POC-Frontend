@@ -65,6 +65,7 @@ import CashierDashboard from "./Billing/CashierDashboard";
 import InvoiceReports from "./Billing/InvoiceReports";
 import PatientDashboard from "./AppoinmentFlow/PatientDashboard";
 import AuthCallback from "./AppoinmentFlow/AuthCallback";
+import RevenueDashboard from "./Billing/RevenueDashboard";
 
 // Inventory Management
 import InventoryLayout from "./Inventory/InventoryLayout";
@@ -285,6 +286,14 @@ function HospitalApp() {
                   element={
                     <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
                       <InvoiceReports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/revenue"
+                  element={
+                    <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                      <RevenueDashboard />
                     </ProtectedRoute>
                   }
                 />

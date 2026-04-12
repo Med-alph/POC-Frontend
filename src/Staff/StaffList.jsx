@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { PlusCircle } from "lucide-react"
+import { PlusCircle, Edit } from "lucide-react"
 import CreateStaffDialog from "./AddStaff"
 import { toast } from "react-hot-toast"
 import staffApi from "@/api/staffapi" 
@@ -11,6 +11,7 @@ export default function StaffListPage() {
   const [hospitalId, setHospitalId] = useState(null)
   const [staffList, setStaffList] = useState([])
   const [openDialog, setOpenDialog] = useState(false)
+  const [editStaff, setEditStaff] = useState(null)
   const { isReadOnly } = useSubscription()
 
   useEffect(() => {
@@ -50,8 +51,19 @@ export default function StaffListPage() {
   }, [hospitalId])
 
   const handleAddStaff = (newStaff) => {
-    setStaffList(prev => [...prev, newStaff])
-    toast.success(`Staff "${newStaff.staff_name}" added!`)
+    if (editStaff) {
+      setStaffList(prev => prev.map(s => s.id === newStaff.id ? newStaff : s))
+      toast.success(`Staff "${newStaff.staff_name}" updated!`)
+    } else {
+      setStaffList(prev => [...prev, newStaff])
+      toast.success(`Staff "${newStaff.staff_name}" added!`)
+    }
+    setEditStaff(null)
+  }
+
+  const handleEdit = (staff) => {
+    setEditStaff(staff)
+    setOpenDialog(true)
   }
 
   if (!hospitalId) {
@@ -82,7 +94,8 @@ export default function StaffListPage() {
             <th className="border p-2">Role</th>
             <th className="border p-2">Email</th>
             <th className="border p-2">Phone</th>
-            <th className="border p-2">Experience</th>
+            <th className="border p-2">Fee (₹)</th>
+            <th className="border p-2">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -97,7 +110,19 @@ export default function StaffListPage() {
               </td>
               <td className="border p-2">{staff.email}</td>
               <td className="border p-2">{staff.contact_info}</td>
-              <td className="border p-2">{staff.experience}</td>
+              <td className="border p-2 font-bold text-blue-600">
+                {staff.consultation_fee ? `₹${staff.consultation_fee}` : "Default"}
+              </td>
+              <td className="border p-2 text-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleEdit(staff)}
+                  className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                >
+                  <Edit size={16} />
+                </Button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -108,7 +133,11 @@ export default function StaffListPage() {
         hospitalId={hospitalId}
         onAdd={handleAddStaff}
         open={openDialog}
-        setOpen={setOpenDialog}
+        setOpen={(val) => {
+          setOpenDialog(val)
+          if (!val) setEditStaff(null)
+        }}
+        editStaff={editStaff}
       />
     </div>
   )

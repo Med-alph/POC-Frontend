@@ -12,34 +12,28 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-export default function ItemTable({ items, onTotalChange }) {
-    const [tableItems, setTableItems] = useState([]);
-
+export default function ItemTable({ items, onItemsChange, onTotalChange }) {
     const ITEM_TYPES = ["Consultation", "Pharmaceutical", "Service"];
 
     useEffect(() => {
-        if (items && items.length > 0) {
-            setTableItems(items);
-        }
-    }, [items]);
-
-    useEffect(() => {
-        const total = tableItems
+        const total = items
             .filter(item => item.payNow)
             .reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.unitPrice) || 0), 0);
         onTotalChange(total);
-    }, [tableItems, onTotalChange]);
+    }, [items, onTotalChange]);
 
     const togglePayNow = (id) => {
-        setTableItems(prev =>
-            prev.map(item => item.id === id ? { ...item, payNow: !item.payNow } : item)
+        const newItems = items.map(item => 
+            item.id === id ? { ...item, payNow: !item.payNow } : item
         );
+        onItemsChange(newItems);
     };
 
     const updateItem = (id, field, value) => {
-        setTableItems(prev => prev.map(item =>
+        const newItems = items.map(item =>
             item.id === id ? { ...item, [field]: value } : item
-        ));
+        );
+        onItemsChange(newItems);
     };
 
     const addItem = () => {
@@ -52,11 +46,11 @@ export default function ItemTable({ items, onTotalChange }) {
             payNow: true,
             isNew: true
         };
-        setTableItems(prev => [...prev, newItem]);
+        onItemsChange([...items, newItem]);
     };
 
     const removeItem = (id) => {
-        setTableItems(prev => prev.filter(item => item.id !== id));
+        onItemsChange(items.filter(item => item.id !== id));
     };
 
     return (
@@ -105,13 +99,13 @@ export default function ItemTable({ items, onTotalChange }) {
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {tableItems.map((item, idx) => (
+                            {items.map((item, idx) => (
                                 <tr
                                     key={item.id}
                                     className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${item.payNow ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                                         }`}
                                 >
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-md">
                                                 <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -186,7 +180,7 @@ export default function ItemTable({ items, onTotalChange }) {
                                     </td>
                                 </tr>
                             ))}
-                            {tableItems.length === 0 && (
+                            {items.length === 0 && (
                                 <tr>
                                     <td colSpan="7" className="px-6 py-10 text-center text-gray-500">
                                         No items added. Click "Add Item" to start billing.

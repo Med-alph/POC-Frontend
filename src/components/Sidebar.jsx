@@ -5,7 +5,7 @@ import {
   Home, Users, Stethoscope, Calendar, Clock, 
   Package, Sparkles, MessageSquare, Shield, Mail, 
   Banknote, FileText, Clipboard, X, ChevronRight,
-  LayoutDashboard, Bell, AlertCircle
+  LayoutDashboard, Bell, AlertCircle, TrendingUp
 } from "lucide-react";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
@@ -24,6 +24,7 @@ const navigationItems = [
   { id: "notifications", label: "Notifications", path: "/notifications", icon: Bell, requiredModule: UI_MODULES.NOTIFICATIONS, subscriptionModule: "NOTIFICATIONS" },
   { id: "cashier", label: "Cashier", path: "/cashier", icon: Banknote, subscriptionModule: "BILLING", requiredModule: UI_MODULES.BILLING },
   { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true, subscriptionModule: "REPORTS", requiredModule: UI_MODULES.REPORTS },
+  { id: "revenue", label: "Revenue Analytics", path: "/admin/revenue", icon: TrendingUp, isAdminOnly: true, subscriptionModule: "REPORTS", requiredModule: UI_MODULES.REPORTS },
   { id: "master-procedures", label: "Master Procedures", path: "/admin/master-procedures", icon: Clipboard, isAdminOnly: true, requiredModule: UI_MODULES.PROCEDURES },
   { id: "feedback", label: "Patient Feedback", path: "/hospital/feedback", icon: MessageSquare, isAdminOnly: true },
 ];

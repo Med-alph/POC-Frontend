@@ -126,6 +126,8 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
         razorpay_key_id: "",
         razorpay_key_secret: "",
         is_payment_enabled: false,
+        payment_provider: "razorpay",
+        upi_id: "",
         // WhatsApp
         whatsapp_number: "",
         bot_active: false,
@@ -493,74 +495,139 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                             <div>
                                 <CardTitle className="text-lg font-bold flex items-center">
                                     <CreditCard className="h-5 w-5 mr-2 text-blue-600" />
-                                    Payment Integrations
+                                    Payment Configuration
                                 </CardTitle>
-                                <CardDescription>Configure Razorpay to accept online payments.</CardDescription>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Label htmlFor="is_payment_enabled" className="text-sm font-medium">Enable Payments</Label>
-                                <input
-                                    type="checkbox"
-                                    id="is_payment_enabled"
-                                    name="is_payment_enabled"
-                                    checked={settings.is_payment_enabled}
-                                    onChange={handleChange}
-                                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
+                                <CardDescription>Manage how your hospital collects payments from patients.</CardDescription>
                             </div>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid gap-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="razorpay_key_id">Razorpay Key ID</Label>
-                                    <Input
-                                        id="razorpay_key_id"
-                                        name="razorpay_key_id"
-                                        value={settings.razorpay_key_id}
-                                        onChange={handleChange}
-                                        placeholder="rzp_test_..."
-                                        className="bg-white"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="razorpay_key_secret">Razorpay Key Secret</Label>
-                                    <div className="relative">
+                        <CardContent className="space-y-8">
+                            {/* Manual Payment Section */}
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Manual Payments (Zero Fee)</h4>
+                                <div className="grid gap-4 p-4 rounded-xl border bg-emerald-50/30 border-emerald-100">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="upi_id" className="flex items-center gap-2">
+                                            Hospital UPI ID <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">RECOMMENDED</span>
+                                        </Label>
                                         <Input
-                                            id="razorpay_key_secret"
-                                            name="razorpay_key_secret"
-                                            type={showSecret ? "text" : "password"}
-                                            value={settings.razorpay_key_secret}
+                                            id="upi_id"
+                                            name="upi_id"
+                                            value={settings.upi_id}
                                             onChange={handleChange}
-                                            placeholder="••••••••••••••••"
-                                            className="bg-white pr-10"
+                                            placeholder="hospitalname@okicici"
+                                            className="bg-white"
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowSecret(!showSecret)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </button>
+                                        <p className="text-xs text-gray-500">This ID will be used to generate QR codes for patients to pay via GPay, PhonePe, or Paytm without any transaction fees.</p>
                                     </div>
                                 </div>
-                                <div className="flex justify-start">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleValidateRazorpay}
-                                        disabled={validating || !settings.razorpay_key_id || !settings.razorpay_key_secret}
-                                        className="bg-white border-blue-200 text-blue-600 hover:bg-blue-50"
-                                    >
-                                        {validating ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-                                        Test Credentials
-                                    </Button>
-                                </div>
                             </div>
-                            <p className="text-xs text-amber-600 flex items-center">
-                                <ShieldCheck className="h-3 w-3 mr-1" />
-                                Your keys are encrypted at rest and never shared with anyone.
-                            </p>
+
+                            {/* Online Gateway Section */}
+                            <div className="space-y-4 pt-4 border-t">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Online Payment Gateway</h4>
+                                    <div className="flex items-center space-x-2">
+                                        <Label htmlFor="is_payment_enabled" className="text-sm font-medium">Enable Gateway</Label>
+                                        <input
+                                            type="checkbox"
+                                            id="is_payment_enabled"
+                                            name="is_payment_enabled"
+                                            checked={settings.is_payment_enabled}
+                                            onChange={handleChange}
+                                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        />
+                                    </div>
+                                </div>
+
+                                {settings.is_payment_enabled && (
+                                    <div className="grid gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="grid gap-2">
+                                            <Label>Gateway Provider</Label>
+                                            <div className="flex gap-4">
+                                                <Button 
+                                                    type="button"
+                                                    variant={settings.payment_provider === "razorpay" ? "default" : "outline"}
+                                                    className={settings.payment_provider === "razorpay" ? "bg-blue-600" : ""}
+                                                    onClick={() => setSettings({ ...settings, payment_provider: "razorpay" })}
+                                                >
+                                                    Razorpay (India)
+                                                </Button>
+                                                <Button 
+                                                    type="button"
+                                                    variant={settings.payment_provider === "stripe" ? "default" : "outline"}
+                                                    className={settings.payment_provider === "stripe" ? "bg-blue-600" : ""}
+                                                    onClick={() => setSettings({ ...settings, payment_provider: "stripe" })}
+                                                >
+                                                    Stripe (Intl)
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-4 p-5 rounded-xl border bg-blue-50/30 border-blue-100">
+                                            {settings.payment_provider === "razorpay" ? (
+                                                <>
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="razorpay_key_id">Razorpay Key ID</Label>
+                                                        <Input
+                                                            id="razorpay_key_id"
+                                                            name="razorpay_key_id"
+                                                            value={settings.razorpay_key_id}
+                                                            onChange={handleChange}
+                                                            placeholder="rzp_test_..."
+                                                            className="bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="razorpay_key_secret">Razorpay Key Secret</Label>
+                                                        <div className="relative">
+                                                            <Input
+                                                                id="razorpay_key_secret"
+                                                                name="razorpay_key_secret"
+                                                                type={showSecret ? "text" : "password"}
+                                                                value={settings.razorpay_key_secret}
+                                                                onChange={handleChange}
+                                                                placeholder="••••••••••••••••"
+                                                                className="bg-white pr-10"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowSecret(!showSecret)}
+                                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                                            >
+                                                                {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="py-4 text-center text-sm text-gray-500">
+                                                    Stripe integration coming soon for international hospitals.
+                                                </div>
+                                            )}
+
+                                            {settings.payment_provider === "razorpay" && (
+                                                <div className="flex justify-start">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleValidateRazorpay}
+                                                        disabled={validating || !settings.razorpay_key_id || !settings.razorpay_key_secret}
+                                                        className="bg-white border-blue-200 text-blue-600 hover:bg-blue-50"
+                                                    >
+                                                        {validating ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                                                        Test Connection
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        <p className="text-[11px] text-gray-500 italic pl-1 italic">
+                                            Note: Online payments via Razorpay / Stripe may include standard transaction fees (~2–3%) charged by the service provider.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

@@ -1,4 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import ReceiptTemplate from "../Billing/ReceiptTemplate";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useHospital } from "@/contexts/HospitalContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -9,7 +13,7 @@ import {
   ArrowLeft, Phone, Image, RefreshCw, Mail, MapPin, Shield, Heart,
   Clock, PhoneCall, PhoneIncoming, PhoneOutgoing, PhoneMissed, Download,
   AlertCircle, Droplet, FileText, Users, X, Bell, CheckCircle, Camera, Utensils,
-  Stethoscope, Activity, Pill, FlaskConical, GalleryThumbnails
+  Stethoscope, Activity, Pill, FlaskConical, GalleryThumbnails, CreditCard, Receipt, History
 } from "lucide-react";
 import { getUserData } from "@/utils/auth";
 import PatientNavbar from "./PatientNavbar";
@@ -25,6 +29,7 @@ import authAPI from "@/api/authapi";
 import { remindersAPI } from "@/api/remindersapi";
 import notificationsAPI from "@/api/notifications";
 import imagesAPI from "@/api/imagesapi";
+import paymentsAPI from "@/api/paymentsapi";
 import toast, { Toaster } from "react-hot-toast";
 import CallNotification from "@/components/CallNotification";
 import JitsiMeeting from "@/components/JitsiMeeting";
@@ -40,10 +45,11 @@ const PAGE_SIZE = 10;
 
 const TABS = [
   { key: "appointments", label: "Appointments", icon: CalendarDays },
+  { key: "records", label: "My Records", icon: FileText },
+  { key: "payments", label: "Payments", icon: CreditCard },
   { key: "reminders", label: "Reminders", icon: Bell },
   { key: "calls", label: "Calls", icon: Phone },
   { key: "images", label: "Images", icon: Image },
-  { key: "records", label: "My Records", icon: FileText },
   { key: "profile", label: "Profile", icon: UserCircle2 },
 ];
 
@@ -96,6 +102,10 @@ export default function PatientDashboard() {
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
+
+  // Receipt Generation
+  const [receiptData, setReceiptData] = useState(null);
+  const receiptRef = useRef(null);
 
   // Modals
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -152,6 +162,14 @@ export default function PatientDashboard() {
   const [proceduresHistory, setProceduresHistory] = useState([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
   const [activeRecordTab, setActiveRecordTab] = useState("SOAP Notes");
+
+  // Payments / Billing
+  const [bills, setBills] = useState([]);
+  const [loadingBills, setLoadingBills] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [viewingBillModal, setViewingBillModal] = useState(false);
+  const [selectedBillDetails, setSelectedBillDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   const recordTabs = ["SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes"];
 
@@ -310,6 +328,12 @@ export default function PatientDashboard() {
     fetchPatientRecords();
   }, [activeTab, patient?.id]);
 
+  // Fetch bills when payments tab is active
+  useEffect(() => {
+    if (activeTab !== "payments" || !patient?.id) return;
+    fetchBills();
+  }, [activeTab, patient?.id]);
+
   const fetchPatientRecords = async () => {
     if (!patient?.id) return;
     setLoadingRecords(true);
@@ -341,6 +365,207 @@ export default function PatientDashboard() {
       toast.error("Failed to load clinical records");
     } finally {
       setLoadingRecords(false);
+    }
+  };
+
+  const fetchBills = async () => {
+    if (!patient?.id) return;
+    setLoadingBills(true);
+    try {
+      const response = await paymentsAPI.getPatientOrders(patient.id);
+      setBills(response.data || response || []);
+    } catch (error) {
+      console.error('Failed to load bills:', error);
+      toast.error("Failed to load billing history");
+    } finally {
+      setLoadingBills(false);
+    }
+  };
+
+  const fetchInvoiceDetails = async (billId) => {
+    setLoadingDetails(true);
+    setViewingBillModal(true);
+    try {
+      const details = await paymentsAPI.getInvoiceDetails(billId);
+      setSelectedBillDetails(details);
+    } catch (error) {
+      toast.error("Failed to load invoice details");
+      setViewingBillModal(false);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const loadRazorpay = (src) => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleOnlinePayment = async (bill) => {
+    setPaymentLoading(true);
+    try {
+      // 1. Initiate order on backend
+      const orderResponse = await paymentsAPI.initiateOrder({
+        id: bill.id, // Pass existing order ID to prevent duplicates
+        amount: Math.round(bill.total_amount || bill.amount || 0), 
+        receipt: `rcpt_${bill.id}_${Date.now()}`,
+        patientId: patient.id,
+        appointmentId: bill.appointment_id,
+        paymentModeCategory: 'digital'
+      });
+
+      const orderId = orderResponse.razorpayOrderId || orderResponse.orderNumber;
+
+      // 2. Load Razorpay SDK
+      const res = await loadRazorpay("https://checkout.razorpay.com/v1/checkout.js");
+      if (!res) {
+        toast.error("Razorpay SDK failed to load. Check your internet connection.");
+        return;
+      }
+
+      // 3. Open Razorpay options
+      const options = {
+        key: bill.razorpay_key_id || bill.hospital?.public_key || bill.hospital_public_key || hospitalInfo?.razorpay_key_id,
+        amount: Math.round(bill.total_amount || bill.amount || 0), // Already in paise
+        currency: "INR",
+        name: bill.hospital?.name || hospitalInfo?.name || "Hospital Management",
+        description: `Payment for Invoice #${bill.invoice_number || bill.id.slice(0, 8)}`,
+        image: bill.hospital?.logo || hospitalInfo?.logo || "https://razorpay.com/favicon.png",
+        order_id: orderId,
+        handler: async function (response) {
+          try {
+            await paymentsAPI.verifyPayment({
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+              paymentMethod: 'online',
+            });
+            toast.success("Payment successful!");
+            fetchBills(); // Refresh list
+          } catch (error) {
+            toast.error("Payment verification failed. Please contact reception.");
+            console.error(error);
+          }
+        },
+        prefill: {
+          name: patient?.patient_name || patient?.name,
+          email: patient?.email || "",
+          contact: patient?.phone || patient?.contact_info,
+        },
+        theme: { color: "#2563eb" },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+
+    } catch (error) {
+      console.error("Payment initiation failed:", error);
+      toast.error(error.message || "Failed to initiate payment");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleDownloadReceipt = async (billId) => {
+    try {
+      toast.loading("Fetching receipt details...", { id: 'download' });
+      const details = await paymentsAPI.getInvoiceDetails(billId);
+      
+      toast.loading("Generating PDF...", { id: 'download' });
+
+      // Create PDF directly from data (No screenshot needed - avoids all CSS/oklch errors)
+      const doc = new jsPDF();
+      const hospitalName = details.hospital?.name || "Clinic";
+      
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(40);
+      doc.text(hospitalName.toUpperCase(), 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(details.hospital?.address || "", 14, 30);
+      doc.text(`Phone: ${details.hospital?.phone || ""}`, 14, 35);
+      if (details.hospital?.gstin && details.hospital.gstin !== 'N/A') {
+        doc.setFont(undefined, 'bold');
+        doc.text(`GSTIN: ${details.hospital.gstin}`, 14, 40);
+        doc.setFont(undefined, 'normal');
+      }
+
+      // Receipt Info (Right side)
+      doc.setFontSize(14);
+      doc.setTextColor(40);
+      doc.text("MEDICAL RECEIPT", 140, 22);
+      doc.setFontSize(9);
+      const displayId = details.receiptNumber?.includes('receipt') 
+        ? `No: ${details.receiptNumber.split('_').pop()?.substring(0, 10) || details.receiptNumber.substring(0, 10)}` 
+        : `No: ${details.receiptNumber}`;
+      doc.text(displayId, 140, 30);
+      const dateStr = new Date(details.transactionDate).toLocaleDateString('en-GB');
+      doc.text(`Date: ${dateStr}`, 140, 35);
+      doc.text(`Method: ${details.paymentMethod || 'N/A'}`, 140, 40);
+      if (details.transactionId && details.transactionId !== 'N/A') {
+        doc.setFontSize(8);
+        doc.text(`Txn ID: ${details.transactionId}`, 140, 44);
+        doc.setFontSize(9);
+      }
+
+      // Patient Info ...
+      doc.setDrawColor(200);
+      doc.line(14, 46, 196, 46); // Line
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text("BILL TO:", 14, 55);
+      doc.setFont(undefined, 'normal');
+      doc.text(details.patient?.name || "", 14, 60);
+      doc.text(`UHID: ${details.patient?.uhid || ""}`, 14, 65);
+      doc.text(`Phone: ${details.patient?.phone || ""}`, 14, 70);
+      
+      // Table
+      const tableData = details.items.map(item => [
+        item.name,
+        item.qty,
+        `Rs. ${parseFloat(item.unitPrice).toFixed(2)}`,
+        `Rs. ${parseFloat(item.total).toFixed(2)}`
+      ]);
+
+      autoTable(doc, {
+        startY: 80,
+        head: [['Description', 'Qty', 'Unit Price', 'Total']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 3: { halign: 'right' }, 2: { halign: 'right' }, 1: { halign: 'center' } }
+      });
+
+      // Summary
+      const finalY = doc.lastAutoTable.finalY + 10;
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      const totalText = `Total Payable: Rs. ${parseFloat(details.summary?.totalAmount || 0).toFixed(2)}`;
+      doc.text(totalText, 196 - doc.getTextWidth(totalText), finalY + 10);
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(150);
+      doc.text("This is a computer generated document.", 105, 280, { align: 'center' });
+      doc.text("Thank you for choosing us.", 105, 285, { align: 'center' });
+
+      // Professional Filename (Date Based)
+      const downloadDate = dateStr.replaceAll('/', '_');
+      doc.save(`Receipt_${downloadDate}.pdf`);
+      toast.success("Receipt downloaded!", { id: 'download' });
+
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error(error.message || "Failed to generate receipt.", { id: 'download' });
     }
   };
 
@@ -1598,6 +1823,279 @@ export default function PatientDashboard() {
     );
   };
 
+  const renderPaymentsTab = () => {
+    const unpaidBills = bills.filter(b => ['unpaid', 'pending', 'created'].includes(b.status?.toLowerCase()));
+    const paidBills = bills.filter(b => ['paid', 'settled'].includes(b.status?.toLowerCase()));
+
+    return (
+      <div className="space-y-6">
+        <header className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <Receipt className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+             </div>
+             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Financial Dashboard</h2>
+          </div>
+          <p className="text-gray-500 pl-11">Manage your health investments and view detailed invoices</p>
+        </header>
+
+        {loadingBills ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin h-10 w-10 text-blue-600" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 space-y-6">
+              <Card className="relative overflow-hidden border-0 bg-blue-600 text-white shadow-xl shadow-blue-500/20">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                   <Activity className="w-32 h-32" />
+                </div>
+                <CardContent className="p-6 relative z-10">
+                  <div className="flex items-center gap-3 mb-4 opacity-80">
+                    <Receipt className="w-5 h-5 text-blue-100" />
+                    <span className="text-sm font-medium uppercase tracking-wider">Amount Due</span>
+                  </div>
+                  <div className="text-4xl font-black mb-1">
+                    ₹{(unpaidBills.reduce((acc, curr) => acc + (parseFloat(curr.total_amount) || parseFloat(curr.amount) || 0), 0) / 100).toFixed(2)}
+                  </div>
+                  <p className="text-blue-100 text-xs font-semibold backdrop-blur-sm bg-white/10 w-fit px-2 py-1 rounded">
+                    {unpaidBills.length} PENDING TRANSACTIONS
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm bg-white dark:bg-gray-800 ring-1 ring-gray-100 dark:ring-gray-700">
+                <CardHeader className="pb-2 border-b">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-emerald-500" /> Secured Payments
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    All payment data is encrypted as per SOC2 and HIPAA standards. 
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="h-6 w-10 bg-gray-50 dark:bg-gray-700/50 rounded flex items-center justify-center text-[8px] font-black text-gray-400 border">UPI</div>
+                    <div className="h-6 w-10 bg-gray-50 dark:bg-gray-700/50 rounded flex items-center justify-center text-[8px] font-black text-gray-400 border">VISA</div>
+                    <div className="h-6 w-10 bg-gray-50 dark:bg-gray-700/50 rounded flex items-center justify-center text-[8px] font-black text-gray-400 border">MASTER</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="lg:col-span-2 space-y-8">
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                   <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-500" /> Pending Settlement
+                  </h3>
+                   <span className="text-[10px] text-gray-400">{unpaidBills.length} Items</span>
+                </div>
+
+                {unpaidBills.length > 0 ? (
+                  unpaidBills.map((bill) => (
+                    <Card key={bill.id} className="group border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-800 border-l-4 border-amber-400 overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                          <div className="flex items-start gap-4 flex-1">
+                            <div className="h-14 w-14 rounded-2xl bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform duration-300">
+                              <AlertCircle className="h-7 w-7" />
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-lg text-gray-900 dark:text-white">Invoice #{bill.invoice_number || bill.id.slice(0, 8)}</h4>
+                              </div>
+                              <p className="text-sm text-gray-500 font-bold flex items-center gap-2">
+                                 <CalendarDays className="w-3.5 h-3.5" /> {formatDate(bill.created_at)}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                 <div className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                                    <Stethoscope className="w-3 h-3" />  {bill.staff_name || 'Medical Team'}
+                                 </div>
+                                 <Button 
+                                    variant="link" 
+                                    className="h-auto p-0 text-[10px] font-bold text-blue-600"
+                                    onClick={() => fetchInvoiceDetails(bill.id)}
+                                 >
+                                    View Details
+                                 </Button>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col items-center md:items-end gap-3 min-w-[140px]">
+                            <div className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                               ₹{(parseFloat(bill.total_amount || bill.amount || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </div>
+                            <Button
+                              onClick={() => handleOnlinePayment(bill)}
+                              disabled={paymentLoading}
+                              className="w-full bg-blue-600 hover:bg-highlight text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-blue-200 dark:shadow-none transition-all active:scale-95"
+                            >
+                              {paymentLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Settle Now'}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-16 bg-gray-50/50 dark:bg-gray-800/30 rounded-3xl border-2 border-dashed border-gray-100 dark:border-gray-800">
+                    <CheckCircle className="h-14 w-14 text-emerald-200 mx-auto mb-4" />
+                    <p className="text-gray-400 font-bold">Everything Paid Up!</p>
+                  </div>
+                )}
+              </section>
+
+              <section className="space-y-4">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                  <History className="w-4 h-4 text-emerald-500" /> Transaction History
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {paidBills.map((bill) => (
+                    <Card key={bill.id} className="group border-0 shadow-sm hover:shadow-md bg-gray-50/50 dark:bg-gray-800/40 border-l-2 border-emerald-500/30 transition-all duration-300">
+                      <CardContent className="p-5">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="space-y-0.5">
+                            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter flex items-center gap-1">
+                               <CheckCircle className="w-3 h-3" /> Paid
+                            </p>
+                            <h4 className="font-bold text-gray-900 dark:text-white">₹{(parseFloat(bill.total_amount || bill.amount || 0) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                            <p className="text-[10px] font-bold text-gray-400">Inv #{bill.invoice_number || bill.id.slice(0, 8)}</p>
+                          </div>
+                          <div className="flex gap-1">
+                             <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-9 w-9 bg-white dark:bg-gray-700 shadow-sm text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all"
+                                onClick={() => fetchInvoiceDetails(bill.id)}
+                                title="View Breakdown"
+                             >
+                                <Receipt className="w-4 h-4" />
+                             </Button>
+                             <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-9 w-9 bg-white dark:bg-gray-700 shadow-sm text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl transition-all"
+                                onClick={() => handleDownloadReceipt(bill.id)}
+                                title="Download PDF"
+                             >
+                                <Download className="w-4 h-4" />
+                             </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center gap-2 text-[10px] text-gray-500 font-bold">
+                             <CalendarDays className="w-3 h-3 text-gray-400" /> {formatDate(bill.created_at)}
+                          </div>
+                          <div className="text-[10px] font-black text-gray-400 uppercase tracking-tighter bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                             {bill.payment_mode || 'Cash'}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
+        )}
+
+        {/* Breakdown Modal */}
+        {viewingBillModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setViewingBillModal(false)}></div>
+            <Card className="relative w-full max-w-lg bg-white dark:bg-gray-900 overflow-hidden shadow-2xl rounded-3xl border-0 animate-in zoom-in-95 duration-200">
+               <CardHeader className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6">
+                  <div className="flex justify-between items-start">
+                     <div>
+                        <CardTitle className="text-xl font-black mb-1">Invoice Breakdown</CardTitle>
+                        <p className="text-blue-100 text-xs font-semibold">
+                           #{selectedBillDetails?.receiptNumber || 'Loading...'}
+                        </p>
+                     </div>
+                     <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-white hover:bg-white/20 rounded-full"
+                        onClick={() => setViewingBillModal(false)}
+                     >
+                        <X className="w-5 h-5" />
+                     </Button>
+                  </div>
+               </CardHeader>
+               
+               <CardContent className="p-6 max-h-[70vh] overflow-y-auto">
+                  {loadingDetails ? (
+                     <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+                        <p className="text-sm font-bold text-gray-500 animate-pulse uppercase tracking-widest">Compiling details...</p>
+                     </div>
+                  ) : (
+                     <div className="space-y-6">
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between border border-gray-100 dark:border-gray-700">
+                           <div className="flex items-center gap-3">
+                              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+                                 <Stethoscope className="w-5 h-5 text-indigo-600" />
+                              </div>
+                              <div>
+                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Attending Professional</p>
+                                 <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                    {selectedBillDetails?.doctorName || 'Medical Team'}
+                                 </p>
+                              </div>
+                           </div>
+                           <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${selectedBillDetails?.paymentStatus === 'PAID' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                              <span className="text-[10px] font-black text-gray-500">{selectedBillDetails?.paymentStatus}</span>
+                           </div>
+                        </div>
+
+                        <div className="space-y-3">
+                           <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest px-1">Detailed Line Items</h4>
+                           {selectedBillDetails?.items?.map((item, i) => (
+                              <div key={i} className="flex items-center justify-between py-3 px-1 border-b border-gray-50 dark:border-gray-800 last:border-0 group">
+                                 <div className="flex items-center gap-4">
+                                    <div className="h-10 w-10 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 transition-colors">
+                                       {item.type === 'Consultation' ? <Stethoscope className="w-5 h-5" /> : 
+                                        item.type === 'Pharmaceutical' || item.type === 'Medicine' ? <Pill className="w-5 h-5" /> :
+                                        item.type === 'Lab' ? <FlaskConical className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
+                                    </div>
+                                    <div>
+                                       <p className="text-sm font-bold text-gray-900 dark:text-white">{item.name}</p>
+                                       <p className="text-[10px] font-medium text-gray-400">Qty: {item.qty} × ₹{parseFloat(item.unitPrice).toFixed(2)}</p>
+                                    </div>
+                                 </div>
+                                 <div className="text-sm font-black text-gray-900 dark:text-white">
+                                    ₹{parseFloat(item.total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+
+                        <div className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-3xl p-6 shadow-2xl">
+                           <div className="flex items-center justify-between mb-2 opacity-60">
+                              <span className="text-xs font-bold uppercase tracking-widest">Subtotal</span>
+                              <span className="text-sm font-bold">₹{parseFloat(selectedBillDetails?.summary?.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                           </div>
+                           <div className="flex items-center justify-between">
+                              <span className="text-sm font-black uppercase tracking-widest">Grand Total</span>
+                              <span className="text-2xl font-black tracking-tighter text-blue-400 dark:text-blue-600">
+                                 ₹{parseFloat(selectedBillDetails?.summary?.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </span>
+                           </div>
+                        </div>
+                     </div>
+                  )}
+               </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderProfileTab = () => {
     if (loadingProfile) {
       return (
@@ -1870,6 +2368,7 @@ export default function PatientDashboard() {
       case "images": return renderImagesTab();
       case "records": return renderRecordsTab();
       case "profile": return renderProfileTab();
+      case "payments": return renderPaymentsTab();
       default: return renderAppointmentsTab();
     }
   };
@@ -1931,6 +2430,12 @@ export default function PatientDashboard() {
           onTabChange={(tab) => {
             setActiveTab(tab);
             if (tab !== "appointments") setView("list");
+            if (tab === "payments") setLoadingBills(true);
+            if (tab === "records") setLoadingRecords(true);
+            if (tab === "reminders") setLoadingReminders(true);
+            if (tab === "calls") setLoadingCallHistory(true);
+            if (tab === "images") setLoadingSessions(true);
+            if (tab === "profile") setLoadingProfile(true);
           }}
         />
 
@@ -1942,6 +2447,12 @@ export default function PatientDashboard() {
             onTabChange={(tab) => {
               setActiveTab(tab);
               if (tab !== "appointments") setView("list");
+              if (tab === "payments") setLoadingBills(true);
+              if (tab === "records") setLoadingRecords(true);
+              if (tab === "reminders") setLoadingReminders(true);
+              if (tab === "calls") setLoadingCallHistory(true);
+              if (tab === "images") setLoadingSessions(true);
+              if (tab === "profile") setLoadingProfile(true);
             }}
             patientId={patient?.id}
             onMenuClick={() => {
@@ -1998,6 +2509,10 @@ export default function PatientDashboard() {
         onClose={() => setShowImageViewer(false)}
         session={selectedSession}
       />
+      {/* Hidden Receipt Template for PDF generation */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
+        {receiptData && <ReceiptTemplate data={receiptData} ref={receiptRef} />}
+      </div>
     </div>
   );
 }
