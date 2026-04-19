@@ -32,6 +32,8 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
         insurance_number: editPatient?.insurance_number || "",
         medical_history: editPatient?.medical_history || "",
         allergies: editPatient?.allergies || "",
+        gender: editPatient?.gender || "",
+        blood_group: editPatient?.blood_group || "",
         status: editPatient?.status || "active",
         is_credit_eligible: editPatient?.is_credit_eligible || "no",
         credit_amount: editPatient?.credit_amount || 0
@@ -72,6 +74,8 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
                 insurance_number: editPatient?.insurance_number || "",
                 medical_history: editPatient?.medical_history || "",
                 allergies: editPatient?.allergies || "",
+                gender: editPatient?.gender || "",
+                blood_group: editPatient?.blood_group || "",
                 status: editPatient?.status || "active",
                 is_credit_eligible: editPatient?.is_credit_eligible || "no",
                 credit_amount: editPatient?.credit_amount || 0
@@ -92,8 +96,8 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
         e.preventDefault();
 
         // Basic validation with trimming to avoid whitespace only
-        if (!formData.patient_name.trim() || !formData.contact_info.trim()) {
-            toast.error("Please fill in required fields (Name and Contact)");
+        if (!formData.patient_name.trim() || !formData.contact_info.trim() || !formData.gender) {
+            toast.error("Please fill in required fields (Name, Contact, and Gender)");
             return;
         }
 
@@ -216,6 +220,45 @@ export default function EditPatientDialog({ open, setOpen, onUpdate, editPatient
                                             onChange={handleChange}
                                             className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
                                         />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="gender" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Gender *</Label>
+                                        <Select
+                                            value={formData.gender}
+                                            onValueChange={(value) => handleSelectChange('gender', value)}
+                                        >
+                                            <SelectTrigger className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20">
+                                                <SelectValue placeholder="Select Gender" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="male">Male</SelectItem>
+                                                <SelectItem value="female">Female</SelectItem>
+                                                <SelectItem value="other">Other</SelectItem>
+                                                <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="blood_group" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Blood Group (Optional)</Label>
+                                        <Select
+                                            value={formData.blood_group}
+                                            onValueChange={(value) => handleSelectChange('blood_group', value)}
+                                        >
+                                            <SelectTrigger className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20">
+                                                <SelectValue placeholder="Select Blood Group" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="A+">A+</SelectItem>
+                                                <SelectItem value="A-">A-</SelectItem>
+                                                <SelectItem value="B+">B+</SelectItem>
+                                                <SelectItem value="B-">B-</SelectItem>
+                                                <SelectItem value="O+">O+</SelectItem>
+                                                <SelectItem value="O-">O-</SelectItem>
+                                                <SelectItem value="AB+">AB+</SelectItem>
+                                                <SelectItem value="AB-">AB-</SelectItem>
+                                                <SelectItem value="Unknown">Unknown</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                             </div>

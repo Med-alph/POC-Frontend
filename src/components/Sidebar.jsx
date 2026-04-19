@@ -5,7 +5,7 @@ import {
   Home, Users, Stethoscope, Calendar, Clock, 
   Package, Sparkles, MessageSquare, Shield, Mail, 
   Banknote, FileText, Clipboard, X, ChevronRight,
-  LayoutDashboard, Bell, AlertCircle, TrendingUp
+  LayoutDashboard, Bell, AlertCircle, TrendingUp, Image
 } from "lucide-react";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
@@ -32,8 +32,9 @@ const navigationItems = [
 const doctorNavItems = [
   { id: "doctorDashboard", label: "Dashboard", path: "/doctor-dashboard", icon: LayoutDashboard, requiredModule: UI_MODULES.DASHBOARD },
   { id: "Attendance", label: "Attendance", path: "/doctor-attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
-  { id: "FulfilledRecords", label: "Fulfilled Records", path: "/fulfilled-records", icon: Users, requiredModule: UI_MODULES.PATIENTS },
-  { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Users, requiredModule: UI_MODULES.GALLERY },
+  { id: "PatientRecords", label: "Patient Records", path: "/patient-records", icon: Users },
+  { id: "FulfilledRecords", label: "Fulfilled Records", path: "/fulfilled-records", icon: FileText },
+  { id: "Gallery", label: "Patient Gallery", path: "/patient-gallery", icon: Image, requiredModule: UI_MODULES.GALLERY },
   { id: "Copilot", label: "Copilot", path: "/copilot", icon: Sparkles, subscriptionModule: "AI_ANALYSIS" },
   { id: "CancellationRequests", label: "Cancel Requests", path: "/CancellationRequests", icon: Bell, requiredModule: UI_MODULES.CANCELLATION_REQUESTS },
 ];

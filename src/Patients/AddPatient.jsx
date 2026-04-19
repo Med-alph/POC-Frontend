@@ -54,6 +54,8 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
         insurance_number: "",
         medical_history: "",
         allergies: "",
+        gender: "",
+        blood_group: "",
         status: "active",
         is_credit_eligible: "no",
         credit_amount: 0
@@ -105,6 +107,7 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
         if (!formData.dob) errors.dob = "Date of birth is required";
         if (!formData.contact_info.trim()) errors.contact_info = "Contact number is required";
         if (!formData.email.trim()) errors.email = "Email address is required";
+        if (!formData.gender) errors.gender = "Gender is required";
         if (!formData.address.trim()) errors.address = "Address is required";
 
         // Phone number validation
@@ -344,6 +347,46 @@ export default function AddPatientDialog({ open, setOpen, onAdd, hospitalId, isS
                                                 aria-invalid={!!formErrors.email}
                                             />
                                             {formErrors.email && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.email}</p>}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="gender" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Gender *</Label>
+                                            <Select
+                                                value={formData.gender}
+                                                onValueChange={(value) => handleSelectChange('gender', value)}
+                                            >
+                                                <SelectTrigger className={`h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20 ${formErrors.gender ? 'border-red-500' : ''}`}>
+                                                    <SelectValue placeholder="Select Gender" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="male">Male</SelectItem>
+                                                    <SelectItem value="female">Female</SelectItem>
+                                                    <SelectItem value="other">Other</SelectItem>
+                                                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            {formErrors.gender && <p className="text-[11px] font-medium text-red-500 mt-1">{formErrors.gender}</p>}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="blood_group" className="text-sm font-semibold text-gray-700 dark:text-gray-300">Blood Group (Optional)</Label>
+                                            <Select
+                                                value={formData.blood_group}
+                                                onValueChange={(value) => handleSelectChange('blood_group', value)}
+                                            >
+                                                <SelectTrigger className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20">
+                                                    <SelectValue placeholder="Select Blood Group" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="A+">A+</SelectItem>
+                                                    <SelectItem value="A-">A-</SelectItem>
+                                                    <SelectItem value="B+">B+</SelectItem>
+                                                    <SelectItem value="B-">B-</SelectItem>
+                                                    <SelectItem value="O+">O+</SelectItem>
+                                                    <SelectItem value="O-">O-</SelectItem>
+                                                    <SelectItem value="AB+">AB+</SelectItem>
+                                                    <SelectItem value="AB-">AB-</SelectItem>
+                                                    <SelectItem value="Unknown">Unknown</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
                                 </div>

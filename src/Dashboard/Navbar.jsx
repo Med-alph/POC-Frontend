@@ -233,8 +233,8 @@ export default function Navbar({ onMenuClick }) {
       notif.leave_request_id;
 
     const isImageUpload = notifType === "IMAGE_UPLOADED";
-
     const isSessionReview = notifType === "SESSION_REVIEWED";
+    const isLabReport = notifType === "LAB_REPORT_UPLOADED" || notifType === "LAB_ORDER_COMPLETED" || notif.notification_type?.toLowerCase() === 'lab';
 
     if (isLeaveRequest) {
       navigate("/leave-management");
@@ -245,6 +245,15 @@ export default function Navbar({ onMenuClick }) {
         navigate(`/patient-gallery?patientId=${patientId}`);
       } else {
         navigate("/patient-gallery");
+      }
+    } else if (isLabReport) {
+      const patientId = notif.metadata?.patient_id || notif.patientId || notif.data?.patient_id;
+      if (patientId) {
+        navigate(`/doctor-patient-record/${patientId}`, { 
+          state: { activeTab: 'Lab Results' } 
+        });
+      } else {
+        navigate("/patients");
       }
     } else {
       // Just mark as read and close — no navigation

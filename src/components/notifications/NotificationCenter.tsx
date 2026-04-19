@@ -13,6 +13,7 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, X, Search, Filter, Loader2 } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 import { Notification } from '../../api/notifications';
@@ -97,6 +98,8 @@ export default function NotificationCenter() {
     return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
+  const navigate = useNavigate();
+
   const handleNotificationClick = async (notification: Notification) => {
     if (notification.status === 'unread') {
       await markAsRead(notification.id);
@@ -104,14 +107,15 @@ export default function NotificationCenter() {
 
     // Navigate to target entity if available
     if (notification.target_type && notification.target_id) {
-      // TODO: Implement navigation based on target_type
-      // Example:
-      // if (notification.target_type === 'appointment') {
-      //   navigate(`/appointments/${notification.target_id}`);
-      // } else if (notification.target_type === 'labResult') {
-      //   navigate(`/labs/${notification.target_id}`);
-      // }
-      console.log(`Navigate to ${notification.target_type}:${notification.target_id}`);
+      if (notification.target_type === 'lab' || notification.target_type === 'labResult') {
+        // Navigate to the patient's full clinical record
+        navigate(`/doctor-patient-record/${notification.target_id}`);
+      } else if (notification.target_type === 'appointment') {
+        // Navigate to the dashboard (or specific appointment if route exists)
+        navigate(`/doctor-dashboard`);
+      }
+      
+      console.log(`Navigated to ${notification.target_type}:${notification.target_id}`);
     }
   };
 
