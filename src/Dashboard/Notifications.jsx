@@ -13,7 +13,8 @@ import {
   Calendar,
   User,
   FileText,
-  Loader2
+  Loader2,
+  FlaskConical
 } from "lucide-react";
 import notificationAPI from "../api/notificationapi";
 import cancellationRequestAPI from "../api/cancellationrequestapi";
@@ -62,17 +63,17 @@ export default function Notifications() {
 
   // Determine notification type
   const getNotificationType = (notif) => {
-    // Check multiple fields to determine if it's a leave request
+    const type = notif.notification_type || notif.type || '';
     if (
-      notif.notification_type === 'leave_request' ||  // API uses lowercase with underscore
-      notif.notification_type === 'LEAVE_REQUEST' ||
-      notif.type === 'leave_request' ||
-      notif.notification_leave_request_id ||  // API field name
-      notif.leave_request_id ||
-      (notif.notification_metadata && (notif.notification_metadata.leaveType || notif.notification_metadata.startDate)) ||
-      (notif.metadata && (notif.metadata.leaveType || notif.metadata.startDate))
+      type === 'leave_request' || 
+      type === 'LEAVE_REQUEST' ||
+      notif.notification_leave_request_id ||
+      notif.leave_request_id
     ) {
       return 'leave';
+    }
+    if (type === 'lab' || type === 'LAB') {
+      return 'lab';
     }
     return 'cancellation';
   };
@@ -386,11 +387,16 @@ export default function Notifications() {
                                   ? "text-gray-500 dark:text-gray-400"
                                   : "text-orange-600 dark:text-orange-400"
                                 }`} />
+                            ) : notifType === 'lab' ? (
+                                <FlaskConical className={`h-5 w-5 ${notificationStatus === 'read'
+                                    ? "text-gray-500 dark:text-gray-400"
+                                    : "text-green-600 dark:text-green-400"
+                                  }`} />
                             ) : (
-                              <AlertCircle className={`h-5 w-5 ${isProcessed || notificationStatus === 'read'
-                                  ? "text-gray-500 dark:text-gray-400"
-                                  : severityColors.icon
-                                }`} />
+                                <AlertCircle className={`h-5 w-5 ${isProcessed || notificationStatus === 'read'
+                                    ? "text-gray-500 dark:text-gray-400"
+                                    : severityColors.icon
+                                  }`} />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -571,6 +577,22 @@ export default function Notifications() {
                           >
                             <Calendar className="h-4 w-4" />
                             Manage in Leave Tab
+                          </button>
+                        )}
+
+                        {/* For lab reports, show a link to Patient Record */}
+                        {notifType === 'lab' && notificationData.patient_id && (
+                          <button
+                            onClick={() => {
+                              // Deep link to the Lab Results tab in Patient Records
+                              navigate(`/doctor-patient-record/${notificationData.patient_id}`, { 
+                                state: { activeTab: 'Lab Results' } 
+                              });
+                            }}
+                            className="px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
+                          >
+                            <User className="h-4 w-4" />
+                            View Patient Record
                           </button>
                         )}
                       </div>

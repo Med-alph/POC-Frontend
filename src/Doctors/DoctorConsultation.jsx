@@ -32,6 +32,7 @@ import {
 import appointmentsAPI from "../api/appointmentsapi";
 import consultationsAPI from "../api/consultationsapi";
 import imagesAPI from "../api/imagesapi";
+import labOrdersAPI from "../api/labordersapi";
 import prescriptionSafetyAPI from "../api/prescriptionSafetyAPI";
 import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
@@ -82,6 +83,10 @@ const DoctorConsultation = () => {
     const [labOrders, setLabOrders] = useState([
         { test_name: "", instructions: "" }
     ]);
+
+    // Recent Lab Orders (context for doctor during consultation)
+    const [recentLabOrders, setRecentLabOrders] = useState([]);
+    const [loadingRecentLabs, setLoadingRecentLabs] = useState(false);
 
     const [procedures, setProcedures] = useState([
         { procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "" }
@@ -633,6 +638,29 @@ const DoctorConsultation = () => {
 
     const addLabOrder = () =>
         setLabOrders([...labOrders, { test_name: "", instructions: "" }]);
+
+    const removeLabOrder = (index) => {
+        const updated = labOrders.filter((_, i) => i !== index);
+        setLabOrders(updated.length ? updated : [{ test_name: "", instructions: "" }]);
+    };
+
+    // Fetch recent lab results for context when consultation starts
+    useEffect(() => {
+        const fetchRecentLabs = async () => {
+            if (!appointmentData?.patient_id || !isConsultationStarted) return;
+            try {
+                setLoadingRecentLabs(true);
+                const labs = await labOrdersAPI.getByPatient(appointmentData.patient_id);
+                // Show most recent 5 labs (including pending orders) for full clinical context
+                setRecentLabOrders((labs || []).slice(0, 5));
+            } catch (err) {
+                console.error('Failed to fetch recent labs:', err);
+            } finally {
+                setLoadingRecentLabs(false);
+            }
+        };
+        fetchRecentLabs();
+    }, [appointmentData?.patient_id, isConsultationStarted]);
 
     const addProcedure = () =>
         setProcedures([...procedures, { procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "" }]);
@@ -1276,31 +1304,49 @@ const DoctorConsultation = () => {
                 </h2>
 
                 {labOrders.map((order, index) => (
-                    <div key={index} className="grid md:grid-cols-2 gap-3 mb-3">
-                        <input
-                            type="text"
-                            placeholder="Test / Scan Name"
-                            className="border p-2 rounded-md text-sm"
-                            value={order.test_name}
-                            onChange={(e) => {
-                                const updated = [...labOrders];
-                                updated[index].test_name = e.target.value;
-                                setLabOrders(updated);
-                            }}
-                            disabled={!isConsultationStarted || isCompleted}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Instructions / Notes"
-                            className="border p-2 rounded-md text-sm"
-                            value={order.instructions}
-                            onChange={(e) => {
-                                const updated = [...labOrders];
-                                updated[index].instructions = e.target.value;
-                                setLabOrders(updated);
-                            }}
-                            disabled={!isConsultationStarted || isCompleted}
-                        />
+                    <div key={index} className="grid md:grid-cols-12 gap-3 mb-3 items-center">
+                        <div className="md:col-span-5">
+                            <input
+                                type="text"
+                                placeholder="Test / Scan Name"
+                                className="border p-2 rounded-md text-sm w-full"
+                                value={order.test_name}
+                                onChange={(e) => {
+                                    const updated = [...labOrders];
+                                    updated[index].test_name = e.target.value;
+                                    setLabOrders(updated);
+                                }}
+                                disabled={!isConsultationStarted || isCompleted}
+                            />
+                        </div>
+                        <div className="md:col-span-6">
+                            <input
+                                type="text"
+                                placeholder="Instructions (e.g., Fasting, 12 hrs)"
+                                className="border p-2 rounded-md text-sm w-full"
+                                value={order.instructions}
+                                onChange={(e) => {
+                                    const updated = [...labOrders];
+                                    updated[index].instructions = e.target.value;
+                                    setLabOrders(updated);
+                                }}
+                                disabled={!isConsultationStarted || isCompleted}
+                            />
+                        </div>
+                        <div className="md:col-span-1 flex justify-center">
+                            {!isCompleted && (
+                                <ReadOnlyTooltip>
+                                    <button
+                                        onClick={() => removeLabOrder(index)}
+                                        className="text-red-500 hover:text-red-700 p-1.5 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Remove Lab Order"
+                                        disabled={!isConsultationStarted || isReadOnly}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </ReadOnlyTooltip>
+                            )}
+                        </div>
                     </div>
                 ))}
 
@@ -1308,12 +1354,57 @@ const DoctorConsultation = () => {
                     <ReadOnlyTooltip>
                         <button
                             onClick={addLabOrder}
-                            className="mt-2 text-blue-500 text-sm font-semibold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                            className="mt-2 text-blue-500 text-sm font-semibold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed flex items-center gap-1"
                             disabled={!isConsultationStarted || isReadOnly}
                         >
-                            + Add Lab Order
+                            <PlusCircle size={14} /> Add Lab Order
                         </button>
                     </ReadOnlyTooltip>
+                )}
+
+                {/* Recent Lab Results — Context Panel */}
+                {isConsultationStarted && recentLabOrders.length > 0 && (
+                    <div className="mt-5 pt-4 border-t border-gray-100">
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                            <Clock className="h-3 w-3" /> Recent Lab Results
+                        </p>
+                        <div className="space-y-2">
+                            {recentLabOrders.map((lab) => (
+                                <div key={lab.id} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100">
+                                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                            lab.status === 'reviewed' ? 'bg-gray-400' : lab.status === 'completed' ? 'bg-green-500' : 'bg-yellow-400'
+                                        }`} />
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-gray-800 truncate">{lab.test_name}</p>
+                                            <p className="text-[10px] text-gray-400">
+                                                {new Date(lab.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                {lab.doctor_notes && <span className="ml-1">— {lab.doctor_notes.substring(0, 40)}{lab.doctor_notes.length > 40 ? '…' : ''}</span>}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight flex-shrink-0 ${
+                                        lab.status === 'reviewed' ? 'bg-gray-100 text-gray-600' :
+                                        lab.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                        lab.status === 'sample_collected' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-yellow-100 text-yellow-700'
+                                    }`}>
+                                        {lab.status === 'ordered' ? 'Awaiting' : lab.status === 'sample_collected' ? 'Sample Taken' : lab.status === 'completed' ? 'Report Ready' : 'Reviewed'}
+                                    </span>
+                                    {lab.report_file_url && (
+                                        <a
+                                            href={lab.report_file_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="ml-2 text-blue-600 hover:text-blue-700 text-[10px] font-bold"
+                                        >
+                                            View
+                                        </a>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 )}
             </div>
 

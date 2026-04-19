@@ -23,6 +23,7 @@ import DoctorDashboard from "./Dashboard/DoctorDashboard";
 import DoctorPatientRecord from "./Patients/PatientRecords/DoctorPatientRecord";
 import DoctorConsultation from "./Doctors/DoctorConsultation";
 import DoctorAttendance from "./Dashboard/DoctorAttendance";
+import PatientRecordsList from "./Doctors/PatientRecordsList";
 
 // Doctor Appointment components
 import DoctorAttendancePage from "./Doctors/Attendance/AttendancePage"
@@ -240,6 +241,7 @@ function HospitalApp() {
                 <Route path="/doctor-attendance" element={<DoctorAttendance />} />
                 <Route path="/doctor-patient-record/:patientId" element={<DoctorPatientRecord />} />
                 <Route path="/fulfilled-records" element={<FulfilledRecords />} />
+                <Route path="/patient-records" element={<PatientRecordsList />} />
                 <Route path="/patient-gallery" element={<DynamicPatientGallery />} />
                 <Route path="/patient-images/:patientId" element={<PatientImagesPage />} />
                 <Route path="/copilot" element={<CopilotPage />} />

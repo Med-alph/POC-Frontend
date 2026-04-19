@@ -35,7 +35,8 @@ import {
     Eye,
     Edit,
     Trash2,
-    MoreHorizontal
+    MoreHorizontal,
+    Stethoscope
 } from "lucide-react"
 import Navbar from "../Dashboard/Navbar"
 import {
@@ -130,8 +131,8 @@ export default function Patients() {
                     !searchTerm ||
                     (patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (patient.contact_info?.includes(searchTerm)) ||
-                    (patient.insurance_provider?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (patient.insurance_number?.toLowerCase().includes(searchTerm.toLowerCase()))
+                    (String(patient.insurance_provider || '').toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (String(patient.insurance_number || '').toLowerCase().includes(searchTerm.toLowerCase()))
                 ) &&
                 (
                     statusFilter === "all" || patient.status === statusFilter
@@ -825,6 +826,13 @@ export default function Patients() {
                                                                         Send Message
                                                                     </DropdownMenuItem>
                                                                 </ReadOnlyTooltip>
+                                                                <DropdownMenuItem
+                                                                    className="cursor-pointer font-bold text-blue-600 focus:text-blue-700"
+                                                                    onClick={() => navigate(`/doctor-patient-record/${patient.id}`)}
+                                                                >
+                                                                    <Stethoscope className="h-4 w-4 mr-2" />
+                                                                    View Full History
+                                                                </DropdownMenuItem>
                                                                 <ReadOnlyTooltip className="w-full">
                                                                     <DropdownMenuItem
                                                                         className="cursor-pointer disabled:opacity-30"

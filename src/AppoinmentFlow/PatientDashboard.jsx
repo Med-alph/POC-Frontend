@@ -13,7 +13,7 @@ import {
   ArrowLeft, Phone, Image, RefreshCw, Mail, MapPin, Shield, Heart,
   Clock, PhoneCall, PhoneIncoming, PhoneOutgoing, PhoneMissed, Download,
   AlertCircle, Droplet, FileText, Users, X, Bell, CheckCircle, Camera, Utensils,
-  Stethoscope, Activity, Pill, FlaskConical, GalleryThumbnails, CreditCard, Receipt, History
+  Stethoscope, Activity, Pill, FlaskConical, GalleryThumbnails, CreditCard, Receipt, History, Upload
 } from "lucide-react";
 import { getUserData } from "@/utils/auth";
 import PatientNavbar from "./PatientNavbar";
@@ -22,6 +22,7 @@ import NewAppointmentFlow from "./NewAppointmentFlow";
 import appointmentsAPI from "@/api/appointmentsapi";
 import { patientsAPI } from "@/api/patientsapi";
 import consultationsAPI from "@/api/consultationsapi";
+import labOrdersAPI from "@/api/labordersapi";
 import proceduresAPI from "@/api/proceduresapi";
 import dietAPI from "@/api/dietapi";
 import staffApi from "@/api/staffapi";
@@ -160,7 +161,9 @@ export default function PatientDashboard() {
   const [consultationHistory, setConsultationHistory] = useState([]);
   const [dietPlanHistory, setDietPlanHistory] = useState([]);
   const [proceduresHistory, setProceduresHistory] = useState([]);
+  const [labOrders, setLabOrders] = useState([]);
   const [loadingRecords, setLoadingRecords] = useState(false);
+  const [uploadingLabId, setUploadingLabId] = useState(null);
   const [activeRecordTab, setActiveRecordTab] = useState("SOAP Notes");
 
   // Payments / Billing
@@ -338,6 +341,10 @@ export default function PatientDashboard() {
     if (!patient?.id) return;
     setLoadingRecords(true);
     try {
+      // Fetch Lab Orders (Independent of consultations)
+      const labResponse = await labOrdersAPI.getByPatient(patient.id);
+      setLabOrders(labResponse || []);
+
       // Fetch Consultations (SOAP Notes, etc)
       const consResponse = await consultationsAPI.getByPatient(patient.id);
       setConsultationHistory(consResponse?.consultations || []);
@@ -365,6 +372,42 @@ export default function PatientDashboard() {
       toast.error("Failed to load clinical records");
     } finally {
       setLoadingRecords(false);
+    }
+  };
+
+  const handleViewReport = (url) => {
+    if (!url) return;
+    window.open(url, '_blank');
+  };
+
+  const handleLabUpload = async (labId, file) => {
+    if (!file) return;
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Only PDF, JPEG, and PNG files are allowed');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must not exceed 10MB');
+      return;
+    }
+
+    setUploadingLabId(labId);
+    try {
+      const result = await labOrdersAPI.uploadReport(labId, file);
+      toast.success("Report uploaded successfully");
+      
+      // Update local state to show COMPLETED status
+      setLabOrders(prev => prev.map(l => 
+        l.id === labId ? { ...l, status: 'completed', report_file_url: result.report_file_url } : l
+      ));
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error(error.message || "Failed to upload report");
+    } finally {
+      setUploadingLabId(null);
     }
   };
 
@@ -1730,41 +1773,83 @@ export default function PatientDashboard() {
 
               {activeRecordTab === "Lab Results" && (
                 <div className="space-y-4">
-                  {consultationHistory.flatMap(c => c.lab_orders || []).length > 0 ? (
-                    consultationHistory.map((consultation) =>
-                      consultation.lab_orders?.map((lab, i) => (
-                        <Card key={`${consultation.id}-${i}`} className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20">
-                          <CardContent className="p-5">
-                            <div className="flex justify-between items-start">
-                              <div className="flex items-start gap-3 flex-1">
-                                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                                  <FlaskConical className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                                </div>
-                                <div className="flex-1">
-                                  <p className="font-bold text-lg text-gray-900 dark:text-white mb-2">{lab.test_name}</p>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                    Ordered on {formatDate(consultation.consultation_date)}
-                                  </p>
-                                  {lab.instructions && (
-                                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                                      <span className="font-semibold">Instructions:</span> {lab.instructions}
-                                    </p>
-                                  )}
-                                </div>
+                  {labOrders.length > 0 ? (
+                    labOrders.map((lab) => (
+                      <Card key={lab.id} className="group border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-800 border-l-4 border-orange-400 overflow-hidden">
+                        <CardContent className="p-0">
+                          <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div className="flex items-start gap-4 flex-1">
+                              <div className="h-14 w-14 rounded-2xl bg-orange-50 dark:bg-orange-900/10 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform duration-300">
+                                <FlaskConical className="h-7 w-7" />
                               </div>
-                              <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${lab.status === 'completed'
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-300 dark:border-green-700'
-                                : lab.status === 'in_progress'
-                                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
-                                  : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
-                                }`}>
-                                {lab.status?.toUpperCase() || 'PENDING'}
-                              </span>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-bold text-lg text-gray-900 dark:text-white">{lab.test_name}</h4>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
+                                    lab.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                    lab.status === 'reviewed' ? 'bg-blue-100 text-blue-700' :
+                                    lab.status === 'sample_collected' ? 'bg-amber-100 text-amber-700' :
+                                    'bg-gray-100 text-gray-500'
+                                  }`}>
+                                    {lab.status?.replace('_', ' ')}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-500 font-bold flex items-center gap-2">
+                                   <CalendarDays className="w-3.5 h-3.5" /> Ordered on {formatDate(lab.created_at)}
+                                </p>
+                                {lab.instructions && (
+                                   <div className="text-[11px] text-gray-400 italic bg-gray-50 dark:bg-gray-700/30 p-2 rounded-lg border border-gray-100 dark:border-gray-700 mt-2">
+                                      Instructions: {lab.instructions}
+                                   </div>
+                                )}
+                                {lab.doctor_notes && (
+                                   <div className="text-[11px] text-blue-600 font-bold bg-blue-50 dark:bg-blue-900/10 p-2.5 rounded-lg border border-blue-100 dark:border-blue-800/30 mt-2 flex gap-2">
+                                      <span className="flex-shrink-0 mt-0.5">🩺 Note:</span>
+                                      <span className="italic mt-0.5">"{lab.doctor_notes}"</span>
+                                   </div>
+                                )}
+                              </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )
+                            
+                            <div className="flex flex-col items-center md:items-end gap-3 min-w-[160px]">
+                              {lab.report_file_url ? (
+                                <Button
+                                  onClick={() => handleViewReport(lab.report_file_url)}
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-6 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                                >
+                                  <Download className="w-4 h-4" />
+                                  View Report
+                                </Button>
+                              ) : (
+                                <div className="w-full">
+                                  <input
+                                    type="file"
+                                    id={`upload-${lab.id}`}
+                                    className="hidden"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onChange={(e) => handleLabUpload(lab.id, e.target.files[0])}
+                                  />
+                                  <label
+                                    htmlFor={`upload-${lab.id}`}
+                                    className={`w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-6 rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer ${uploadingLabId === lab.id ? 'opacity-50 pointer-events-none' : ''}`}
+                                  >
+                                    {uploadingLabId === lab.id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Upload className="w-4 h-4" />
+                                    )}
+                                    Upload Report
+                                  </label>
+                                </div>
+                              )}
+                              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
+                                {lab.status === 'completed' || lab.status === 'reviewed' ? 'Results Available' : 'Pending Results'}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
                   ) : (
                     <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-100 dark:border-gray-800">
                       <FlaskConical className="h-16 w-16 text-gray-200 mx-auto mb-4" />
