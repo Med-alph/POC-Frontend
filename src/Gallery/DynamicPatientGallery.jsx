@@ -6,11 +6,14 @@ import { patientsAPI } from '@/api/patientsapi';
 import imagesAPI from '@/api/imagesapi';
 import DermImageComparison from './PatientGallery';
 import toast from 'react-hot-toast';
+import { useSelector } from 'react-redux';
+import { selectUser } from '@/features/auth/authSlice';
 
 export default function DynamicPatientGallery() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const patientIdFromUrl = searchParams.get('patientId');
+  const user = useSelector(selectUser);
   
   const [allPatients, setAllPatients] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState(patientIdFromUrl || '');
@@ -20,15 +23,9 @@ export default function DynamicPatientGallery() {
   const [loadingPatients, setLoadingPatients] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Get hospital_id from localStorage user
+  // Get hospital_id from Redux user state
   const getHospitalId = () => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      return user.hospital_id;
-    } catch (error) {
-      console.error('Error parsing user from localStorage:', error);
-      return null;
-    }
+    return user?.hospital_id || user?.staff?.hospital_id || null;
   };
 
   // Fetch all patients on mount
