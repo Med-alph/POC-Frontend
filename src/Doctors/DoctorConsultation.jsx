@@ -825,43 +825,46 @@ const DoctorConsultation = () => {
                 </div>
             )}
 
-            <div className="bg-white shadow rounded-lg p-6 border-l-4 border-blue-500">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-                            <UserIcon className="h-6 w-6 text-blue-500" /> {patient.name}
+            <div className="bg-white shadow rounded-lg p-6 border-l-4 border-blue-500 overflow-hidden">
+                <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-0">
+                    <div className="min-w-0 w-full">
+                        <h1 className="text-xl md:text-2xl font-semibold text-gray-800 flex items-center gap-2">
+                            <UserIcon className="h-6 w-6 text-blue-500 flex-shrink-0" /> 
+                            <span className="truncate">{patient.name}</span>
                         </h1>
-                        <p className="text-gray-600">
-                            {patient.age} yrs / {patient.gender} | ID: {patient.id}
+                        <p className="text-sm md:text-base text-gray-600 break-words mt-1">
+                            {patient.age} yrs / {patient.gender} | ID: <span className="break-all">{patient.id}</span>
                         </p>
-                        <p className="text-gray-500 mt-1">
-                            <strong>DOB:</strong> {patient.dob}
-                        </p>
-                        <p className="text-gray-500">
-                            <strong>Reason:</strong> {patient.reason}
-                        </p>
-                        <p className="text-gray-500">
-                            <strong>Contact:</strong> {patient.contact}
-                        </p>
-                        {patient.email !== "N/A" && (
-                            <p className="text-gray-500">
-                                <strong>Email:</strong> {patient.email}
+                        <div className="mt-3 space-y-1 text-sm md:text-base">
+                            <p className="text-gray-500 break-words">
+                                <strong>DOB:</strong> {patient.dob}
                             </p>
-                        )}
-                        <p className="text-gray-500">
-                            <strong>Insurance:</strong> {patient.insuranceProvider}
-                        </p>
-                        <p className="text-gray-500">
-                            <strong>Appointment:</strong> {patient.appointmentDate} at {patient.appointmentTime}
-                        </p>
+                            <p className="text-gray-500 break-words">
+                                <strong>Reason:</strong> {patient.reason}
+                            </p>
+                            <p className="text-gray-500 break-words">
+                                <strong>Contact:</strong> {patient.contact}
+                            </p>
+                            {patient.email !== "N/A" && (
+                                <p className="text-gray-500 break-all">
+                                    <strong>Email:</strong> {patient.email}
+                                </p>
+                            )}
+                            <p className="text-gray-500 break-words">
+                                <strong>Insurance:</strong> {patient.insuranceProvider}
+                            </p>
+                            <p className="text-gray-500 break-words">
+                                <strong>Appointment:</strong> {patient.appointmentDate} at {patient.appointmentTime}
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="text-right">
-                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${getStatusColor(patient.status)}`}>
+                    <div className="w-full md:w-auto md:text-right mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-100 flex-shrink-0">
+                        <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full ${getStatusColor(patient.status)}`}>
                             {patient.status}
                         </span>
-                        <div className="mt-2 text-sm">
-                            <p><strong>Type:</strong> {patient.appointmentType}</p>
+                        <div className="mt-3 text-sm flex flex-col gap-1">
+                            <p><strong>Type:</strong> <span className="capitalize">{patient.appointmentType}</span></p>
                             <p><strong>Duration:</strong> {appointmentData.duration || 30} min</p>
                         </div>
                     </div>
@@ -869,13 +872,13 @@ const DoctorConsultation = () => {
             </div>
 
             {!isCompleted && !isCancelled && (
-                <div className="flex gap-3 justify-end">
+                <div className="flex flex-col sm:flex-row gap-3 justify-end w-full">
                     {canStartConsultation && (
                         <ReadOnlyTooltip>
                             <button
                                 onClick={handleStartConsultation}
                                 disabled={isReadOnly}
-                                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center justify-center w-full sm:w-auto gap-2 px-6 py-3 sm:py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Play className="h-4 w-4" />
                                 Start Consultation
@@ -884,10 +887,10 @@ const DoctorConsultation = () => {
                     )}
 
                     {/* {isConsultationStarted && user?.id && (
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                             <button
                                 onClick={handleToggleVoiceRecording}
-                                className={`px-6 py-2 rounded-md transition-all flex items-center gap-2 shadow-sm ${
+                                className={`px-6 py-3 sm:py-2 w-full sm:w-auto rounded-md transition-all flex items-center justify-center gap-2 shadow-sm ${
                                     isVoiceRecording 
                                     ? 'bg-red-600 hover:bg-red-700 text-white ring-2 ring-red-200' 
                                     : 'bg-gray-600 hover:bg-gray-700 text-white'
@@ -907,7 +910,7 @@ const DoctorConsultation = () => {
                             </button>
                             
                             {isVoiceRecording && (
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-100 rounded-full shadow-sm animate-in fade-in zoom-in duration-300">
+                                <div className="flex items-center justify-center w-full sm:w-auto gap-2 px-3 py-2 sm:py-1.5 bg-red-50 border border-red-100 rounded-full sm:rounded-full shadow-sm animate-in fade-in zoom-in duration-300">
                                     <div className="flex items-end gap-1 h-4">
                                         <div className="w-1 bg-red-400 rounded-full animate-[bounce_1s_infinite]" style={{ animationDelay: '0s', height: '60%' }}></div>
                                         <div className="w-1 bg-red-500 rounded-full animate-[bounce_1s_infinite]" style={{ animationDelay: '0.2s', height: '100%' }}></div>
@@ -926,7 +929,7 @@ const DoctorConsultation = () => {
                             <button
                                 onClick={() => setShowCancelModal(true)}
                                 disabled={isReadOnly}
-                                className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center justify-center w-full sm:w-auto gap-2 px-6 py-3 sm:py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <XCircle className="h-4 w-4" />
                                 Cancel Appointment
@@ -936,7 +939,7 @@ const DoctorConsultation = () => {
                     {cancelRequested && (
                         <button
                             disabled
-                            className="flex items-center gap-2 px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed"
+                            className="flex items-center justify-center w-full sm:w-auto gap-2 px-6 py-3 sm:py-2 bg-gray-400 text-white rounded-md cursor-not-allowed"
                         >
                             <XCircle className="h-4 w-4" />
                             Cancellation Requested
@@ -1092,24 +1095,26 @@ const DoctorConsultation = () => {
 
             {/* Image Upload Section */}
             <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 w-full">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                        <Camera className="h-5 w-5 text-blue-500" /> Patient Images
+                        <Camera className="h-5 w-5 text-blue-500 flex-shrink-0" /> <span className="truncate">Patient Images</span>
                         {!isConsultationStarted && !isCompleted && (
-                            <span className="text-xs text-gray-500 font-normal ml-2">(Start consultation to upload)</span>
+                            <span className="text-xs text-gray-500 font-normal ml-2 break-words">(Start consultation to upload)</span>
                         )}
                     </h2>
                     {isConsultationStarted && !isCompleted && (
-                        <ReadOnlyTooltip>
-                            <button
-                                onClick={() => setShowUploadModal(true)}
-                                disabled={isReadOnly}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Camera className="h-4 w-4" />
-                                Upload Images
-                            </button>
-                        </ReadOnlyTooltip>
+                        <div className="w-full sm:w-auto">
+                            <ReadOnlyTooltip>
+                                <button
+                                    onClick={() => setShowUploadModal(true)}
+                                    disabled={isReadOnly}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-auto justify-center px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Camera className="h-4 w-4 flex-shrink-0" />
+                                    <span className="truncate">Upload Images</span>
+                                </button>
+                            </ReadOnlyTooltip>
+                        </div>
                     )}
                 </div>
 
@@ -1139,34 +1144,36 @@ const DoctorConsultation = () => {
 
             {/* Prescription Section */}
             <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 w-full">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                        <Pill className="h-5 w-5 text-blue-500" /> Prescriptions
+                        <Pill className="h-5 w-5 text-blue-500 flex-shrink-0" /> <span className="truncate">Prescriptions</span>
                     </h2>
                     {isConsultationStarted && !isCompleted && (
-                        <ReadOnlyTooltip>
-                            <button
-                                id="ai-safety-scan-btn"
-                                onClick={handleCheckPrescriptionSafety}
-                                disabled={isCheckingSafety || isReadOnly}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                                    isCheckingSafety 
-                                    ? 'bg-gray-100 text-gray-400' 
-                                    : safetyReport?.status?.toLowerCase() === 'high risk'
-                                        ? 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 shake-animation'
-                                        : safetyReport?.status?.toLowerCase() === 'caution'
-                                            ? 'bg-amber-50 text-amber-600 border-2 border-amber-200 hover:bg-amber-100'
-                                            : 'bg-indigo-50 text-indigo-600 border-2 border-indigo-100 hover:bg-indigo-100'
-                                }`}
-                            >
-                                {isCheckingSafety ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Sparkles className="h-4 w-4" />
-                                )}
-                                {isCheckingSafety ? "Analyzing Safety..." : "Scan for Allergies & Conflicts"}
-                            </button>
-                        </ReadOnlyTooltip>
+                        <div className="w-full sm:w-auto">
+                            <ReadOnlyTooltip>
+                                <button
+                                    id="ai-safety-scan-btn"
+                                    onClick={handleCheckPrescriptionSafety}
+                                    disabled={isCheckingSafety || isReadOnly}
+                                    className={`flex items-center justify-center w-full sm:w-auto gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                                        isCheckingSafety 
+                                        ? 'bg-gray-100 text-gray-400' 
+                                        : safetyReport?.status?.toLowerCase() === 'high risk'
+                                            ? 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100 shake-animation'
+                                            : safetyReport?.status?.toLowerCase() === 'caution'
+                                                ? 'bg-amber-50 text-amber-600 border-2 border-amber-200 hover:bg-amber-100'
+                                                : 'bg-indigo-50 text-indigo-600 border-2 border-indigo-100 hover:bg-indigo-100'
+                                    }`}
+                                >
+                                    {isCheckingSafety ? (
+                                        <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                                    ) : (
+                                        <Sparkles className="h-4 w-4 flex-shrink-0" />
+                                    )}
+                                    <span className="truncate">{isCheckingSafety ? "Analyzing Safety..." : "Scan for Allergies & Conflicts"}</span>
+                                </button>
+                            </ReadOnlyTooltip>
+                        </div>
                     )}
                 </div>
 
@@ -1511,9 +1518,9 @@ const DoctorConsultation = () => {
 
             {/* Follow-up Section */}
             <div className={`bg-white shadow rounded-lg p-5 border-l-4 border-indigo-500 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 w-full">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
-                        <CalendarCheck className="h-5 w-5 text-indigo-500" /> Plan Next Visit (Follow-Up)
+                        <CalendarCheck className="h-5 w-5 text-indigo-500 flex-shrink-0" /> <span className="truncate">Plan Next Visit (Follow-Up)</span>
                     </h2>
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-700">Follow-up Required?</span>
@@ -1619,9 +1626,9 @@ const DoctorConsultation = () => {
             </div>
 
             {/* Bottom Action Buttons */}
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 w-full mt-6">
                 <button
-                    className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
+                    className="w-full sm:w-auto bg-gray-500 text-white px-6 py-3 sm:py-2 rounded-md hover:bg-gray-600 flex items-center justify-center"
                     onClick={() => window.history.back()}
                     disabled={isSaving}
                 >
@@ -1633,7 +1640,7 @@ const DoctorConsultation = () => {
                         <button
                             onClick={handleEndConsultation}
                             disabled={isSaving || isReadOnly}
-                            className={`flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`flex items-center justify-center w-full sm:w-auto gap-2 bg-blue-600 text-white px-6 py-3 sm:py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             {isSaving ? (
                                 <>
