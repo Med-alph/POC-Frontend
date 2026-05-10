@@ -14,16 +14,18 @@ import {
   Users,
   Settings,
   BarChart3,
-  UserCheck,
   Key,
   ArrowLeft,
-  LogOut
+  LogOut,
+  Syringe
 } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 
 import { useAuth } from "../contexts/AuthContext";
+import { useHospital } from "../contexts/HospitalContext";
 
 export default function AdminDashboard() {
+  const { hospitalInfo } = useHospital();
   const { user } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -75,8 +77,21 @@ export default function AdminDashboard() {
       path: "/admin/analytics",
       color: "bg-orange-100 text-orange-600",
       available: isAdmin || isSuperAdmin
+    },
+    {
+      title: "Clinical Masters",
+      description: "Manage global vaccine & medical rules",
+      icon: <Syringe className="w-8 h-8" />,
+      path: "/admin/clinical-masters",
+      color: "bg-red-100 text-red-600",
+      available: (isAdmin || isSuperAdmin) && (hospitalInfo?.primary_specialty === 'PEDIATRICS' || hospitalInfo?.all_specialties?.includes('PEDIATRICS')) && hospitalInfo?.enabled_modules?.includes('VACCINES')
     }
-  ]
+  ].filter(card => {
+    if (card.title === 'Clinical Masters') {
+      return card.available; // Hide if not available
+    }
+    return true;
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">

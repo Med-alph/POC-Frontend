@@ -15,31 +15,100 @@ import labOrdersAPI from "../../api/labordersapi";
 import CopilotPanel from "@/components/CopilotPanel";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useSelector } from "react-redux";
+import hospitalsAPI from "../../api/hospitalsapi";
+import { getModuleComponent, ModuleRegistry } from "../../Specialties/ModuleRegistry";
+import ChildHeader from "../../Specialties/Pediatrics/ChildHeader";
 
-const tabs = ["Appointments", "SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes", 'Gallery'];
+const staticTabs = ["Appointments", "SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes", 'Gallery'];
 
 const DoctorPatientRecord = () => {
     const { patientId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const { isModuleDisabled } = useSubscription();
-    const [activeTab, setActiveTab] = useState(tabs[0]);
 
-    useEffect(() => {
-        if (location.state?.activeTab && tabs.includes(location.state.activeTab)) {
-            setActiveTab(location.state.activeTab);
-            navigate(location.pathname, { replace: true, state: {} });
-        }
-    }, [location.state, navigate, location.pathname]);
-    const [loading, setLoading] = useState(true);
+    // 1. All States First
+    const [hospitalProfile, setHospitalProfile] = useState(null);
     const [patientData, setPatientData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [tabs, setTabs] = useState(staticTabs);
+    const [activeTab, setActiveTab] = useState(staticTabs[0]);
     const [consultations, setConsultations] = useState([]);
     const [appointments, setAppointments] = useState([]);
     const [isCopilotOpen, setIsCopilotOpen] = useState(false);
     const [dietPlans, setDietPlans] = useState([]);
     const user = useSelector((state) => state.auth.user);
     const userRole = (user?.role || user?.designation_group || "").toLowerCase();
+
+    // 2. Helper Functions
+    const fetchHospitalProfile = async () => {
+        try {
+            const profile = await hospitalsAPI.getProfile();
+            setHospitalProfile(profile);
+            
+            // Generate dynamic tabs with Smart Visibility
+            const dynamicModules = profile.enabled_modules || [];
+            const isPediatricHospital = profile.primary_specialty === 'PEDIATRICS' || profile.all_specialties?.includes('PEDIATRICS');
+            
+            // Calculate age to check if child (< 18)
+            const birthDate = patientData?.dob ? new Date(patientData.dob) : null;
+            const today = new Date();
+            let ageInYears = birthDate ? today.getFullYear() - birthDate.getFullYear() : 99;
+            if (birthDate && (today.getMonth() < birthDate.getMonth() || (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate()))) {
+                ageInYears--;
+            }
+            const isChild = ageInYears < 18;
+
+            const newTabs = [...staticTabs];
+            
+            dynamicModules.forEach(mod => {
+                const config = ModuleRegistry[mod];
+                if (config && !newTabs.includes(config.name)) {
+                    // Clinical Guard: Only show Pediatric modules (Vaccines/Growth) if patient is < 18 and VACCINES module is enabled (Master Switch)
+                    const isPediatricModule = ['VACCINES', 'GROWTH'].includes(mod);
+                    const isVaccineEnabled = dynamicModules.includes('VACCINES');
+                    if (isPediatricModule && (!isPediatricHospital || !isChild || !isVaccineEnabled)) {
+                        return; // Skip this module
+                    }
+
+                    // Subscription Guard: Explicitly check if module is disabled in subscription
+                    if (isModuleDisabled(mod)) {
+                        return;
+                    }
+
+                    // Insert before Gallery
+                    const galleryIdx = newTabs.indexOf('Gallery');
+                    if (galleryIdx !== -1) {
+                        newTabs.splice(galleryIdx, 0, config.name);
+                    } else {
+                        newTabs.push(config.name);
+                    }
+                }
+            });
+            setTabs(newTabs);
+        } catch (err) {
+            console.error("Failed to fetch hospital profile:", err);
+        }
+    };
     
+    // 3. Effects
+    useEffect(() => {
+        fetchHospitalProfile();
+    }, []);
+
+    useEffect(() => {
+        if (patientData) {
+            fetchHospitalProfile();
+        }
+    }, [patientData]);
+
+    useEffect(() => {
+        if (location.state?.activeTab && tabs.includes(location.state.activeTab)) {
+            setActiveTab(location.state.activeTab);
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate, location.pathname, tabs]);
+
     // Role Checks
     const doctorStatus = userRole === 'doctor';
     const labStaffStatus = userRole === 'lab_assistant' || userRole === 'lab_technician' || userRole === 'staff';
@@ -315,6 +384,24 @@ const DoctorPatientRecord = () => {
                 yPosition += (lines.length * 5) + 5;
             });
 
+            // NEW: Add Vaccines to PDF
+            if (consultation.vaccines && consultation.vaccines.length > 0) {
+                if (yPosition > contentBottomLimit) {
+                    doc.addPage();
+                    addFooter(doc, doctorDisplayName, department);
+                    yPosition = 20;
+                }
+                doc.setFont(undefined, 'bold');
+                doc.text('Vaccines Administered:', 14, yPosition);
+                doc.setFont(undefined, 'normal');
+                yPosition += 6;
+                consultation.vaccines.forEach(v => {
+                    doc.text(`- ${v.name} (${v.dose})`, 20, yPosition);
+                    yPosition += 5;
+                });
+                yPosition += 5;
+            }
+
             doc.setDrawColor(200, 200, 200);
             doc.line(14, yPosition, 196, yPosition);
             yPosition += 10;
@@ -430,6 +517,16 @@ const DoctorPatientRecord = () => {
                     ))}
                 </div>
 
+                {/* Pediatric First Header - Only for Children < 18 */}
+                {hospitalProfile?.primary_specialty === 'PEDIATRICS' && 
+                 calculateAge(patientData.dob) < 18 && 
+                 hospitalProfile?.enabled_modules?.includes('VACCINES') && (
+                    <ChildHeader 
+                        patientData={patientData} 
+                        enabledModules={hospitalProfile.enabled_modules} 
+                    />
+                )}
+
                 {/* Main Content Area */}
                 <div className="min-h-[500px]">
                     {activeTab === "Appointments" && (
@@ -469,15 +566,38 @@ const DoctorPatientRecord = () => {
                                             <span className="text-xs font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">{formatDate(consultation.consultation_date)}</span>
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="p-6 grid md:grid-cols-2 gap-x-8 gap-y-6">
-                                        {['Subjective', 'Objective', 'Assessment', 'Plan'].map(key => (
-                                            <div key={key} className="space-y-1.5">
-                                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{key}</p>
-                                                <p className="text-sm text-slate-800 leading-relaxed bg-slate-50/50 rounded-xl p-4 border border-slate-100 min-h-[4rem]">
-                                                    {consultation[key.toLowerCase()] || 'No notes recorded.'}
+                                    <CardContent className="p-6">
+                                        <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
+                                            {['Subjective', 'Objective', 'Assessment', 'Plan'].map(key => (
+                                                <div key={key} className="space-y-1.5">
+                                                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{key}</p>
+                                                    <p className="text-sm text-slate-800 leading-relaxed bg-slate-50/50 rounded-xl p-4 border border-slate-100 min-h-[4rem]">
+                                                        {consultation[key.toLowerCase()] || 'No notes recorded.'}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Display vaccines administered during this session */}
+                                        {consultation.vaccines && consultation.vaccines.length > 0 && (
+                                            <div className="mt-6 pt-6 border-t border-slate-100">
+                                                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                    <Stethoscope className="h-3.5 w-3.5 text-indigo-500" />
+                                                    Vaccines Administered During Visit
                                                 </p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {consultation.vaccines.map((v, idx) => (
+                                                        <div key={idx} className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl border border-indigo-100 text-xs font-semibold flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+                                                            {v.name} ({v.dose})
+                                                            {v.batch_number && v.batch_number !== 'PENDING' && (
+                                                                <span className="text-[10px] opacity-60 ml-1 font-medium">Batch: {v.batch_number}</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        ))}
+                                        )}
                                     </CardContent>
                                 </Card>
                             )) : (
@@ -739,6 +859,22 @@ const DoctorPatientRecord = () => {
                             </Card>
                         </div>
                     )}
+
+                    {/* Dynamic Specialty Modules (Lazy Loaded) */}
+                    <React.Suspense fallback={
+                        <div className="flex justify-center py-20">
+                            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                        </div>
+                    }>
+                        {Object.keys(ModuleRegistry).map(moduleKey => {
+                            const config = ModuleRegistry[moduleKey];
+                            if (activeTab === config.name) {
+                                const Component = config.component;
+                                return <Component key={moduleKey} patientId={patientId} patientDob={patientData?.dob} onUpdate={fetchPatientRecords} />;
+                            }
+                            return null;
+                        })}
+                    </React.Suspense>
                 </div>
             </div>
 

@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader, Save, ShieldCheck, MessageSquare, CreditCard, Clock, Globe, Eye, EyeOff, Calendar, Trash2, Plus } from "lucide-react";
+import { Loader, Save, ShieldCheck, MessageSquare, CreditCard, Clock, Globe, Eye, EyeOff, Calendar, Trash2, Plus, Stethoscope } from "lucide-react";
 import hospitalsapi from "../../api/hospitalsapi";
 import toast from "react-hot-toast";
+import { useHospital } from "../../contexts/HospitalContext";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const WEEKEND = ["Saturday", "Sunday"];
@@ -108,6 +109,7 @@ function DayRow({ day, data, onToggle, onSessionChange, onAddSession, onRemoveSe
 }
 
 export default function HospitalSettings({ hospitalId, hospitalName }) {
+    const { refreshHospital } = useHospital();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [validating, setValidating] = useState(false);
@@ -140,6 +142,9 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
         negative_btn_text: "Needs Work",
         negative_followup_msg: "We're sorry to hear that. What could we have done better?",
         is_solo_practice: false,
+        primary_specialty: "GENERAL",
+        all_specialties: [],
+        enabled_modules: [],
     });
     const [timings, setTimings] = useState(createDefaultTimings());
 
@@ -232,6 +237,9 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
             // 3. Save timings
             await hospitalsapi.updateTimings(hospitalId, timings);
 
+            // 4. Refresh global hospital info so sidebar/UI updates immediately
+            await refreshHospital();
+
             toast.success("All settings updated successfully!");
         } catch (error) {
             toast.error("Failed to update settings: " + error.message);
@@ -282,7 +290,7 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
             </div>
 
             <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 lg:w-[750px] h-auto mb-8 bg-gray-100 p-1 rounded-xl gap-1 lg:gap-0">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 lg:w-[900px] h-auto mb-8 bg-gray-100 p-1 rounded-xl gap-1">
                     <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                         <Globe className="h-4 w-4 mr-2" /> General
                     </TabsTrigger>
@@ -294,6 +302,9 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                     </TabsTrigger>
                     <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                         <CreditCard className="h-4 w-4 mr-2" /> Payments
+                    </TabsTrigger>
+                    <TabsTrigger value="specialties" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <Stethoscope className="h-4 w-4 mr-2" /> Specialties
                     </TabsTrigger>
                     <TabsTrigger value="communication" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
                         <MessageSquare className="h-4 w-4 mr-2" /> Chat Bot
@@ -632,6 +643,79 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                     </Card>
                 </TabsContent>
 
+
+                <TabsContent value="specialties" className="space-y-4">
+                    <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm">
+                        <CardHeader>
+                            <CardTitle className="text-lg font-bold flex items-center">
+                                <Stethoscope className="h-5 w-5 mr-2 text-blue-600" />
+                                Specialty & Modules
+                            </CardTitle>
+                            <CardDescription>Configure which clinical modules are active for this hospital.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="primary_specialty">Primary Specialty</Label>
+                                    <select
+                                        id="primary_specialty"
+                                        name="primary_specialty"
+                                        value={settings.primary_specialty}
+                                        onChange={handleChange}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="GENERAL">General Practice</option>
+                                        <option value="PEDIATRICS">Pediatrics</option>
+                                        <option value="DERMATOLOGY">Dermatology</option>
+                                    </select>
+                                </div>
+
+                                <div className="pt-4 border-t">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Enabled Modules</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="flex items-center space-x-2 p-3 border rounded-xl bg-white">
+                                            <Checkbox 
+                                                id="mod-vaccines" 
+                                                checked={(settings.enabled_modules || []).includes('VACCINES')}
+                                                onCheckedChange={(checked) => {
+                                                    const modules = settings.enabled_modules || [];
+                                                    if (checked) {
+                                                        setSettings({...settings, enabled_modules: [...modules, 'VACCINES']});
+                                                    } else {
+                                                        setSettings({...settings, enabled_modules: modules.filter(m => m !== 'VACCINES')});
+                                                    }
+                                                }}
+                                            />
+                                            <div className="grid gap-1.5 leading-none">
+                                                <Label htmlFor="mod-vaccines" className="text-sm font-semibold">Vaccination Tracker</Label>
+                                                <p className="text-xs text-gray-500">IAP schedule, reminders, and administration logs.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center space-x-2 p-3 border rounded-xl bg-white">
+                                            <Checkbox 
+                                                id="mod-growth" 
+                                                checked={(settings.enabled_modules || []).includes('GROWTH')}
+                                                onCheckedChange={(checked) => {
+                                                    const modules = settings.enabled_modules || [];
+                                                    if (checked) {
+                                                        setSettings({...settings, enabled_modules: [...modules, 'GROWTH']});
+                                                    } else {
+                                                        setSettings({...settings, enabled_modules: modules.filter(m => m !== 'GROWTH')});
+                                                    }
+                                                }}
+                                            />
+                                            <div className="grid gap-1.5 leading-none">
+                                                <Label htmlFor="mod-growth" className="text-sm font-semibold">Growth Charts</Label>
+                                                <p className="text-xs text-gray-500">WHO/IAP percentile tracking for height and weight.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
                 <TabsContent value="communication" className="space-y-4">
                     <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -769,6 +853,7 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
             </Tabs>
         </div>
     );

@@ -60,6 +60,7 @@ import ProceduresPage from "./Doctors/ProceduresPage";
 import LeaveManagement from "./Admin/LeaveManagement";
 import AdminAttendanceManagement from "./Admin/AdminAttendanceManagement";
 import MasterProcedures from "./Admin/MasterProcedures";
+import MasterVaccines from "./Admin/MasterVaccines";
 
 import BillingPage from "./Billing/BillingMainPage";
 import CashierDashboard from "./Billing/CashierDashboard";
@@ -304,6 +305,14 @@ function HospitalApp() {
                   element={
                     <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
                       <MasterProcedures />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/clinical-masters"
+                  element={
+                    <ProtectedRoute requiredPermissions={['HOSPITAL_ADMIN']}>
+                      <MasterVaccines />
                     </ProtectedRoute>
                   }
                 />

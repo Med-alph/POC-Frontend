@@ -22,7 +22,7 @@ const OTPVerification = () => {
   const [showAddPatientDialog, setShowAddPatientDialog] = useState(false);
   const [userId, setUserId] = useState(null); // To store patient id if needed for adding patient
   const { hospitalInfo } = useHospital();
-  const HOSPITAL_ID = hospitalInfo?.hospital_id;
+  const HOSPITAL_ID = hospitalInfo?.id || hospitalInfo?.hospital_id;
 
   // Toggle dark mode
   const toggleDarkMode = () => {

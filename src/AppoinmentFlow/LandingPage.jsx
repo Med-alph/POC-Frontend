@@ -24,7 +24,7 @@ const countries = [
 
 const LandingPage = () => {
   const { hospitalInfo } = useHospital();
-  const HOSPITAL_ID = hospitalInfo?.hospital_id;
+  const HOSPITAL_ID = hospitalInfo?.id || hospitalInfo?.hospital_id;
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
   const [loading, setLoading] = useState(false);

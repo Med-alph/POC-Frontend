@@ -5,7 +5,7 @@ import {
   Home, Users, Stethoscope, Calendar, Clock, 
   Package, Sparkles, MessageSquare, Shield, Mail, 
   Banknote, FileText, Clipboard, X, ChevronRight,
-  LayoutDashboard, Bell, AlertCircle, TrendingUp, Image
+  LayoutDashboard, Bell, AlertCircle, TrendingUp, Image, Syringe
 } from "lucide-react";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
@@ -26,6 +26,7 @@ const navigationItems = [
   { id: "invoice-reports", label: "Invoice Reports", path: "/admin/invoice-reports", icon: FileText, isAdminOnly: true, subscriptionModule: "REPORTS", requiredModule: UI_MODULES.REPORTS },
   { id: "revenue", label: "Revenue Analytics", path: "/admin/revenue", icon: TrendingUp, isAdminOnly: true, subscriptionModule: "REPORTS", requiredModule: UI_MODULES.REPORTS },
   { id: "master-procedures", label: "Master Procedures", path: "/admin/master-procedures", icon: Clipboard, isAdminOnly: true, requiredModule: UI_MODULES.PROCEDURES },
+  { id: "clinical-masters", label: "Clinical Masters", path: "/admin/clinical-masters", icon: Syringe, isAdminOnly: true, subscriptionModule: "VACCINES", specialty: "PEDIATRICS" },
   { id: "feedback", label: "Patient Feedback", path: "/hospital/feedback", icon: MessageSquare, isAdminOnly: true },
 ];
 
@@ -47,7 +48,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSelector((state) => state.auth.user);
-  const { hospitalInfo } = useHospital();
+  const { hospitalInfo, loading: hospitalLoading } = useHospital();
   const { hasModule, loading: permissionsLoading } = usePermissions();
   const { isModuleDisabled, loading: subscriptionLoading } = useSubscription();
 
@@ -105,7 +106,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     if (!item) return false;
 
     // 2. Hide everything else during loading to prevent flashing/gated UI leakage
-    if (permissionsLoading || subscriptionLoading) return false;
+    if (permissionsLoading || subscriptionLoading || hospitalLoading) return false;
 
     // 3. Admin-only restriction
     if (item.isAdminOnly) {
@@ -113,8 +114,24 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     }
 
     // 4. RBAC (requiredModule)
-    if (!item.requiredModule) return true;
-    return hasModule(item.requiredModule);
+    if (item.requiredModule && !hasModule(item.requiredModule)) return false;
+
+    // 5. Specialty Check
+    if (item.specialty) {
+      const isPediatricHospital = hospitalInfo?.primary_specialty === 'PEDIATRICS' || 
+                                 hospitalInfo?.all_specialties?.includes('PEDIATRICS');
+      
+      if (item.specialty === 'PEDIATRICS') {
+        if (!isPediatricHospital) return false;
+        
+        // Master Gate: 'Clinical Masters' (Vaccines) requires the VACCINES module to be enabled in Hospital Settings
+        if (item.id === 'clinical-masters' && !hospitalInfo?.enabled_modules?.includes('VACCINES')) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   });
 
   const isActive = (path) => {
