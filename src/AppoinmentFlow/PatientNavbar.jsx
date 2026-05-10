@@ -112,6 +112,13 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
           });
           // Auto-refresh notifications
           refreshNotifications();
+        } else if (data.type === "VACCINE_DUE") {
+          toast.success(data.message, {
+            duration: 6000,
+            icon: "💉"
+          });
+          // Auto-refresh notifications
+          refreshNotifications();
         }
       };
 
@@ -181,11 +188,17 @@ export default function PatientNavbar({ patientName, patientRole, activeTab: act
     // Navigate based on notification type
     const isImageUpload = notif.type === "IMAGE_UPLOADED" || notif.notification_type === "IMAGE_UPLOADED";
     const isSessionReview = notif.type === "SESSION_REVIEWED" || notif.notification_type === "SESSION_REVIEWED";
+    const isVaccineReminder = notif.type === "VACCINE_DUE" || notif.notification_type === "VACCINE_DUE";
 
     if (isImageUpload || isSessionReview) {
       // Switch to images tab in patient dashboard
       if (onTabChange) {
         onTabChange("images");
+      }
+    } else if (isVaccineReminder) {
+      // Switch to vaccines tab
+      if (onTabChange) {
+        onTabChange("vaccines");
       }
     }
   };

@@ -30,6 +30,10 @@ const hospitalsAPI = {
     return apiRequest('/hospitals');
   },
 
+  getProfile: async () => {
+    return apiRequest('/hospitals/profile');
+  },
+
   getById: async (id) => {
     return apiRequest(`/hospitals/${id}`);
   },

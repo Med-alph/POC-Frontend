@@ -17,6 +17,7 @@ export default function AddHospitalDialog({ onAdd, children }) {
     contact_number: "",
     email: "",
     logo: "",
+    primary_specialty: "GENERAL",
   });
 
   const generateSubdomain = (name) => {
@@ -57,6 +58,7 @@ export default function AddHospitalDialog({ onAdd, children }) {
         contact_number: "",
         email: "",
         logo: "",
+        primary_specialty: "GENERAL",
       });
     } catch (err) {
       toast.error(err.message || "Failed to create hospital");
@@ -143,15 +145,30 @@ export default function AddHospitalDialog({ onAdd, children }) {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Brand Logo URL</label>
-              <Input
-                name="logo"
-                placeholder="https://example.com/logo.png"
-                value={formData.logo}
-                onChange={handleChange}
-                className="h-10"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Primary Specialty</label>
+                <select
+                  name="primary_specialty"
+                  value={formData.primary_specialty}
+                  onChange={handleChange}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="GENERAL">General Practice</option>
+                  <option value="PEDIATRICS">Pediatrics</option>
+                  <option value="DERMATOLOGY">Dermatology</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Brand Logo URL</label>
+                <Input
+                  name="logo"
+                  placeholder="https://example.com/logo.png"
+                  value={formData.logo}
+                  onChange={handleChange}
+                  className="h-10"
+                />
+              </div>
             </div>
           </div>
 

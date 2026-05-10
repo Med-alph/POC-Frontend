@@ -1,24 +1,40 @@
-import React from "react";
 import { 
-  CalendarDays, UserCircle2, Bell, Phone, Image, X, ChevronRight, Stethoscope, FileText, CreditCard
+  CalendarDays, UserCircle2, Bell, Phone, Image, X, ChevronRight, Stethoscope, FileText, CreditCard, Syringe, TrendingUp
 } from "lucide-react";
 import { useHospital } from "@/contexts/HospitalContext";
 import { 
   Tooltip, TooltipContent, TooltipTrigger, TooltipProvider 
 } from "@/components/ui/tooltip";
 
-const patientTabs = [
-  { id: "appointments", label: "Appointments", icon: CalendarDays },
-  { id: "records", label: "My Records", icon: FileText },
-  { id: "payments", label: "Payments", icon: CreditCard },
-  { id: "reminders", label: "Reminders", icon: Bell },
-  { id: "calls", label: "Calls", icon: Phone },
-  { id: "images", label: "Images", icon: Image },
-  { id: "profile", label: "Profile", icon: UserCircle2 },
-];
-
-export default function PatientSidebar({ isOpen, onClose, isCollapsed, onToggleCollapse, activeTab, onTabChange }) {
+export default function PatientSidebar({ isOpen, onClose, isCollapsed, onToggleCollapse, activeTab, onTabChange, patientAge }) {
   const { hospitalInfo } = useHospital();
+
+  const tabs = [
+    { id: "appointments", label: "Appointments", icon: CalendarDays },
+    { id: "records", label: "My Records", icon: FileText },
+  ];
+
+  // Add Pediatric modules if hospital is Pediatric and modules are enabled AND patient is < 18
+  const isPediatric = hospitalInfo?.primary_specialty?.toUpperCase() === 'PEDIATRICS' || hospitalInfo?.all_specialties?.includes('PEDIATRICS');
+  const hasVaccines = hospitalInfo?.enabled_modules?.some(m => m.toUpperCase() === 'VACCINES');
+  const hasGrowth = hospitalInfo?.enabled_modules?.some(m => m.toUpperCase() === 'GROWTH');
+  
+  if (isPediatric && (patientAge === undefined || patientAge < 18)) {
+    if (hasVaccines) {
+      tabs.push({ id: "vaccines", label: "Vaccines", icon: Syringe });
+    }
+    if (hasGrowth) {
+      tabs.push({ id: "growth", label: "Growth", icon: TrendingUp });
+    }
+  }
+
+  tabs.push(
+    { id: "payments", label: "Payments", icon: CreditCard },
+    { id: "reminders", label: "Reminders", icon: Bell },
+    { id: "calls", label: "Calls", icon: Phone },
+    { id: "images", label: "Images", icon: Image },
+    { id: "profile", label: "Profile", icon: UserCircle2 }
+  );
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -78,7 +94,7 @@ export default function PatientSidebar({ isOpen, onClose, isCollapsed, onToggleC
 
           {/* Navigation Links */}
           <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-6 space-y-1 custom-scrollbar">
-            {patientTabs.map((item) => {
+            {tabs.map((item) => {
               const Icon = item.icon;
               const active = activeTab === item.id;
               

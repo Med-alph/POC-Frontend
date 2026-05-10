@@ -47,6 +47,10 @@ import { getAuthToken } from "../utils/auth";
 import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
 import DietPlanSection from "./DietPlanSection";
 import dietAPI from "../api/dietapi";
+import { useHospital } from "../contexts/HospitalContext";
+import VaccineConsultationWidget from "../Specialties/Pediatrics/VaccineConsultationWidget";
+import GrowthConsultationWidget from "../Specialties/Pediatrics/GrowthConsultationWidget";
+
 
 
 const DoctorConsultation = () => {
@@ -122,6 +126,8 @@ const DoctorConsultation = () => {
     const [showDraftBanner, setShowDraftBanner] = useState(false);
 
 
+
+    const { hospitalInfo: hospitalProfile } = useHospital();
 
     async function checkCancellationRequest() {
         try {
@@ -996,6 +1002,33 @@ const DoctorConsultation = () => {
                         onStartRecording={() => setIsVoiceRecording(true)}
                         onStopRecording={() => setIsVoiceRecording(false)}
                     />
+                </div>
+            )}
+
+            {/* Pediatric & Specialty Clinical Modules */}
+            {isConsultationStarted && !isCompleted && !isCancelled && (
+                <div className="space-y-6 mb-6">
+                    {/* Vaccines Widget: Requires PEDIATRICS specialty AND VACCINES module */}
+                    {((hospitalProfile?.primary_specialty?.toUpperCase() === 'PEDIATRICS' || 
+                       hospitalProfile?.all_specialties?.some(s => s?.toUpperCase() === 'PEDIATRICS')) &&
+                      hospitalProfile?.enabled_modules?.some(m => m?.toUpperCase() === 'VACCINES')) && 
+                      (calculateAge(appointmentData?.patient?.dob) < 18 || appointmentData?.patient?.age < 18) && (
+                        <VaccineConsultationWidget 
+                            patientId={appointmentData?.patient_id} 
+                            appointmentId={appointmentId} 
+                        />
+                    )}
+                    
+                    {/* Growth Widget: Requires PEDIATRICS specialty AND GROWTH module */}
+                    {((hospitalProfile?.primary_specialty?.toUpperCase() === 'PEDIATRICS' || 
+                       hospitalProfile?.all_specialties?.some(s => s?.toUpperCase() === 'PEDIATRICS')) &&
+                      hospitalProfile?.enabled_modules?.some(m => m?.toUpperCase() === 'GROWTH')) && 
+                      (calculateAge(appointmentData?.patient?.dob) < 18 || appointmentData?.patient?.age < 18) && (
+                        <GrowthConsultationWidget 
+                            patientId={appointmentData?.patient_id} 
+                            onSave={() => toast.success("Growth data synced to patient record")}
+                        />
+                    )}
                 </div>
             )}
 

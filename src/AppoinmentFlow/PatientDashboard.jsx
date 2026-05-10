@@ -40,6 +40,8 @@ import ImageViewer from "@/components/ImageViewer";
 import socketService from "@/services/socketService";
 import { videoCallAPI } from "@/api/videocallapi";
 import { generateRoomName } from "@/utils/callUtils";
+import PatientVaccinePanel from "./PatientVaccinePanel";
+import GrowthPanel from "../Specialties/Pediatrics/GrowthPanel";
 
 const user = getUserData() || {};
 const PAGE_SIZE = 10;
@@ -174,7 +176,34 @@ export default function PatientDashboard() {
   const [selectedBillDetails, setSelectedBillDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+  const calculateAge = (dob) => {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const recordTabs = ["SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes"];
+  
+  // Add Pediatric modules if hospital is Pediatric and modules are enabled AND patient is < 18
+  const isPediatric = hospitalInfo?.primary_specialty?.toUpperCase() === 'PEDIATRICS' || hospitalInfo?.all_specialties?.includes('PEDIATRICS');
+  const hasVaccines = hospitalInfo?.enabled_modules?.some(m => m.toUpperCase() === 'VACCINES');
+  const hasGrowth = hospitalInfo?.enabled_modules?.some(m => m.toUpperCase() === 'GROWTH');
+  const patientAge = calculateAge(patient?.dob || patientDetails?.dob);
+  
+  if (isPediatric && patientAge < 18) {
+    if (hasVaccines && !recordTabs.includes("Vaccines")) {
+      recordTabs.push("Vaccines");
+    }
+    if (hasGrowth && !recordTabs.includes("Growth")) {
+      recordTabs.push("Growth");
+    }
+  }
 
   useEffect(() => {
     // SOC 2: Check isAuthenticated flag, actual auth is via httpOnly cookie
@@ -1860,46 +1889,44 @@ export default function PatientDashboard() {
               )}
 
               {activeRecordTab === "Allergies & Notes" && (
-                <div className="space-y-4">
-                  <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20">
-                    <CardContent className="p-5">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                        </div>
-                        <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">Allergies</CardTitle>
-                      </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card className="border border-slate-200/60 shadow-sm bg-white rounded-[2rem] overflow-hidden">
+                    <CardHeader className="border-b border-slate-100 p-5 bg-red-50/50">
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-700">
+                        <AlertCircle className="h-4 w-4" /> Active Allergies
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
                       {patient?.allergies ? (
-                        <ul className="space-y-2">
-                          {patient.allergies.split(',').map((allergy, i) => (
-                            <li key={i} className="flex items-center gap-2 p-2 bg-white dark:bg-gray-700/50 rounded-lg border border-red-200 dark:border-red-800">
-                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                              <span className="text-red-700 dark:text-red-400 font-semibold">{allergy.trim()}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{patient.allergies}</p>
                       ) : (
-                        <p className="text-gray-500 dark:text-gray-400">No known allergies</p>
+                        <p className="text-sm text-slate-400 italic">No known allergies reported.</p>
                       )}
                     </CardContent>
                   </Card>
-
-                  <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-                    <CardContent className="p-5">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                          <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">Medical History</CardTitle>
-                      </div>
+                  <Card className="border border-slate-200/60 shadow-sm bg-white rounded-[2rem] overflow-hidden">
+                    <CardHeader className="border-b border-slate-100 p-5 bg-blue-50/50">
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2 text-blue-700">
+                        <Activity className="h-4 w-4" /> Medical History
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
                       {patient?.medical_history ? (
-                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{patient.medical_history}</p>
+                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{patient.medical_history}</p>
                       ) : (
-                        <p className="text-gray-500 dark:text-gray-400">No medical history recorded</p>
+                        <p className="text-sm text-slate-400 italic">No medical history recorded.</p>
                       )}
                     </CardContent>
                   </Card>
                 </div>
+              )}
+
+              {activeRecordTab === "Vaccines" && (
+                <PatientVaccinePanel patient={patient} />
+              )}
+              
+              {activeRecordTab === "Growth" && (
+                <GrowthPanel patientId={patient?.id} isParentView={true} patientDob={patient?.dob} />
               )}
             </div>
           )}
@@ -2448,6 +2475,8 @@ export default function PatientDashboard() {
   const renderActiveTab = () => {
     switch (activeTab) {
       case "appointments": return renderAppointmentsTab();
+      case "vaccines": return <PatientVaccinePanel patient={patient} />;
+      case "growth": return <GrowthPanel patientId={patient?.id} isParentView={true} patientDob={patient?.dob} />;
       case "reminders": return renderRemindersTab();
       case "calls": return renderCallsTab();
       case "images": return renderImagesTab();
@@ -2512,6 +2541,7 @@ export default function PatientDashboard() {
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           activeTab={activeTab}
+          patientAge={patientAge}
           onTabChange={(tab) => {
             setActiveTab(tab);
             if (tab !== "appointments") setView("list");
