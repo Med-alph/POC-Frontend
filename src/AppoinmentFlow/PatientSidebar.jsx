@@ -33,6 +33,7 @@ export default function PatientSidebar({ isOpen, onClose, isCollapsed, onToggleC
     { id: "reminders", label: "Reminders", icon: Bell },
     { id: "calls", label: "Calls", icon: Phone },
     { id: "images", label: "Images", icon: Image },
+    { id: "documents", label: "Clinical Documents", icon: FileText },
     { id: "profile", label: "Profile", icon: UserCircle2 }
   );
 

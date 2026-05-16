@@ -522,8 +522,9 @@ export default function Patients() {
                 {/* Filters and Actions */}
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-4 mb-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        {/* Left side: Search and Filter select */}
                         <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                            <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
+                            <div className="relative flex-1 max-w-md">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 -translate-y-1/2" />
                                 <Input
                                     type="text"
@@ -574,7 +575,7 @@ export default function Patients() {
                                 <Filter className="h-4 w-4" />
                                 <span>{filteredAndSortedPatients.length} of {patients.length} patients</span>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <Button
                                     variant="outline"
                                     onClick={handleRefresh}

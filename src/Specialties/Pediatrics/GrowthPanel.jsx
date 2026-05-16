@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import pediatricsAPI from "../../api/pediatricsapi";
 import toast from 'react-hot-toast';
+import ReportExportButton from "../../components/Reports/ReportExportButton";
+import ReportPreviewModal from "../../components/Reports/ReportPreviewModal";
 
 const GrowthPanel = ({ patientId, isParentView = false, patientDob }) => {
     const getDetailedAge = (dob, targetDate) => {
@@ -40,6 +42,8 @@ const GrowthPanel = ({ patientId, isParentView = false, patientDob }) => {
     const [loading, setLoading] = useState(true);
     const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    
+    const [previewUrl, setPreviewUrl] = useState(null);
     
     const [formData, setFormData] = useState({
         weight: '',
@@ -240,6 +244,12 @@ const GrowthPanel = ({ patientId, isParentView = false, patientDob }) => {
                             <Activity className="h-5 w-5 text-indigo-500" />
                             Growth Trend Analysis
                         </CardTitle>
+                        <ReportExportButton 
+                            type="GROWTH_REPORT" 
+                            patientId={patientId} 
+                            label="Export Trends"
+                            onPreview={(url) => setPreviewUrl(url)}
+                        />
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="h-[350px] w-full">
@@ -443,6 +453,13 @@ const GrowthPanel = ({ patientId, isParentView = false, patientDob }) => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ReportPreviewModal 
+                isOpen={!!previewUrl} 
+                url={previewUrl} 
+                onClose={() => setPreviewUrl(null)} 
+                title="Growth Trends Report"
+            />
         </div>
     );
 };

@@ -8,12 +8,14 @@ import { useHospital } from "@/contexts/HospitalContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   CalendarDays, UserCircle2, Plus, Loader2, ChevronLeft, ChevronRight,
   ArrowLeft, Phone, Image, RefreshCw, Mail, MapPin, Shield, Heart,
   Clock, PhoneCall, PhoneIncoming, PhoneOutgoing, PhoneMissed, Download,
   AlertCircle, Droplet, FileText, Users, X, Bell, CheckCircle, Camera, Utensils,
-  Stethoscope, Activity, Pill, FlaskConical, GalleryThumbnails, CreditCard, Receipt, History, Upload
+  Stethoscope, Activity, Pill, FlaskConical, GalleryThumbnails, CreditCard, Receipt, History, Upload,
+  Baby, Syringe
 } from "lucide-react";
 import { getUserData } from "@/utils/auth";
 import PatientNavbar from "./PatientNavbar";
@@ -42,6 +44,8 @@ import { videoCallAPI } from "@/api/videocallapi";
 import { generateRoomName } from "@/utils/callUtils";
 import PatientVaccinePanel from "./PatientVaccinePanel";
 import GrowthPanel from "../Specialties/Pediatrics/GrowthPanel";
+import ReportExportButton from "../components/Reports/ReportExportButton";
+import ReportPreviewModal from "../components/Reports/ReportPreviewModal";
 
 const user = getUserData() || {};
 const PAGE_SIZE = 10;
@@ -53,6 +57,7 @@ const TABS = [
   { key: "reminders", label: "Reminders", icon: Bell },
   { key: "calls", label: "Calls", icon: Phone },
   { key: "images", label: "Images", icon: Image },
+  { key: "documents", label: "Clinical Documents", icon: FileText },
   { key: "profile", label: "Profile", icon: UserCircle2 },
 ];
 
@@ -175,6 +180,8 @@ export default function PatientDashboard() {
   const [viewingBillModal, setViewingBillModal] = useState(false);
   const [selectedBillDetails, setSelectedBillDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewTitle, setPreviewTitle] = useState("Report Preview");
 
   const calculateAge = (dob) => {
     if (!dob) return 0;
@@ -187,6 +194,8 @@ export default function PatientDashboard() {
     }
     return age;
   };
+
+
 
   const recordTabs = ["SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes"];
   
@@ -354,9 +363,9 @@ export default function PatientDashboard() {
     fetchSessions();
   }, [activeTab, patient?.id]);
 
-  // Fetch records when records tab is active
+  // Fetch records when records or documents tab is active
   useEffect(() => {
-    if (activeTab !== "records" || !patient?.id) return;
+    if ((activeTab !== "records" && activeTab !== "documents") || !patient?.id) return;
     fetchPatientRecords();
   }, [activeTab, patient?.id]);
 
@@ -2420,6 +2429,157 @@ export default function PatientDashboard() {
     );
   };
 
+  const renderDocumentsTab = () => {
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+                <FileText className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Clinical Documents</h2>
+            </div>
+            <p className="text-slate-500 pl-12 font-medium">Official medical records, vaccine certificates, and specialty reports.</p>
+          </div>
+        </header>
+
+        <div className="space-y-10">
+          {/* Main Reports Area */}
+          <div className="space-y-10">
+            {loadingRecords ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="relative">
+                  <div className="h-12 w-12 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin"></div>
+                  <FileText className="h-5 w-5 text-indigo-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                </div>
+                <p className="text-slate-500 font-medium animate-pulse">Syncing your clinical records...</p>
+              </div>
+            ) : (
+              <>
+                {/* Pediatrics Specialty Section */}
+                {(isPediatric && patientAge < 18) && (
+                  <section className="space-y-6">
+                    <div className="flex items-center gap-3 px-1">
+                      <div className="h-1 w-12 bg-blue-500 rounded-full"></div>
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <Baby className="w-4 h-4 text-blue-500" /> Pediatric Specialty Reports
+                      </h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {hasVaccines && (
+                        <Card className="group border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-800 overflow-hidden rounded-[2rem] border-t-4 border-indigo-500">
+                          <CardContent className="p-8 flex flex-col gap-6">
+                            <div className="flex items-start justify-between">
+                              <div className="h-14 w-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform duration-300">
+                                <Syringe className="h-7 w-7" />
+                              </div>
+                              <Badge className="bg-indigo-50 text-indigo-700 border-none rounded-lg">Official Card</Badge>
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="text-xl font-bold text-slate-900 dark:text-white">Immunization Card</h4>
+                              <p className="text-sm text-slate-500 leading-relaxed">Official IAP 2024 schedule showing all administered and upcoming doses.</p>
+                            </div>
+                            <ReportExportButton 
+                              type="VACCINE_CARD" 
+                              patientId={patient?.id} 
+                              label="Preview & Download" 
+                              className="w-full"
+                              variant="default"
+                              onPreview={(url) => { setPreviewUrl(url); setPreviewTitle("Vaccination Card"); }}
+                            />
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {hasGrowth && (
+                        <Card className="group border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-white dark:bg-gray-800 overflow-hidden rounded-[2rem] border-t-4 border-emerald-500">
+                          <CardContent className="p-8 flex flex-col gap-6">
+                            <div className="flex items-start justify-between">
+                              <div className="h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform duration-300">
+                                <Activity className="h-7 w-7" />
+                              </div>
+                              <Badge className="bg-emerald-50 text-emerald-700 border-none rounded-lg">Trend Analysis</Badge>
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="text-xl font-bold text-slate-900 dark:text-white">Growth Trends</h4>
+                              <p className="text-sm text-slate-500 leading-relaxed">Visual charts for Weight, Height and BMI based on latest measurements.</p>
+                            </div>
+                            <ReportExportButton 
+                              type="GROWTH_REPORT" 
+                              patientId={patient?.id} 
+                              label="Preview & Download" 
+                              className="w-full"
+                              variant="default"
+                              onPreview={(url) => { setPreviewUrl(url); setPreviewTitle("Growth Trends Report"); }}
+                            />
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {/* Visit Summaries Section */}
+                {consultationHistory.length > 0 && (
+                  <section className="space-y-6">
+                    <div className="flex items-center gap-3 px-1">
+                      <div className="h-1 w-12 bg-amber-500 rounded-full"></div>
+                      <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <History className="w-4 h-4 text-amber-500" /> Visit Summaries
+                      </h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {consultationHistory.map((cons) => (
+                        <Card key={cons.id} className="group border-0 shadow-sm hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-2xl border-l-4 border-slate-200 hover:border-blue-400">
+                          <CardContent className="p-5 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-700/50 flex items-center justify-center text-slate-500">
+                                <Stethoscope className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-900 dark:text-white">
+                                  Visit: {new Date(cons.consultation_date).toLocaleDateString('en-GB')} {cons.appointment?.appointment_time ? ` at ${formatTime(cons.appointment.appointment_time)}` : cons.consultation_start_time ? ` at ${formatTime(cons.consultation_start_time)}` : ''}
+                                </h4>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
+                                  {cons.staff?.staff_name?.toUpperCase().startsWith('DR') ? '' : 'Dr. '}{cons.staff?.staff_name}
+                                </p>
+                              </div>
+                            </div>
+                            <ReportExportButton 
+                              type="VISIT_SUMMARY" 
+                              patientId={patient?.id} 
+                              consultationId={cons.id}
+                              label="PDF" 
+                              onPreview={(url) => { 
+                                setPreviewUrl(url); 
+                                setPreviewTitle(`Visit Summary - ${new Date(cons.consultation_date).toLocaleDateString('en-GB')} ${cons.appointment?.appointment_time ? formatTime(cons.appointment.appointment_time) : cons.consultation_start_time ? formatTime(cons.consultation_start_time) : ''}`); 
+                              }}
+                              showShare={false}
+                            />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <ReportPreviewModal 
+          isOpen={!!previewUrl} 
+          url={previewUrl} 
+          onClose={() => setPreviewUrl(null)} 
+          title={previewTitle}
+        />
+      </div>
+    );
+  };
+
   const renderCancelModal = () => cancelModalOpen && (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={() => setCancelModalOpen(false)} />
@@ -2483,6 +2643,7 @@ export default function PatientDashboard() {
       case "records": return renderRecordsTab();
       case "profile": return renderProfileTab();
       case "payments": return renderPaymentsTab();
+      case "documents": return renderDocumentsTab();
       default: return renderAppointmentsTab();
     }
   };
@@ -2546,7 +2707,7 @@ export default function PatientDashboard() {
             setActiveTab(tab);
             if (tab !== "appointments") setView("list");
             if (tab === "payments") setLoadingBills(true);
-            if (tab === "records") setLoadingRecords(true);
+            if (tab === "records" || tab === "documents") setLoadingRecords(true);
             if (tab === "reminders") setLoadingReminders(true);
             if (tab === "calls") setLoadingCallHistory(true);
             if (tab === "images") setLoadingSessions(true);
@@ -2563,7 +2724,7 @@ export default function PatientDashboard() {
               setActiveTab(tab);
               if (tab !== "appointments") setView("list");
               if (tab === "payments") setLoadingBills(true);
-              if (tab === "records") setLoadingRecords(true);
+              if (tab === "records" || tab === "documents") setLoadingRecords(true);
               if (tab === "reminders") setLoadingReminders(true);
               if (tab === "calls") setLoadingCallHistory(true);
               if (tab === "images") setLoadingSessions(true);
