@@ -98,12 +98,6 @@ const PatientVaccinePanel = ({ patient }) => {
                     <h2 className="text-xl font-bold text-slate-900">My Immunization</h2>
                     <p className="text-sm text-slate-500">View and track your child's vaccination history.</p>
                 </div>
-                <Button 
-                    onClick={downloadVaccineCard}
-                    className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2"
-                >
-                    <Download className="h-4 w-4" /> Download Vaccine Card
-                </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

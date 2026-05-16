@@ -18,6 +18,8 @@ import { useSelector } from "react-redux";
 import hospitalsAPI from "../../api/hospitalsapi";
 import { getModuleComponent, ModuleRegistry } from "../../Specialties/ModuleRegistry";
 import ChildHeader from "../../Specialties/Pediatrics/ChildHeader";
+import ReportExportButton from "../../components/Reports/ReportExportButton";
+import ReportPreviewModal from "../../components/Reports/ReportPreviewModal";
 
 const staticTabs = ["Appointments", "SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes", 'Gallery'];
 
@@ -35,6 +37,7 @@ const DoctorPatientRecord = () => {
     const [activeTab, setActiveTab] = useState(staticTabs[0]);
     const [consultations, setConsultations] = useState([]);
     const [appointments, setAppointments] = useState([]);
+    const [previewUrl, setPreviewUrl] = useState(null);
     const [isCopilotOpen, setIsCopilotOpen] = useState(false);
     const [dietPlans, setDietPlans] = useState([]);
     const user = useSelector((state) => state.auth.user);
@@ -450,9 +453,9 @@ const DoctorPatientRecord = () => {
                                 <Sparkles className="h-4 w-4 mr-2" /> AI Insights
                             </Button>
                         )}
-                        <Button onClick={downloadAllSOAPNotes} disabled={consultations.length === 0} variant="outline" className="rounded-xl font-medium border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm">
+                        {/* <Button onClick={downloadAllSOAPNotes} disabled={consultations.length === 0} variant="outline" className="rounded-xl font-medium border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm">
                             <Download className="h-4 w-4 mr-2" /> Export Records
-                        </Button>
+                        </Button> */}
                     </div>
                 </div>
 
@@ -539,10 +542,22 @@ const DoctorPatientRecord = () => {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-slate-900 text-base">{consultation.staff?.staff_name}</p>
-                                            <p className="text-sm text-slate-500 mt-0.5">{formatDate(consultation.consultation_date)} at {formatTime(consultation.consultation_start_time)}</p>
+                                            <p className="text-sm text-slate-500 mt-0.5">{formatDate(consultation.consultation_date)} at {consultation.appointment?.appointment_time ? formatTime(consultation.appointment.appointment_time) : consultation.consultation_start_time ? formatTime(consultation.consultation_start_time) : 'N/A'}</p>
                                         </div>
                                     </div>
-                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-medium rounded-full">Completed</span>
+                                    <div className="flex items-center gap-3">
+                                        <ReportExportButton 
+                                            type="VISIT_SUMMARY"
+                                            consultationId={consultation.id} 
+                                            patientId={patientId}
+                                            variant="ghost"
+                                            size="sm"
+                                            label=""
+                                            className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100 flex items-center justify-center"
+                                            onPreview={(url) => setPreviewUrl(url)}
+                                        />
+                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-medium rounded-full">Completed</span>
+                                    </div>
                                 </div>
                             )) : (
                                 <div className="text-center py-16 bg-white rounded-3xl border border-slate-200/60 border-dashed">
@@ -907,6 +922,13 @@ const DoctorPatientRecord = () => {
             </Dialog>
 
             <CopilotPanel isOpen={isCopilotOpen} onClose={() => setIsCopilotOpen(false)} patientId={patientId} />
+            
+            <ReportPreviewModal 
+                isOpen={!!previewUrl} 
+                url={previewUrl} 
+                onClose={() => setPreviewUrl(null)} 
+                title="Encounter Summary Report"
+            />
         </div>
     );
 };

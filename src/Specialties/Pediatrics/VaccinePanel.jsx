@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import pediatricsAPI from "../../api/pediatricsapi";
 import toast from 'react-hot-toast';
+import ReportExportButton from "../../components/Reports/ReportExportButton";
+import ReportPreviewModal from "../../components/Reports/ReportPreviewModal";
 
 const VaccinePanel = ({ patientId, onUpdate }) => {
     const [vaccines, setVaccines] = useState([]);
@@ -21,6 +23,7 @@ const VaccinePanel = ({ patientId, onUpdate }) => {
     });
     const [submitting, setSubmitting] = useState(false);
     const [remindingId, setRemindingId] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
 
     const handleRemind = async (v) => {
         try {
@@ -93,15 +96,17 @@ const VaccinePanel = ({ patientId, onUpdate }) => {
                             <Syringe className="h-5 w-5 text-indigo-500" />
                             Immunization Schedule (IAP 2024)
                         </CardTitle>
-                        <div className="flex gap-4">
-                            <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Administered
-                            </div>
-                            <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                                <div className="w-2 h-2 rounded-full bg-amber-500"></div> Due
-                            </div>
-                            <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                                <div className="w-2 h-2 rounded-full bg-red-500"></div> Overdue
+                        <div className="flex items-center gap-6">
+                            <div className="flex gap-4">
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Administered
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500"></div> Due
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                    <div className="w-2 h-2 rounded-full bg-red-500"></div> Overdue
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -245,6 +250,13 @@ const VaccinePanel = ({ patientId, onUpdate }) => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ReportPreviewModal 
+                isOpen={!!previewUrl} 
+                url={previewUrl} 
+                onClose={() => setPreviewUrl(null)} 
+                title="Vaccination Card Preview"
+            />
         </div>
     );
 };

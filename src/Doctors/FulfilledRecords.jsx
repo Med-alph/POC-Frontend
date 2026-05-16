@@ -5,10 +5,13 @@ import toast from "react-hot-toast";
 import { CheckCircle2, CalendarDays, Clock, User, FileText, ArrowRight, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import ReportExportButton from "../components/Reports/ReportExportButton";
+import ReportPreviewModal from "../components/Reports/ReportPreviewModal";
 
 export default function FulfilledRecords() {
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -142,15 +145,25 @@ export default function FulfilledRecords() {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => ViewRecord(apt.patient_id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2 whitespace-nowrap"
-                      aria-label={`View record of ${apt.patient_name}`}
-                    >
-                      <FileText className="h-4 w-4" />
-                      View Record
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <ReportExportButton 
+                        type="VISIT_SUMMARY"
+                        consultationId={apt.consultation_id || apt.id} // Backend might return consultation_id or we use apt.id if it's the anchor
+                        patientId={apt.patient_id}
+                        variant="outline"
+                        className="h-9 px-3 rounded-md"
+                        onPreview={(url) => setPreviewUrl(url)}
+                      />
+                      <Button
+                        onClick={() => ViewRecord(apt.patient_id)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 text-sm font-medium rounded-md flex items-center gap-2 whitespace-nowrap"
+                        aria-label={`View record of ${apt.patient_name}`}
+                      >
+                        <FileText className="h-4 w-4" />
+                        View Record
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -158,6 +171,13 @@ export default function FulfilledRecords() {
           </div>
         )}
       </div>
+
+      <ReportPreviewModal 
+        isOpen={!!previewUrl} 
+        url={previewUrl} 
+        onClose={() => setPreviewUrl(null)} 
+        title="Encounter Summary Report"
+      />
     </div>
   );
 }

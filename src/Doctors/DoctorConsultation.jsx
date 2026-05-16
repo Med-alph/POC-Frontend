@@ -50,6 +50,8 @@ import dietAPI from "../api/dietapi";
 import { useHospital } from "../contexts/HospitalContext";
 import VaccineConsultationWidget from "../Specialties/Pediatrics/VaccineConsultationWidget";
 import GrowthConsultationWidget from "../Specialties/Pediatrics/GrowthConsultationWidget";
+import ReportPreviewModal from "../components/Reports/ReportPreviewModal";
+import reportsAPI from "../api/reportsapi";
 
 
 
@@ -124,6 +126,10 @@ const DoctorConsultation = () => {
     const [hasDraft, setHasDraft] = useState(false);
     const [draftTimestamp, setDraftTimestamp] = useState(null);
     const [showDraftBanner, setShowDraftBanner] = useState(false);
+    
+    // Report Preview State
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
 
 
@@ -436,9 +442,23 @@ const DoctorConsultation = () => {
 
             toast.success("Consultation completed and saved successfully!");
             clearDraft(); // Important: Clear draft on success
-            setTimeout(() => {
-                window.history.back();
-            }, 2000);
+            
+            // Generate and show the Encounter Summary Report
+            try {
+                setIsGeneratingReport(true);
+                const response = await reportsAPI.generateEncounterReport(consultationIdCreated, { preview: true });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                setPreviewUrl(url);
+            } catch (reportErr) {
+                console.error("Failed to generate encounter report:", reportErr);
+                toast.error("Consultation saved, but summary report generation failed.");
+                setTimeout(() => {
+                    window.history.back();
+                }, 2000);
+            } finally {
+                setIsGeneratingReport(false);
+            }
         } catch (err) {
             console.error("Failed to save consultation:", err);
             toast.error(`Failed to save consultation: ${err.message}`);
@@ -1673,12 +1693,17 @@ const DoctorConsultation = () => {
                         <button
                             onClick={handleEndConsultation}
                             disabled={isSaving || isReadOnly}
-                            className={`flex items-center justify-center w-full sm:w-auto gap-2 bg-blue-600 text-white px-6 py-3 sm:py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className="flex items-center justify-center w-full sm:w-auto gap-2 bg-blue-600 text-white px-6 py-3 sm:py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                     Saving...
+                                </>
+                            ) : isGeneratingReport ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Generating Report...
                                 </>
                             ) : (
                                 <>
@@ -1773,7 +1798,15 @@ const DoctorConsultation = () => {
                     toast.success('Images uploaded successfully!');
                 }}
             />
-
+            <ReportPreviewModal 
+                isOpen={!!previewUrl} 
+                url={previewUrl} 
+                onClose={() => {
+                    setPreviewUrl(null);
+                    window.history.back();
+                }} 
+                title="Encounter Summary Report"
+            />
         </div>
     );
 };
