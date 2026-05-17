@@ -37,6 +37,12 @@ const reportsAPI = {
     return apiRequest(endpoint);
   },
 
+  generatePharmacyReceipt: async (orderId, options = {}) => {
+    const queryParams = new URLSearchParams(options).toString();
+    const endpoint = `/reports/pharmacy-fulfillment/${orderId}${queryParams ? `?${queryParams}` : ''}`;
+    return apiRequest(endpoint);
+  },
+
   shareOnWhatsApp: async (type, patientId) => {
     const endpoint = `/reports/share/whatsapp/${type}/${patientId}`;
     const response = await apiRequest(endpoint);

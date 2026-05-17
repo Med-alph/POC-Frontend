@@ -161,7 +161,7 @@ export default function BillingPage() {
             payNow: true
           };
 
-          setItems([consultationItem, ...prescriptionItems, ...labItems, ...procedureItems]);
+          setItems([consultationItem, ...labItems, ...procedureItems]);
         } catch (err) {
           console.error("No consultation found for this appointment", err);
         }
@@ -246,8 +246,8 @@ export default function BillingPage() {
     }
   };
 
-  // Determine if already paid
-  const isAlreadyPaid = appointment?.orders?.some(o => o.status === 'paid') || appointment?.status === 'paid';
+  // Determine if already paid (ignoring pharmacy orders which are billed separately)
+  const isAlreadyPaid = appointment?.orders?.some(o => o.status === 'paid' && o.metadata?.source !== 'pharmacy') || appointment?.status === 'paid';
 
   // Determine if payment is enabled from appointment details (priority) or global hospital context
   // Use loose equality check to handle string "true" if API returns that, though boolean is expected

@@ -784,6 +784,7 @@ const DoctorPatientRecord = () => {
                                         <p className="font-semibold text-slate-900 text-base">{med.medicine_name}</p>
                                         <p className="text-sm text-slate-500 mt-0.5">
                                             {[med.dosage, med.frequency, med.duration].filter(Boolean).join(' • ')}
+                                            {med.quantity ? ` • Qty: ${med.quantity}` : ''}
                                         </p>
                                     </div>
                                 </div>

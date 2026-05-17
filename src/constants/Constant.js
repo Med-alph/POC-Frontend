@@ -105,7 +105,8 @@ export const UI_MODULES = {
   REPORTS: 'REPORTS',
   CANCELLATION_REQUESTS: 'CANCELLATION_REQUESTS',
   EMAIL_TEMPLATES: 'EMAIL_TEMPLATES',
-  PROCEDURES: 'PROCEDURES'
+  PROCEDURES: 'PROCEDURES',
+  PHARMACY: 'PHARMACY'
 };
 
 export const UI_MODULE_LABELS = {
@@ -126,7 +127,8 @@ export const UI_MODULE_LABELS = {
   REPORTS: 'Reports & Analytics',
   CANCELLATION_REQUESTS: 'Cancellation Requests',
   EMAIL_TEMPLATES: 'Email Notifications',
-  PROCEDURES: 'Procedures'
+  PROCEDURES: 'Procedures',
+  PHARMACY: 'Pharmacy Management'
 };
 
 // Plan Feature → UI Modules Mapping

@@ -76,6 +76,12 @@ import ItemsPage from "./Inventory/ItemsPage";
 import CategoriesPage from "./Inventory/CategoriesPage";
 import TransactionsPage from "./Inventory/TransactionsPage";
 
+// Pharmacy Management
+import PharmacyLayout from "./Pharmacy/PharmacyLayout";
+import PharmacyQueue from "./Pharmacy/PharmacyQueue";
+import OrderDetail from "./Pharmacy/OrderDetail";
+import PharmacyStats from "./Pharmacy/PharmacyStats";
+
 // Permissions Context
 import { PermissionsProvider } from "./contexts/PermissionsContext";
 
@@ -235,6 +241,14 @@ function HospitalApp() {
                   <Route path="items" element={<ItemsPage />} />
                   <Route path="categories" element={<CategoriesPage />} />
                   <Route path="transactions" element={<TransactionsPage />} />
+                </Route>
+
+                {/* Pharmacy Management Routes */}
+                <Route path="/pharmacy" element={<PharmacyLayout />}>
+                  <Route index element={<PharmacyQueue />} />
+                  <Route path="queue" element={<PharmacyQueue />} />
+                  <Route path="orders/:orderId" element={<OrderDetail />} />
+                  <Route path="stats" element={<PharmacyStats />} />
                 </Route>
 
                 {/* Doctor view routes */}

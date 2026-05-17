@@ -709,6 +709,24 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                                                 <p className="text-xs text-gray-500">WHO/IAP percentile tracking for height and weight.</p>
                                             </div>
                                         </div>
+                                        <div className="flex items-center space-x-2 p-3 border rounded-xl bg-white">
+                                            <Checkbox 
+                                                id="mod-pharmacy" 
+                                                checked={(settings.enabled_modules || []).includes('PHARMACY')}
+                                                onCheckedChange={(checked) => {
+                                                    const modules = settings.enabled_modules || [];
+                                                    if (checked) {
+                                                        setSettings({...settings, enabled_modules: [...modules, 'PHARMACY']});
+                                                    } else {
+                                                        setSettings({...settings, enabled_modules: modules.filter(m => m !== 'PHARMACY')});
+                                                    }
+                                                }}
+                                            />
+                                            <div className="grid gap-1.5 leading-none">
+                                                <Label htmlFor="mod-pharmacy" className="text-sm font-semibold">In-House Pharmacy</Label>
+                                                <p className="text-xs text-gray-500">Prescription verification, billing generation and medicine dispensing.</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
