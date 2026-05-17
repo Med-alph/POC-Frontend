@@ -83,7 +83,7 @@ const DoctorConsultation = () => {
     });
 
     const [prescriptions, setPrescriptions] = useState([
-        { medicine_name: "", dosage: "", frequency: "", duration: "" },
+        { medicine_name: "", dosage: "", frequency: "", duration: "", quantity: "" },
     ]);
 
     const [labOrders, setLabOrders] = useState([
@@ -391,6 +391,7 @@ const DoctorConsultation = () => {
                         dosage: p.dosage,
                         frequency: p.frequency,
                         duration: p.duration,
+                        quantity: p.quantity ? Number(p.quantity) : null,
                     })),
                 lab_orders: labOrders
                     .filter(l => l.test_name.trim() !== "")
@@ -660,7 +661,7 @@ const DoctorConsultation = () => {
     };
 
     const addPrescription = () =>
-        setPrescriptions([...prescriptions, { medicine_name: "", dosage: "", frequency: "", duration: "" }]);
+        setPrescriptions([...prescriptions, { medicine_name: "", dosage: "", frequency: "", duration: "", quantity: "" }]);
 
     const addLabOrder = () =>
         setLabOrders([...labOrders, { test_name: "", instructions: "" }]);
@@ -1292,7 +1293,7 @@ const DoctorConsultation = () => {
                 )}
 
                 {prescriptions.map((pres, index) => (
-                    <div key={index} className="grid md:grid-cols-4 gap-3 mb-3">
+                    <div key={index} className="grid md:grid-cols-5 gap-3 mb-3">
                         <MedicationAutocomplete
                             placeholder="Search medications..."
                             value={pres.medicine_name}
@@ -1337,6 +1338,19 @@ const DoctorConsultation = () => {
                             onChange={(e) => {
                                 const updated = [...prescriptions];
                                 updated[index].duration = e.target.value;
+                                setPrescriptions(updated);
+                            }}
+                            disabled={!isConsultationStarted || isCompleted}
+                        />
+                        <input
+                            type="number"
+                            min="1"
+                            placeholder="Qty"
+                            className="border p-2 rounded-md text-sm"
+                            value={pres.quantity || ""}
+                            onChange={(e) => {
+                                const updated = [...prescriptions];
+                                updated[index].quantity = e.target.value;
                                 setPrescriptions(updated);
                             }}
                             disabled={!isConsultationStarted || isCompleted}

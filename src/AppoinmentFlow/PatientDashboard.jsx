@@ -1785,6 +1785,11 @@ export default function PatientDashboard() {
                                   <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-xs font-semibold">
                                     {med.duration}
                                   </span>
+                                  {med.quantity && (
+                                    <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-semibold">
+                                      Qty: {med.quantity}
+                                    </span>
+                                  )}
                                 </div>
                                 {med.instructions && (
                                   <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">

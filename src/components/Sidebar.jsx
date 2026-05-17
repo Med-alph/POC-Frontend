@@ -5,7 +5,7 @@ import {
   Home, Users, Stethoscope, Calendar, Clock, 
   Package, Sparkles, MessageSquare, Shield, Mail, 
   Banknote, FileText, Clipboard, X, ChevronRight,
-  LayoutDashboard, Bell, AlertCircle, TrendingUp, Image, Syringe
+  LayoutDashboard, Bell, AlertCircle, TrendingUp, Image, Syringe, Pill
 } from "lucide-react";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
@@ -18,6 +18,7 @@ const navigationItems = [
   { id: "doctors", label: "Doctors", path: "/doctors", icon: Stethoscope, requiredModule: UI_MODULES.DOCTORS },
   { id: "appointments", label: "Appointments", path: "/appointments", icon: Calendar, requiredModule: UI_MODULES.APPOINTMENTS },
   { id: "inventory", label: "Inventory", path: "/inventory", icon: Package, requiredModule: UI_MODULES.INVENTORY, subscriptionModule: "INVENTORY" },
+  { id: "pharmacy", label: "Pharmacy", path: "/pharmacy", icon: Pill, requiredModule: UI_MODULES.PHARMACY },
   { id: "leave-management", label: "Leave Management", path: "/leave-management", icon: Calendar, requiredModule: UI_MODULES.LEAVE_MANAGEMENT },
   { id: "attendance-management", label: "Attendance Management", path: "/admin/attendance", icon: Clock, requiredModule: UI_MODULES.ATTENDANCE },
   { id: "reminders", label: "Reminders", path: "/reminders", icon: Clock, requiredModule: UI_MODULES.REMINDERS },
@@ -114,7 +115,18 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     }
 
     // 4. RBAC (requiredModule)
-    if (item.requiredModule && !hasModule(item.requiredModule)) return false;
+    if (item.requiredModule && !hasModule(item.requiredModule)) {
+      if (item.id === 'pharmacy' && isAdminRole) {
+        // Special exception: Allow admin/hospital admin to access pharmacy if enabled in settings
+      } else {
+        return false;
+      }
+    }
+
+    // 4.5 Hospital Settings Gating for Pharmacy
+    if (item.id === 'pharmacy' && !hospitalInfo?.enabled_modules?.includes('PHARMACY')) {
+      return false;
+    }
 
     // 5. Specialty Check
     if (item.specialty) {

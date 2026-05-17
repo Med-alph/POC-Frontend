@@ -263,7 +263,7 @@ export default function Appointments() {
   }
 
   const renderPaymentBadge = (orders = []) => {
-    const isPaid = orders.some(o => o.status?.toLowerCase() === 'paid');
+    const isPaid = orders.some(o => o.status?.toLowerCase() === 'paid' && o.metadata?.source !== 'pharmacy');
     return isPaid ? (
       <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px]">Paid</Badge>
     ) : (
@@ -450,9 +450,9 @@ export default function Appointments() {
       const dataToExport = allAppts.map(a => {
         // Payment logic
         const orders = a.orders || [];
-        const isPaid = orders.some(o => o.status?.toLowerCase() === 'paid');
-        const totalAmount = orders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0);
-        const totalPaid = orders.filter(o => o.status?.toLowerCase() === 'paid')
+        const isPaid = orders.some(o => o.status?.toLowerCase() === 'paid' && o.metadata?.source !== 'pharmacy');
+        const totalAmount = orders.filter(o => o.metadata?.source !== 'pharmacy').reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0);
+        const totalPaid = orders.filter(o => o.status?.toLowerCase() === 'paid' && o.metadata?.source !== 'pharmacy')
                                .reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0);
 
         return {
