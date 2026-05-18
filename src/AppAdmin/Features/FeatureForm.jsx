@@ -99,8 +99,8 @@ const FeatureForm = ({ feature, onSave, onCancel }) => {
   };
 
   const predefinedFeatures = [
-    { key: 'patients_limit', name: 'Patient Records Limit', type: 'limit', category: 'core' },
-    { key: 'appointments_limit', name: 'Appointments Limit', type: 'limit', category: 'core' },
+    { key: 'patient_records', name: 'Patient Records', type: 'boolean', category: 'core' },
+    { key: 'appointments', name: 'Appointments', type: 'boolean', category: 'core' },
     { key: 'staff_limit', name: 'Staff Members Limit', type: 'limit', category: 'core' },
     { key: 'video_calls', name: 'Video Consultations', type: 'boolean', category: 'premium' },
     { key: 'ai_analysis', name: 'AI Medical Analysis', type: 'boolean', category: 'enterprise' },
