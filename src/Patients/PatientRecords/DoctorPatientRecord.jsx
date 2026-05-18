@@ -290,10 +290,35 @@ const DoctorPatientRecord = () => {
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
-    const formatTime = (dateString) => {
-        if (!dateString) return "N/A";
-        const date = new Date(dateString);
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const formatTime = (timeString) => {
+        if (!timeString) return "N/A";
+        try {
+            // Check if it's already a full date string
+            if (timeString.includes('T') || timeString.includes(' ')) {
+                const date = new Date(timeString);
+                if (!isNaN(date.getTime())) {
+                    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+            
+            // Assume it's a HH:MM or HH:MM:SS string
+            const parts = timeString.split(':');
+            if (parts.length >= 2) {
+                const date = new Date();
+                date.setHours(parseInt(parts[0], 10));
+                date.setMinutes(parseInt(parts[1], 10));
+                return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            }
+            
+            // Fallback
+            const date = new Date(timeString);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            }
+            return timeString;
+        } catch (e) {
+            return timeString;
+        }
     };
 
     const downloadAllSOAPNotes = () => {
