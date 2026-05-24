@@ -11,7 +11,7 @@
  * consistent session management across all API calls.
  */
 
-import { getSecureItem, SECURE_KEYS } from '../utils/secureStorage';
+import { getSecureItem, SECURE_KEYS, setSecureItem, clearSecureStorage } from '../utils/secureStorage';
 import { isPlatformAppAdmin } from '../utils/subdomain';
 
 // Global reference to auth context logout handler
@@ -34,6 +34,21 @@ if (typeof window !== 'undefined' && !window.__fetchIntercepted) {
   window.__fetchIntercepted = true;
 }
 
+// Variables for managing the silent token refresh queue
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 /**
  * Enhanced fetch with session management
  * 
@@ -41,8 +56,9 @@ if (typeof window !== 'undefined' && !window.__fetchIntercepted) {
  * 1. Attach JWT + session_id to request headers
  * 2. Make request
  * 3. Check response status
- * 4. Handle 401/session-invalid responses
- * 5. Return response or throw error
+ * 4. Handle 401 with ACCESS_TOKEN_EXPIRED (silent token refresh)
+ * 5. Handle other 401s (revoked, idle, absolute timeouts) with session invalidation
+ * 6. Return response or throw error
  */
 if (typeof window !== 'undefined' && originalFetch) {
   window.fetch = async function (url, options = {}) {
@@ -95,46 +111,134 @@ if (typeof window !== 'undefined' && originalFetch) {
 
     try {
       // Make the request
-      const response = await originalFetch(url, config);
+      let response = await originalFetch(url, config);
 
       // Handle session-related errors
       if (response.status === 401) {
         const errorData = await response.clone().json().catch(() => ({}));
 
-        // Check if it's a session-specific error
+        // Determine reason code returned from backend
+        // Backend returns { reason, message } — check both `reason` and `code` for compatibility
+        const errorCode = errorData.reason || errorData.code || errorData.message || '';
+
+        const isAccessTokenExpired =
+          errorCode === 'ACCESS_TOKEN_EXPIRED' ||
+          errorCode.toLowerCase().includes('expired') ||
+          errorCode.toLowerCase().includes('access token');
+
+        const isAuthEndpoint = typeof url === 'string' && (
+          url.includes('/auth/refresh') ||
+          url.includes('/auth/staff/login') ||
+          url.includes('/auth/admin/login') ||
+          url.includes('/auth/logout')
+        );
+
+        // 1. Silent Refresh Intercept for Expired Access Tokens
+        if (isAccessTokenExpired && !isAuthEndpoint) {
+          if (isRefreshing) {
+            // Queue this request while refresh is in progress
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            })
+              .then((newToken) => {
+                config.headers.Authorization = `Bearer ${newToken}`;
+                return originalFetch(url, config);
+              })
+              .catch((err) => Promise.reject(err));
+          }
+
+          isRefreshing = true;
+
+          return new Promise((resolve, reject) => {
+            // Trigger refresh endpoint via originalFetch directly to avoid loops
+            // Include session ID so backend can validate the refresh request
+            const refreshSessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
+            const refreshHeaders = { 'Content-Type': 'application/json' };
+            if (refreshSessionId) {
+              refreshHeaders['X-Session-Id'] = refreshSessionId;
+            }
+            originalFetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: refreshHeaders,
+              credentials: 'include',
+            })
+              .then(async (refreshResponse) => {
+                if (!refreshResponse.ok) {
+                  const refreshErrorData = await refreshResponse.json().catch(() => ({}));
+                  const refreshReason = refreshErrorData.reason || refreshErrorData.code || 'SESSION_REVOKED';
+                  throw new Error(refreshReason);
+                }
+                const data = await refreshResponse.json();
+                const newToken = data.access_token;
+
+                // Save new access token in secure RAM memory
+                setSecureItem(SECURE_KEYS.JWT_TOKEN, newToken);
+
+                // Update original request auth header
+                config.headers.Authorization = `Bearer ${newToken}`;
+
+                // Process queued requests
+                processQueue(null, newToken);
+
+                // Replay the current original request
+                resolve(originalFetch(url, config));
+              })
+              .catch((err) => {
+                processQueue(err, null);
+
+                // Clear memory storage on refresh failure
+                clearSecureStorage();
+
+                const reason = err.message && err.message !== 'REFRESH_FAILED'
+                  ? err.message
+                  : (errorData.reason || errorData.code || 'SESSION_REVOKED');
+
+                if (sessionInvalidationHandler) {
+                  sessionInvalidationHandler(reason);
+                }
+                reject(new Error(reason));
+              })
+              .finally(() => {
+                isRefreshing = false;
+              });
+          });
+        }
+
+        // 2. Global Session Invalidation for Other 401s (Idle, Absolute Timeout, Revoked)
+        // Check both `reason` and `code` fields for compatibility
+        const reasonCode = errorData.reason || errorData.code || '';
         const isSessionError =
-          errorData.code === 'SESSION_INVALID' ||
-          errorData.code === 'SESSION_EXPIRED' ||
-          errorData.code === 'SESSION_REVOKED' ||
-          errorData.message?.toLowerCase().includes('session') ||
+          reasonCode === 'SESSION_INVALID' ||
+          reasonCode === 'SESSION_EXPIRED' ||
+          reasonCode === 'SESSION_REVOKED' ||
+          reasonCode === 'IDLE_TIMEOUT' ||
+          reasonCode === 'ABSOLUTE_TIMEOUT' ||
+          reasonCode === 'TOKEN_REUSE_DETECTED' ||
+          errorCode.toLowerCase().includes('session') ||
           response.headers.get('X-Session-Status') === 'invalid';
 
-        if (isSessionError && sessionInvalidationHandler) {
-          // SOC 2: Skip global logout trigger for the initial handshake itself
-          // if /auth/me fails, we handle it in AuthContext/authSlice without a redirect loop
-          // ALSO SKIP if we're on a SuperAdmin subdomain (don't nuke the admin session from here)
+        if (isSessionError && sessionInvalidationHandler && !isAuthEndpoint) {
           const isHandshake = url.includes('/auth/me');
           if (isHandshake || isPlatformAppAdmin()) {
             return Promise.reject(new Error('Session validation failed'));
           }
 
-          const reason = errorData.message || 'Your session has expired or been revoked';
+          const reason = errorData.code || 'SESSION_REVOKED';
           sessionInvalidationHandler(reason);
 
           // Return a rejected promise to prevent further processing
           return Promise.reject(new Error(reason));
         }
 
-        // Regular 401 (invalid token, etc.)
-        if (sessionInvalidationHandler && !isPlatformAppAdmin()) {
-          sessionInvalidationHandler('Authentication failed. Please login again.');
+        // Regular 401 fallback — only trigger if no refresh is in progress
+        if (!isRefreshing && sessionInvalidationHandler && !isPlatformAppAdmin() && !isAuthEndpoint) {
+          sessionInvalidationHandler('SESSION_REVOKED');
           return Promise.reject(new Error('Authentication failed'));
         }
       }
 
       // Handle other error statuses
       if (!response.ok && response.status >= 400) {
-        // Log error for debugging (in development)
         if (process.env.NODE_ENV === 'development') {
           console.error(`[API Interceptor] Request failed: ${url}`, {
             status: response.status,
@@ -145,7 +249,6 @@ if (typeof window !== 'undefined' && originalFetch) {
 
       return response;
     } catch (error) {
-      // Network errors, etc.
       console.error('[API Interceptor] Request error:', error);
       throw error;
     }
