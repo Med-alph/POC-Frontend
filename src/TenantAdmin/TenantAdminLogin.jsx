@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { setCredentials } from "../features/auth/authSlice"
 import { Input } from "@/components/ui/input"
@@ -31,6 +31,16 @@ export default function TenantAdminLogin() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { addToast: toast } = useToast()
+  const location = useLocation()
+
+  const reason = new URLSearchParams(location.search).get('reason')
+  const REASON_MESSAGES = {
+    IDLE_TIMEOUT:         { text: '⏰ Logged out due to inactivity. Please sign in again.', color: 'bg-amber-50 border-amber-200 text-amber-800' },
+    SESSION_REVOKED:      { text: '🔒 Your session was securely closed. Please sign in again.', color: 'bg-blue-50 border-blue-200 text-blue-800' },
+    ACCESS_TOKEN_EXPIRED: { text: '⏳ Your session expired. Please sign in again.', color: 'bg-amber-50 border-amber-200 text-amber-800' },
+    TOKEN_REUSE_DETECTED: { text: '🚨 Security alert: suspicious activity detected. All sessions terminated.', color: 'bg-red-50 border-red-200 text-red-800' },
+  }
+  const reasonInfo = reason ? REASON_MESSAGES[reason] : null
 
   // Store temporary tokens/information from initial login needed for reset api
   const [resetToken, setResetToken] = useState(null)
@@ -175,6 +185,12 @@ export default function TenantAdminLogin() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Session expiry reason banner */}
+          {reasonInfo && (
+            <div className={`flex items-start gap-3 p-3 rounded-xl border text-sm ${reasonInfo.color}`}>
+              <p>{reasonInfo.text}</p>
+            </div>
+          )}
           {!resetMode ? (
             <>
               {/* Email Input */}

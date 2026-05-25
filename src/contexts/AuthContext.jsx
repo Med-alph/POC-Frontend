@@ -27,6 +27,7 @@ import { sessionAPI } from '../api/sessionapi';
 import { setSessionInvalidationHandler } from '../services/apiInterceptor';
 
 const AuthContext = createContext(null);
+export default AuthContext;
 
 /**
  * Decode JWT token to extract payload
@@ -131,18 +132,22 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async (redirectToLogin = true, reason = 'SESSION_REVOKED') => {
     try {
       setIsLoggingOut(true);
-      // Synchronize logout across other open tabs
-      broadcastLogout(reason);
 
-      // ✅ CRITICAL: Await the backend logout call with a timeout.
+      // ✅ CRITICAL: Call backend logout FIRST before broadcasting.
       // The backend clears httpOnly cookies (access_token, refresh_token) via Set-Cookie response headers.
       // httpOnly cookies CANNOT be deleted from JS — the server response is the ONLY way to remove them.
+      // We must await this before redirecting, otherwise the page unloads before the response arrives.
       const logoutTimeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Logout API timeout')), 5000)
       );
       await Promise.race([authAPI.logout(), logoutTimeout]).catch(err => {
         console.warn('[AuthContext] API logout call failed/timed-out, proceeding with local cleanup:', err.message);
       });
+
+      // Broadcast to other tabs AFTER the API call completes (or times out).
+      // This prevents the storage event from triggering a redirect in this tab
+      // before the logout API has had a chance to clear the HttpOnly cookies.
+      broadcastLogout(reason);
 
     } catch (error) {
       console.error('[AuthContext] Logout logic error:', error);

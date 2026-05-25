@@ -13,14 +13,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "../contexts/AuthContext";
+import { useDispatch } from "react-redux";
+import { clearCredentials } from "../features/auth/authSlice";
+import { clearAuthData } from "../utils/auth";
+import { clearSecureStorage } from "../utils/secureStorage";
+import tenantsuperadminapi from "../api/tenantsuperadminapi";
 
 export default function TenantAdminNavbar({ onMenuClick, tenantInfo }) {
   const user = useSelector((state) => state.auth.user);
-  const { logout } = useAuth();
+  const dispatch = useDispatch();
 
   const handleLogout = async () => {
-    await logout(true);
+    try {
+      // Call the correct tenant-admin logout endpoint (clears HttpOnly cookies server-side)
+      const logoutTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Logout timeout')), 5000)
+      );
+      await Promise.race([tenantsuperadminapi.logout(), logoutTimeout]).catch(err => {
+        console.warn('[TenantAdminNavbar] Logout API failed/timed-out, proceeding with local cleanup:', err.message);
+      });
+    } finally {
+      // Clear all local state regardless of API result
+      clearAuthData();
+      clearSecureStorage();
+      dispatch(clearCredentials());
+      window.location.href = '/login';
+    }
   };
 
   return (

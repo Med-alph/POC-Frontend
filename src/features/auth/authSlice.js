@@ -95,9 +95,14 @@ export const checkAuth = createAsyncThunk(
 
       const data = await response.json()
 
-      // Side effects belong in the thunk, not the reducer
+      // Restore access token to secure RAM on page refresh
       if (data.access_token) {
         setSecureItem(SECURE_KEYS.JWT_TOKEN, data.access_token)
+      }
+
+      // Restore session_id to secure RAM on page refresh (if backend returns it)
+      if (data.session_id) {
+        setSecureItem(SECURE_KEYS.SESSION_ID, data.session_id)
       }
 
       return data
@@ -118,13 +123,12 @@ const authSlice = createSlice({
       state.isAuthenticated = true
       state.error = null
 
-      // Use unified auth utility for persistence (cookie + memory + localStorage)
+      // Use unified auth utility for persistence (RAM + localStorage intent flag only)
       setAuthData(access_token, user)
 
-      // Sync specific pieces needed by other parts of the app
+      // Sync session_id to secure RAM only — never localStorage
       if (action.payload.session_id) {
         setSecureItem(SECURE_KEYS.SESSION_ID, action.payload.session_id)
-        localStorage.setItem('session_id', action.payload.session_id)
       }
 
       // Extract tenant/hospital IDs from token and store securely
@@ -173,15 +177,12 @@ const authSlice = createSlice({
         state.isAuthenticated = true
         state.error = null
 
-        // Use unified auth utility for persistence
+        // Use unified auth utility for persistence (RAM + localStorage intent flag only)
         setAuthData(access_token, user)
 
-        // Save full response for context if needed
-        localStorage.setItem('loginResponse', JSON.stringify(action.payload))
-
+        // session_id stored in secure RAM only — never localStorage
         if (action.payload.session_id) {
           setSecureItem(SECURE_KEYS.SESSION_ID, action.payload.session_id)
-          localStorage.setItem('session_id', action.payload.session_id)
         }
 
         // Extract tenant/hospital IDs from token

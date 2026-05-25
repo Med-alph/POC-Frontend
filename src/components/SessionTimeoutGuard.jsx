@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect, useRef, useContext } from 'react';
+import AuthContext from '../contexts/AuthContext';
 import { ShieldAlert, LogOut, RefreshCw } from 'lucide-react';
-import { authAPI } from '../api/authapi';
+import { getSecureItem, setSecureItem, SECURE_KEYS } from '../utils/secureStorage';
+import { clearAuthData } from '../utils/auth';
+import { clearSecureStorage } from '../utils/secureStorage';
+import { isTenantAdmin, isPlatformAppAdmin, isTenantSuperAdminPortal } from '../utils/subdomain';
 
 // HIPAA Inactivity Constants (in milliseconds)
 const WARNING_TIMEOUT = 13 * 60 * 1000; // 13 minutes
@@ -10,8 +13,31 @@ const LOGOUT_TIMEOUT = 15 * 60 * 1000; // 15 minutes total (2 minutes warning)
 // // TEMP TESTING TIMEOUTS
 // const WARNING_TIMEOUT = 10 * 1000;  // 10 seconds of idle
 // const LOGOUT_TIMEOUT = 25 * 1000;   // 25 seconds total (15 seconds warning countdown)
+
+/**
+ * Detect which portal we're on so we call the right logout endpoint.
+ * Staff/Doctor  → /api/auth/logout
+ * Tenant Admin  → /api/tenant-admin/logout
+ * App Admin     → /api/app-admin/logout
+ */
+const getPortalLogoutEndpoint = () => {
+  if (isPlatformAppAdmin()) return '/api/app-admin/logout';
+  if (isTenantAdmin() || isTenantSuperAdminPortal()) return '/api/tenant-admin/logout';
+  return '/api/auth/logout';
+};
+
+const getPortalLoginPath = () => {
+  if (isPlatformAppAdmin()) return '/login';
+  if (isTenantAdmin() || isTenantSuperAdminPortal()) return '/login';
+  return '/';
+};
+
 export default function SessionTimeoutGuard() {
-  const { isAuthenticated, logout } = useAuth();
+  // Use context directly so this component is safe even when mounted outside AuthProvider
+  const authContext = useContext(AuthContext);
+  const isAuthenticated = authContext?.isAuthenticated ?? (localStorage.getItem('isAuthenticated') === 'true');
+  const contextLogout = authContext?.logout;
+
   const [showWarning, setShowWarning] = useState(false);
   const [countdown, setCountdown] = useState(120); // 2 minutes countdown
   
@@ -61,7 +87,7 @@ export default function SessionTimeoutGuard() {
             clearInterval(countdownIntervalRef.current);
             clearInterval(intervalRef.current);
             // Inactivity limit reached - force logout with IDLE_TIMEOUT code
-            logout(true, 'IDLE_TIMEOUT');
+            performLogout('IDLE_TIMEOUT');
             return 0;
           }
           return prev - 1;
@@ -74,30 +100,95 @@ export default function SessionTimeoutGuard() {
     return () => {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
-  }, [showWarning, logout]);
+  }, [showWarning]);
 
   const cleanupTimers = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
   };
 
+  /**
+   * Portal-aware logout.
+   * If AuthContext is available (staff/doctor portal), delegate to it so it
+   * handles Redux cleanup, BroadcastChannel, etc.
+   * Otherwise (tenant admin / app admin), call the correct endpoint directly.
+   */
+  const performLogout = async (reason = 'SESSION_REVOKED') => {
+    if (contextLogout) {
+      // Staff/Doctor portal — full AuthContext logout
+      contextLogout(true, reason);
+      return;
+    }
+
+    // Tenant Admin or App Admin — call the correct endpoint then clean up
+    try {
+      const logoutTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 5000)
+      );
+      await Promise.race([
+        fetch(getPortalLogoutEndpoint(), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        logoutTimeout,
+      ]).catch(() => {/* proceed even if API fails */});
+    } finally {
+      clearAuthData();
+      clearSecureStorage();
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('appAdminAuthenticated');
+      localStorage.removeItem('appAdminData');
+      sessionStorage.clear();
+      window.location.href = `${getPortalLoginPath()}?reason=${reason}`;
+    }
+  };
+
   // Explicit session extension (triggers API ping to rotate credentials & resets idle)
   const handleExtendSession = async () => {
     try {
-      // Trigger silent token refresh to keep session alive on backend
-      await authAPI.refreshToken();
+      // Call the portal-specific refresh endpoint.
+      // credentials: 'include' ensures the HttpOnly refresh_token cookie is sent.
+      // The interceptor will save the new access_token to RAM automatically.
+      const refreshEndpoint = isPlatformAppAdmin()
+        ? '/api/app-admin/refresh'
+        : (isTenantAdmin() || isTenantSuperAdminPortal())
+          ? '/api/tenant-admin/refresh'
+          : '/api/auth/refresh';
+
+      const sessionId = getSecureItem(SECURE_KEYS.SESSION_ID);
+      const headers = { 'Content-Type': 'application/json' };
+      if (sessionId) headers['X-Session-Id'] = sessionId;
+
+      const response = await fetch(refreshEndpoint, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Refresh failed');
+      }
+
+      const data = await response.json();
+
+      // Persist the new access token to secure RAM
+      if (data.access_token) {
+        setSecureItem(SECURE_KEYS.JWT_TOKEN, data.access_token);
+      }
+
       lastActivityRef.current = Date.now();
       setShowWarning(false);
     } catch (error) {
       console.error('[SessionTimeoutGuard] Failed to extend session:', error);
       // If refresh fails during extension, force logout
-      logout(true, 'SESSION_REVOKED');
+      performLogout('SESSION_REVOKED');
     }
   };
 
   // Force secure immediate logout
   const handleLogoutNow = () => {
-    logout(true, 'SESSION_REVOKED');
+    performLogout('SESSION_REVOKED');
   };
 
   if (!showWarning) return null;

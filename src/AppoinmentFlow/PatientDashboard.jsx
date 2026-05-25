@@ -20,6 +20,7 @@ import {
 import { getUserData } from "@/utils/auth";
 import PatientNavbar from "./PatientNavbar";
 import PatientSidebar from "./PatientSidebar";
+import PatientSessionGuard from "../components/PatientSessionGuard";
 import NewAppointmentFlow from "./NewAppointmentFlow";
 import appointmentsAPI from "@/api/appointmentsapi";
 import { patientsAPI } from "@/api/patientsapi";
@@ -799,20 +800,17 @@ export default function PatientDashboard() {
     setLoadingAppointments(true);
     try {
       const offset = (currentPage - 1) * PAGE_SIZE;
-      // Use generic getAll but remove hospital_id to show all appointments across hospitals for this patient
-      const result = await appointmentsAPI.getAll({
-        patient_id: patient.id,
-        limit: PAGE_SIZE, 
-        offset: offset,
-        orderBy: 'appointment_date',
-        sort: 'DESC',
+      // Use the patient-scoped endpoint — avoids 403 from the staff appointments endpoint
+      const result = await patientsAPI.getMyAppointments({
+        limit: PAGE_SIZE,
+        offset,
         fromDate: '1000-01-01',
-        toDate: '9999-12-31'
+        toDate: '9999-12-31',
       });
-      
+
       const appointmentsData = result.data || (Array.isArray(result) ? result : []);
       const total = result.total || appointmentsData.length;
-      
+
       setAppointments(appointmentsData);
       setTotalCount(total);
     } catch (error) {
@@ -2657,6 +2655,9 @@ export default function PatientDashboard() {
 
   return (
     <div className="min-h-svh flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden">
+      {/* Patient idle timeout guard — redirects to /landing after 30 min inactivity */}
+      <PatientSessionGuard />
+
       {/* Toast Notifications */}
       <Toaster position="top-right" />
 

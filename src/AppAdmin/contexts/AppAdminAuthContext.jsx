@@ -97,21 +97,25 @@ export const AppAdminAuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = async (reason = 'SESSION_REVOKED') => {
     try {
       setIsLoggingOut(true);
       setLoading(true);
-      await appAdminAuthService.logout();
+
+      // Call backend logout FIRST — clears HttpOnly cookies server-side
+      const logoutTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Logout timeout')), 5000)
+      );
+      await Promise.race([appAdminAuthService.logout(), logoutTimeout]).catch(err => {
+        console.warn('[AppAdminAuth] Logout API failed/timed-out, proceeding with local cleanup:', err.message);
+      });
 
       setAdmin(null);
       setIsAuthenticated(false);
 
-      toast.success('Logged out successfully');
-      // Using window location here instead of react router just to bypass React unmounting flickers
-      window.location.href = '/login';
+      window.location.href = `/login?reason=${reason}`;
     } catch (error) {
       console.error('Logout error:', error);
-      toast.error('Logout failed');
       setIsLoggingOut(false);
     } finally {
       setLoading(false);

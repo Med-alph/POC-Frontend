@@ -30,9 +30,22 @@ export default defineConfig({
             // Also strip 'Secure' attribute from cookies for local development.
             const cookies = proxyRes.headers['set-cookie'];
             if (cookies) {
-              proxyRes.headers['set-cookie'] = cookies.map(cookie =>
-                cookie.replace(/Domain=[^;]+;?/, '').replace(/Secure;?/i, '')
-              );
+              proxyRes.headers['set-cookie'] = cookies.map(cookie => {
+                // Always strip Domain and Secure — localhost rejects both
+                let c = cookie
+                  .replace(/Domain=[^;]+;?\s*/i, '')
+                  .replace(/Secure;?\s*/i, '');
+
+                // Only downgrade SameSite=Strict → Lax on the access_token cookie.
+                // The refresh_token intentionally stays Strict even in local dev —
+                // it is never needed on cross-site navigations.
+                const isAccessTokenCookie = c.startsWith('access_token=');
+                if (isAccessTokenCookie) {
+                  c = c.replace(/SameSite=Strict;?\s*/i, 'SameSite=Lax; ');
+                }
+
+                return c;
+              });
             }
 
             if (req.url.includes('/auth/login') || req.url.includes('/auth/me')) {

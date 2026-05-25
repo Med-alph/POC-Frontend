@@ -174,6 +174,14 @@ if (typeof window !== 'undefined' && originalFetch) {
                 // Save new access token in secure RAM memory
                 setSecureItem(SECURE_KEYS.JWT_TOKEN, newToken);
 
+                // If backend rotates the refresh token and returns it in the body
+                // (some backends do this instead of/in addition to Set-Cookie),
+                // store it in RAM. The HttpOnly cookie rotation is handled automatically
+                // by the browser via Set-Cookie response headers — no JS needed for that.
+                if (data.refresh_token) {
+                  setSecureItem(SECURE_KEYS.REFRESH_TOKEN, data.refresh_token);
+                }
+
                 // Update original request auth header
                 config.headers.Authorization = `Bearer ${newToken}`;
 
@@ -223,7 +231,8 @@ if (typeof window !== 'undefined' && originalFetch) {
             return Promise.reject(new Error('Session validation failed'));
           }
 
-          const reason = errorData.code || 'SESSION_REVOKED';
+          // Prefer `reason` (new backend filter shape) then `code` (legacy shape)
+          const reason = errorData.reason || errorData.code || 'SESSION_REVOKED';
           sessionInvalidationHandler(reason);
 
           // Return a rejected promise to prevent further processing

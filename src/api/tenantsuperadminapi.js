@@ -52,6 +52,13 @@ export const tenantsuperadminapi = {
     })
   },
 
+  // Logout — clears HttpOnly cookies server-side
+  logout: async () => {
+    return apiRequest('/tenant-admin/logout', {
+      method: 'POST',
+    })
+  },
+
   // Password reset for tenant superadmin
   resetPassword: async (adminId, resetData, authToken) => {
     return apiRequest(`/tenant-admin/change-password`, {

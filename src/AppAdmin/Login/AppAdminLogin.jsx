@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppAdminAuth } from '../contexts/AppAdminAuthContext';
 
 const AppAdminLogin = () => {
@@ -12,6 +12,16 @@ const AppAdminLogin = () => {
 
   const { login, loading, isAuthenticated } = useAppAdminAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const reason = new URLSearchParams(location.search).get('reason');
+  const REASON_MESSAGES = {
+    IDLE_TIMEOUT:         { text: '⏰ Logged out due to inactivity. Please sign in again.', color: 'bg-amber-50 border-amber-200 text-amber-800' },
+    SESSION_REVOKED:      { text: '🔒 Your session was securely closed. Please sign in again.', color: 'bg-blue-50 border-blue-200 text-blue-800' },
+    ACCESS_TOKEN_EXPIRED: { text: '⏳ Your session expired. Please sign in again.', color: 'bg-amber-50 border-amber-200 text-amber-800' },
+    TOKEN_REUSE_DETECTED: { text: '🚨 Security alert: suspicious activity detected. All sessions terminated.', color: 'bg-red-50 border-red-200 text-red-800' },
+  };
+  const reasonInfo = reason ? REASON_MESSAGES[reason] : null;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -88,6 +98,12 @@ const AppAdminLogin = () => {
 
           {/* Form */}
           <div className="px-8 py-8">
+            {/* Session expiry reason banner */}
+            {reasonInfo && (
+              <div className={`mb-6 flex items-start gap-3 p-3 rounded-xl border text-sm ${reasonInfo.color}`}>
+                <p>{reasonInfo.text}</p>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Field */}
               <div>
