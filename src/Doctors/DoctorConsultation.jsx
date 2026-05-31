@@ -42,6 +42,8 @@ import MedicationAutocomplete from "../components/MedicationAutocomplete";
 import VoiceTranscription from "../components/VoiceTranscription";
 import proceduresAPI from "../api/proceduresapi";
 import ProcedureAutocomplete from "../components/ProcedureAutocomplete";
+import clinicalCodingAPI from "../api/clinicalcodingapi";
+import IcdAutocomplete from "../components/IcdAutocomplete";
 import { baseUrl } from "../constants/Constant";
 import { getAuthToken } from "../utils/auth";
 import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
@@ -95,8 +97,9 @@ const DoctorConsultation = () => {
     const [loadingRecentLabs, setLoadingRecentLabs] = useState(false);
 
     const [procedures, setProcedures] = useState([
-        { procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "" }
+        { procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "", cpt_code: null, cpt_code_description_snapshot: null, justified_by_icd_codes: [] }
     ]);
+    const [diagnoses, setDiagnoses] = useState([]);
 
     // AI SOAP generation state
     const [aiGenerationInProgress, setAiGenerationInProgress] = useState(false);
@@ -134,6 +137,32 @@ const DoctorConsultation = () => {
 
 
     const { hospitalInfo: hospitalProfile } = useHospital();
+
+    // Clinical coding flag — fetched from the dedicated lightweight endpoint.
+    // Falls back to hospitalProfile if the API hasn't responded yet.
+    const [isClinicalCodingEnabled, setIsClinicalCodingEnabled] = useState(
+        !!(hospitalProfile?.clinical_coding_enabled || hospitalProfile?.tenant?.clinical_coding_enabled)
+    );
+
+    useEffect(() => {
+        const fetchClinicalCodingFlag = async () => {
+            try {
+                const result = await clinicalCodingAPI.checkEnabled();
+                setIsClinicalCodingEnabled(result?.enabled === true);
+            } catch (err) {
+                // 403 means flag is off — treat as disabled, not an error
+                if (err?.message?.includes('403') || err?.message?.includes('Forbidden')) {
+                    setIsClinicalCodingEnabled(false);
+                } else {
+                    // On any other error, fall back to hospitalProfile value
+                    setIsClinicalCodingEnabled(
+                        !!(hospitalProfile?.clinical_coding_enabled || hospitalProfile?.tenant?.clinical_coding_enabled)
+                    );
+                }
+            }
+        };
+        fetchClinicalCodingFlag();
+    }, []);
 
     async function checkCancellationRequest() {
         try {
@@ -206,6 +235,7 @@ const DoctorConsultation = () => {
             prescriptions,
             labOrders,
             procedures,
+            diagnoses,
             isFollowUpRequired,
             followUpDate,
             followUpNote,
@@ -226,7 +256,7 @@ const DoctorConsultation = () => {
         }, 3000); // Save every 3 seconds
 
         return () => clearTimeout(timer);
-    }, [soapNotes, prescriptions, labOrders, procedures, isFollowUpRequired, followUpDate, followUpNote, followUpSlot, currentDietPlan]);
+    }, [soapNotes, prescriptions, labOrders, procedures, diagnoses, isFollowUpRequired, followUpDate, followUpNote, followUpSlot, currentDietPlan]);
 
     // Detect draft on start
     useEffect(() => {
@@ -261,6 +291,7 @@ const DoctorConsultation = () => {
             if (parsed.prescriptions) setPrescriptions(parsed.prescriptions);
             if (parsed.labOrders) setLabOrders(parsed.labOrders);
             if (parsed.procedures) setProcedures(parsed.procedures);
+            if (parsed.diagnoses) setDiagnoses(parsed.diagnoses);
             if (parsed.isFollowUpRequired !== undefined) setIsFollowUpRequired(parsed.isFollowUpRequired);
             if (parsed.followUpDate) setFollowUpDate(parsed.followUpDate);
             if (parsed.followUpNote) setFollowUpNote(parsed.followUpNote);
@@ -271,7 +302,6 @@ const DoctorConsultation = () => {
             setShowDraftBanner(false);
         }
     };
-
 
     useEffect(() => {
         let interval;
@@ -384,6 +414,11 @@ const DoctorConsultation = () => {
                 plan: soapNotes.plan || null,
                 consultation_start_time: consultationStartTime.toISOString(),
                 consultation_end_time: endTime.toISOString(),
+                diagnoses: isClinicalCodingEnabled ? diagnoses.map((d, index) => ({
+                    icd_code: d.icd_code || d.code,
+                    icd_code_description_snapshot: d.icd_code_description_snapshot || d.description,
+                    sequence: Number(d.sequence) || (index + 1)
+                })) : [],
                 prescriptions: prescriptions
                     .filter(p => p.medicine_name.trim() !== "")
                     .map(p => ({
@@ -405,6 +440,9 @@ const DoctorConsultation = () => {
                         procedure_id: p.procedure_id,
                         actual_price_charged: Number(p.price) || 0,
                         doctor_notes: p.clinical_notes || null,
+                        cpt_code: isClinicalCodingEnabled ? (p.cpt_code || null) : null,
+                        cpt_code_description_snapshot: isClinicalCodingEnabled ? (p.cpt_code_description_snapshot || null) : null,
+                        justified_by_icd_codes: isClinicalCodingEnabled ? (p.justified_by_icd_codes || []) : []
                     })),
                 is_follow_up_required: isFollowUpRequired,
                 follow_up: isFollowUpRequired ? {
@@ -689,8 +727,80 @@ const DoctorConsultation = () => {
         fetchRecentLabs();
     }, [appointmentData?.patient_id, isConsultationStarted]);
 
+    const handleAddDiagnosis = (icdCodeObj) => {
+        const targetCode = icdCodeObj.code || icdCodeObj.icd_code;
+        const targetDesc = icdCodeObj.description || icdCodeObj.icd_code_description_snapshot;
+        
+        // Prevent duplicate diagnoses
+        const exists = diagnoses.some(d => (d.icd_code || d.code) === targetCode);
+        if (exists) {
+            toast.error("Diagnosis is already added to this encounter.");
+            return;
+        }
+
+        const newDiagnosis = {
+            icd_code: targetCode,
+            icd_code_description_snapshot: targetDesc,
+            sequence: diagnoses.length === 0 ? 1 : 2 // 1 = Primary, 2+ = Secondary
+        };
+
+        const updatedDiagnoses = [...diagnoses, newDiagnosis];
+        setDiagnoses(updatedDiagnoses);
+        toast.success(`Diagnosis added: ${targetCode}`);
+
+        // Smart Update: If we have procedures that are not justified, auto-justify them with this primary diagnosis!
+        if (updatedDiagnoses.length === 1) {
+            const updatedProcs = procedures.map(proc => {
+                if (proc.procedure_id && (!proc.justified_by_icd_codes || proc.justified_by_icd_codes.length === 0)) {
+                    return {
+                        ...proc,
+                        justified_by_icd_codes: [targetCode]
+                    };
+                }
+                return proc;
+            });
+            setProcedures(updatedProcs);
+        }
+    };
+
+    const handleRemoveDiagnosis = (code) => {
+        const updated = diagnoses.filter(d => (d.icd_code || d.code) !== code);
+        // Re-calculate sequences to ensure there is always a sequence 1 (Primary) diagnosis if list is not empty
+        const resequenced = updated.map((d, index) => ({
+            ...d,
+            sequence: index === 0 ? 1 : 2
+        }));
+        setDiagnoses(resequenced);
+        
+        // Also remove this diagnosis justification from any procedures that linked it!
+        const updatedProcedures = procedures.map(proc => ({
+            ...proc,
+            justified_by_icd_codes: (proc.justified_by_icd_codes || []).filter(c => c !== code)
+        }));
+        setProcedures(updatedProcedures);
+        
+        toast.success("Diagnosis removed");
+    };
+
+    const handleTogglePriority = (code) => {
+        // Find the one to make primary (sequence 1)
+        const updated = diagnoses.map(d => {
+            const isMatch = (d.icd_code || d.code) === code;
+            return {
+                ...d,
+                sequence: isMatch ? 1 : 2
+            };
+        });
+        
+        // Ensure only one is sequence 1 (Primary), others sequence 2 (Secondary)
+        // Sort it so Primary is always rendered first!
+        const sorted = updated.sort((a, b) => a.sequence - b.sequence);
+        setDiagnoses(sorted);
+        toast.success("Primary diagnosis updated");
+    };
+
     const addProcedure = () =>
-        setProcedures([...procedures, { procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "" }]);
+        setProcedures([...procedures, { procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "", cpt_code: null, cpt_code_description_snapshot: null, justified_by_icd_codes: [] }]);
 
     const handleProcedureSelect = (index, procedure) => {
         const updated = [...procedures];
@@ -698,13 +808,18 @@ const DoctorConsultation = () => {
         updated[index].procedure_name = procedure.name;
         updated[index].price = Number(procedure.price) || 0;
         updated[index].category = procedure.category;
+        updated[index].cpt_code = procedure.cpt_code || null;
+        updated[index].cpt_code_description_snapshot = procedure.cpt_code_description_snapshot || (procedure.cpt_code ? procedure.name : null);
+        // Smart Default: If we have at least one diagnosis, auto-justify with the primary one!
+        const primaryDiag = diagnoses.find(d => d.sequence === 1) || diagnoses[0];
+        updated[index].justified_by_icd_codes = primaryDiag ? [primaryDiag.icd_code || primaryDiag.code] : [];
         setProcedures(updated);
         toast.success(`Procedure selected: ${procedure.name}`);
     };
 
     const removeProcedure = (index) => {
         const updated = procedures.filter((_, i) => i !== index);
-        setProcedures(updated.length ? updated : [{ procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "" }]);
+        setProcedures(updated.length ? updated : [{ procedure_id: null, procedure_name: "", price: 0, clinical_notes: "", category: "", cpt_code: null, cpt_code_description_snapshot: null, justified_by_icd_codes: [] }]);
     };
 
     const handleMedicationSelect = (index, medication) => {
@@ -1145,6 +1260,100 @@ const DoctorConsultation = () => {
                         </div>
                     ))}
                 </div>
+
+                {/* Standardized ICD-10 Coding Panel */}
+                {isClinicalCodingEnabled && (
+                    <div className="mt-6 border-t pt-5 border-gray-100">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                                    <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                                    Standardized Encounter Diagnoses (ICD-10-CM)
+                                </h3>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    Search and link standard medical codes. The first added diagnosis defaults to Primary.
+                                </p>
+                            </div>
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-1 rounded-full border border-emerald-100 w-fit self-start sm:self-center">
+                                FEATURE ACTIVE
+                            </span>
+                        </div>
+
+                        <div className="max-w-2xl">
+                            <IcdAutocomplete
+                                onSelect={handleAddDiagnosis}
+                                disabled={!isConsultationStarted || isCompleted}
+                                placeholder="Search diagnoses by name or code (e.g. 'Diabetes', 'E11.9')..."
+                            />
+                        </div>
+
+                        {diagnoses.length > 0 ? (
+                            <div className="mt-4 border rounded-xl overflow-hidden bg-gray-50/50 border-gray-100">
+                                <table className="min-w-full divide-y divide-gray-100 text-left">
+                                    <thead className="bg-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                                        <tr>
+                                            <th className="px-4 py-2">Code</th>
+                                            <th className="px-4 py-2">Description Snapshot</th>
+                                            <th className="px-4 py-2">Priority Selection</th>
+                                            <th className="px-4 py-2 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 text-sm bg-white">
+                                        {diagnoses.map((diag, index) => {
+                                            const code = diag.icd_code || diag.code;
+                                            const desc = diag.icd_code_description_snapshot || diag.description;
+                                            const isPrimary = diag.sequence === 1;
+
+                                            return (
+                                                <tr key={code} className="hover:bg-gray-50/50 transition-colors">
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-xs border border-blue-100">
+                                                            {code}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 font-medium text-gray-700">
+                                                        {desc}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        {isPrimary ? (
+                                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
+                                                                <Check className="h-3 w-3" /> Primary Diagnosis
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleTogglePriority(code)}
+                                                                disabled={!isConsultationStarted || isCompleted || isReadOnly}
+                                                                className="text-xs text-gray-500 hover:text-blue-600 font-semibold transition-colors bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 px-2 py-1 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                Make Primary
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                                                        <ReadOnlyTooltip>
+                                                            <button
+                                                                onClick={() => handleRemoveDiagnosis(code)}
+                                                                disabled={!isConsultationStarted || isCompleted || isReadOnly}
+                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                title="Remove Diagnosis"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </ReadOnlyTooltip>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <p className="text-xs text-gray-400 italic mt-3">
+                                No standardized diagnoses added to this encounter yet. Standardize diagnosis via autocomplete above.
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Image Upload Section */}
@@ -1489,73 +1698,137 @@ const DoctorConsultation = () => {
                 </h2>
 
                 {procedures.map((proc, index) => (
-                    <div key={index} className="grid md:grid-cols-12 gap-3 mb-3 items-start border-b pb-3 border-gray-100 last:border-0">
-                        <div className="md:col-span-4">
-                            <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Procedure Name</label>
-                            <ProcedureAutocomplete
-                                hospitalId={appointmentData?.hospital_id}
-                                value={proc.procedure_name}
-                                onSelect={(p) => handleProcedureSelect(index, p)}
-                                disabled={!isConsultationStarted || isCompleted}
-                                placeholder="Search or select procedure"
-                            />
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Category</label>
-                            <input
-                                type="text"
-                                className="border p-2 rounded-md text-sm w-full bg-gray-50 text-gray-500 italic"
-                                placeholder="Category"
-                                value={proc.category || ""}
-                                readOnly
-                                disabled
-                            />
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Charge (₹)</label>
-                            <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                    <div key={index} className="border-b pb-3 border-gray-100 last:border-b-0 last:pb-0 mb-4">
+                        <div className="grid md:grid-cols-12 gap-3 items-start">
+                            <div className="md:col-span-4">
+                                <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Procedure Name</label>
+                                <ProcedureAutocomplete
+                                    hospitalId={appointmentData?.hospital_id}
+                                    value={proc.procedure_name}
+                                    onSelect={(p) => handleProcedureSelect(index, p)}
+                                    disabled={!isConsultationStarted || isCompleted}
+                                    placeholder="Search or select procedure"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Category</label>
                                 <input
-                                    type="number"
-                                    className="border p-2 pl-6 rounded-md text-sm w-full"
-                                    placeholder="Price"
-                                    value={proc.price}
+                                    type="text"
+                                    className="border p-2 rounded-md text-sm w-full bg-gray-50 text-gray-500 italic"
+                                    placeholder="Category"
+                                    value={proc.category || ""}
+                                    readOnly
+                                    disabled
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Charge (₹)</label>
+                                <div className="relative">
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span>
+                                    <input
+                                        type="number"
+                                        className="border p-2 pl-6 rounded-md text-sm w-full"
+                                        placeholder="Price"
+                                        value={proc.price}
+                                        onChange={(e) => {
+                                            const updated = [...procedures];
+                                            updated[index].price = parseFloat(e.target.value) || 0;
+                                            setProcedures(updated);
+                                        }}
+                                        disabled={!isConsultationStarted || isCompleted}
+                                    />
+                                </div>
+                            </div>
+                            <div className="md:col-span-3">
+                                <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Notes</label>
+                                <input
+                                    type="text"
+                                    placeholder="Clinical Notes / Findings"
+                                    className="border p-2 rounded-md text-sm w-full"
+                                    value={proc.clinical_notes}
                                     onChange={(e) => {
                                         const updated = [...procedures];
-                                        updated[index].price = parseFloat(e.target.value) || 0;
+                                        updated[index].clinical_notes = e.target.value;
                                         setProcedures(updated);
                                     }}
                                     disabled={!isConsultationStarted || isCompleted}
                                 />
                             </div>
+                            <div className="md:col-span-1 flex justify-center pt-2">
+                                <ReadOnlyTooltip>
+                                    <button
+                                        onClick={() => removeProcedure(index)}
+                                        className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Remove Procedure"
+                                        disabled={!isConsultationStarted || isCompleted || isReadOnly}
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </ReadOnlyTooltip>
+                            </div>
                         </div>
-                        <div className="md:col-span-3">
-                            <label className="text-[10px] text-gray-400 font-bold uppercase mb-1 block md:hidden">Notes</label>
-                            <input
-                                type="text"
-                                placeholder="Clinical Notes / Findings"
-                                className="border p-2 rounded-md text-sm w-full"
-                                value={proc.clinical_notes}
-                                onChange={(e) => {
-                                    const updated = [...procedures];
-                                    updated[index].clinical_notes = e.target.value;
-                                    setProcedures(updated);
-                                }}
-                                disabled={!isConsultationStarted || isCompleted}
-                            />
-                        </div>
-                        <div className="md:col-span-1 flex justify-center pt-2">
-                            <ReadOnlyTooltip>
-                                <button
-                                    onClick={() => removeProcedure(index)}
-                                    className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Remove Procedure"
-                                    disabled={!isConsultationStarted || isCompleted || isReadOnly}
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                            </ReadOnlyTooltip>
-                        </div>
+
+                        {/* CPT Badge & Description Snapshot Display */}
+                        {isClinicalCodingEnabled && proc.cpt_code && (
+                            <div className="mt-2 flex items-center gap-2 pl-2">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 shadow-sm leading-none flex items-center">
+                                    CPT Code: {proc.cpt_code}
+                                </span>
+                                <span className="text-xs text-gray-500 italic truncate max-w-xl">
+                                    {proc.cpt_code_description_snapshot}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Medical Justification Links */}
+                        {isClinicalCodingEnabled && proc.procedure_id && (
+                            <div className="mt-3 pl-4 py-2 bg-gray-50/50 rounded-lg border border-gray-100 max-w-4xl">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">
+                                    Medical Necessity Justification (ICD-10)
+                                </span>
+                                {diagnoses.length > 0 ? (
+                                    <div className="flex flex-wrap gap-3">
+                                        {diagnoses.map((diag) => {
+                                            const code = diag.icd_code || diag.code;
+                                            const desc = diag.icd_code_description_snapshot || diag.description;
+                                            const isChecked = proc.justified_by_icd_codes?.includes(code);
+
+                                            return (
+                                                <label key={code} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                                                    isChecked 
+                                                    ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm'
+                                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                                }`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-3.5 w-3.5 text-blue-600 focus:ring-blue-400 border-gray-300 rounded cursor-pointer"
+                                                        checked={isChecked}
+                                                        disabled={!isConsultationStarted || isCompleted}
+                                                        onChange={(e) => {
+                                                            const updated = [...procedures];
+                                                            const currentJustifications = updated[index].justified_by_icd_codes || [];
+                                                            if (e.target.checked) {
+                                                                updated[index].justified_by_icd_codes = [...currentJustifications, code];
+                                                            } else {
+                                                                updated[index].justified_by_icd_codes = currentJustifications.filter(c => c !== code);
+                                                            }
+                                                            setProcedures(updated);
+                                                        }}
+                                                    />
+                                                    <span className="font-bold">{code}</span>
+                                                    <span className="opacity-80 font-normal truncate max-w-[200px]">{desc}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-[11px] text-amber-600 bg-amber-50/50 border border-amber-100 rounded px-2.5 py-1 w-fit flex items-center gap-1.5">
+                                        <AlertTriangle className="h-3.5 w-3.5" />
+                                        Please document standardized diagnoses in the SOAP Assessment panel first to link medical necessity justifications.
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ))}
 

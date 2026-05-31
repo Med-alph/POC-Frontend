@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader, Save, ShieldCheck, MessageSquare, CreditCard, Clock, Globe, Eye, EyeOff, Calendar, Trash2, Plus, Stethoscope } from "lucide-react";
+import { Loader, Save, ShieldCheck, MessageSquare, CreditCard, Clock, Globe, Eye, EyeOff, Calendar, Trash2, Plus, Stethoscope, Code2 } from "lucide-react";
 import hospitalsapi from "../../api/hospitalsapi";
 import toast from "react-hot-toast";
 import { useHospital } from "../../contexts/HospitalContext";
@@ -145,6 +145,7 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
         primary_specialty: "GENERAL",
         all_specialties: [],
         enabled_modules: [],
+        clinical_coding_enabled: false,
     });
     const [timings, setTimings] = useState(createDefaultTimings());
 
@@ -726,6 +727,37 @@ export default function HospitalSettings({ hospitalId, hospitalName }) {
                                                 <Label htmlFor="mod-pharmacy" className="text-sm font-semibold">In-House Pharmacy</Label>
                                                 <p className="text-xs text-gray-500">Prescription verification, billing generation and medicine dispensing.</p>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-6 border-t mt-2">
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Clinical Coding</h4>
+                                    <div className="flex items-center justify-between p-4 border rounded-xl bg-white">
+                                        <div className="flex items-start gap-3">
+                                            <Code2 className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="clinical_coding_enabled" className="text-sm font-semibold flex items-center gap-2">
+                                                    ICD-10 / CPT Coding
+                                                    {settings.clinical_coding_enabled && (
+                                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 tracking-wider uppercase">Active</span>
+                                                    )}
+                                                </Label>
+                                                <p className="text-xs text-gray-500">
+                                                    Enables standardized ICD-10-CM diagnostic codes and CPT procedure codes during consultations. Required for insurance billing and clinical documentation compliance.
+                                                </p>
+                                                <p className="text-[10px] text-amber-600 font-medium mt-1">
+                                                    Note: New hospitals default to OFF. Enable only when your team is ready for coded documentation.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center space-x-2 shrink-0 ml-4">
+                                            <Label htmlFor="clinical_coding_enabled" className="text-sm font-medium">Enable</Label>
+                                            <Checkbox
+                                                id="clinical_coding_enabled"
+                                                checked={settings.clinical_coding_enabled}
+                                                onCheckedChange={(checked) => setSettings({ ...settings, clinical_coding_enabled: checked })}
+                                            />
                                         </div>
                                     </div>
                                 </div>
