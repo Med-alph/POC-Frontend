@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Stethoscope, ShieldCheck, Clock, Smartphone, Moon, Sun, Hospital } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Stethoscope, ShieldCheck, Clock, Smartphone, Moon, Sun, AlertTriangle, Info, ShieldAlert } from "lucide-react";
 import { useHospital } from "@/contexts/HospitalContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,50 @@ const LandingPage = () => {
     return localStorage.getItem("darkMode") === "true";
   });
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Read reason param from URL (set by AuthContext on session expiry/logout)
+  const reason = new URLSearchParams(location.search).get("reason");
+
+  const REASON_MESSAGES = {
+    ACCESS_TOKEN_EXPIRED: {
+      icon: Clock,
+      title: "Session Expired",
+      description: "Your session has expired. Please verify your phone number to continue.",
+      style: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-500/20 dark:text-amber-300",
+      iconStyle: "text-amber-500",
+    },
+    SESSION_REVOKED: {
+      icon: ShieldAlert,
+      title: "Session Ended",
+      description: "Your session has been securely closed. Please verify your phone number to continue.",
+      style: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/20 dark:border-blue-500/20 dark:text-blue-300",
+      iconStyle: "text-blue-500",
+    },
+    IDLE_TIMEOUT: {
+      icon: Clock,
+      title: "Logged Out Due to Inactivity",
+      description: "For your security, you were automatically logged out after a period of inactivity.",
+      style: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-500/20 dark:text-amber-300",
+      iconStyle: "text-amber-500",
+    },
+    TOKEN_REUSE_DETECTED: {
+      icon: AlertTriangle,
+      title: "Security Alert",
+      description: "A security anomaly was detected. Your session was terminated for your protection. Please log in again.",
+      style: "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-500/20 dark:text-red-300",
+      iconStyle: "text-red-500",
+    },
+    MULTI_TAB_LOGOUT: {
+      icon: Info,
+      title: "Logged Out",
+      description: "You were logged out from another tab. Please verify your phone number to continue.",
+      style: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/20 dark:border-blue-500/20 dark:text-blue-300",
+      iconStyle: "text-blue-500",
+    },
+  };
+
+  const reasonInfo = reason ? REASON_MESSAGES[reason] : null;
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -146,6 +190,19 @@ const LandingPage = () => {
               <CardTitle className="text-xl">Start with your phone number</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
+              {/* Session expiry / logout reason banner */}
+              {reasonInfo && (() => {
+                const Icon = reasonInfo.icon;
+                return (
+                  <div className={`flex items-start gap-3 p-3 rounded-xl border text-sm ${reasonInfo.style}`}>
+                    <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${reasonInfo.iconStyle}`} />
+                    <div>
+                      <p className="font-semibold">{reasonInfo.title}</p>
+                      <p className="text-xs mt-0.5 opacity-90">{reasonInfo.description}</p>
+                    </div>
+                  </div>
+                );
+              })()}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Phone Number

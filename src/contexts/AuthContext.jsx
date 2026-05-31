@@ -27,6 +27,7 @@ import { sessionAPI } from '../api/sessionapi';
 import { setSessionInvalidationHandler } from '../services/apiInterceptor';
 
 const AuthContext = createContext(null);
+export default AuthContext;
 
 /**
  * Decode JWT token to extract payload
@@ -73,23 +74,138 @@ export const AuthProvider = ({ children }) => {
   const reduxUser = useSelector((state) => state.auth.user);
 
   const [sessionId, setSessionId] = useState(null);
+  const [isSessionValid, setIsSessionValid] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // 1. Multi-tab synchronization broadcast helper
+  const broadcastLogout = useCallback((reason) => {
+    try {
+      const channel = new BroadcastChannel('medalph_auth_channel');
+      channel.postMessage({ type: 'LOGOUT', reason });
+      channel.close();
+    } catch (e) {
+      console.warn('[AuthContext] Broadcast logout sync failed:', e);
+    }
+    // localStorage fallback trigger for older browsers
+    localStorage.setItem('medalph_logout_trigger', `${reason}_${Date.now()}`);
+    setTimeout(() => {
+      localStorage.removeItem('medalph_logout_trigger');
+    }, 1000);
+  }, []);
+
+  // 2. Handle session invalidation (called by API interceptor and BroadcastChannel)
+  const handleSessionInvalidation = useCallback((reason = 'SESSION_REVOKED') => {
+    console.warn('[AuthContext] Session invalidated:', reason);
+
+    // Synchronize logout across other open tabs
+    broadcastLogout(reason);
+
+    // Comprehensive local cleanup
+    import('../utils/auth').then(m => m.clearAuthData());
+    clearSecureStorage();
+
+    localStorage.removeItem('user');
+    localStorage.removeItem('session_id');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('loginResponse');
+    localStorage.removeItem('isAuthenticated');
+    sessionStorage.clear();
+
+    // Clear Redux state
+    dispatch(clearCredentials());
+
+    // Redirect to login with reason
+    const path = window.location.pathname;
+    const isPatientRoute = path.startsWith('/patient-dashboard') ||
+      path === '/landing' ||
+      path === '/otp-verification' ||
+      path === '/patient-details';
+
+    if (isPatientRoute) {
+      window.location.href = `/landing?reason=${reason}`;
+    } else {
+      window.location.href = `/?reason=${reason}`;
+    }
+  }, [dispatch, broadcastLogout]);
+
+  // 3. Clear authentication and logout
+  const logout = useCallback(async (redirectToLogin = true, reason = 'SESSION_REVOKED') => {
+    try {
+      setIsLoggingOut(true);
+
+      // ✅ CRITICAL: Call backend logout FIRST before broadcasting.
+      // The backend clears httpOnly cookies (access_token, refresh_token) via Set-Cookie response headers.
+      // httpOnly cookies CANNOT be deleted from JS — the server response is the ONLY way to remove them.
+      // We must await this before redirecting, otherwise the page unloads before the response arrives.
+      const logoutTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Logout API timeout')), 5000)
+      );
+      await Promise.race([authAPI.logout(), logoutTimeout]).catch(err => {
+        console.warn('[AuthContext] API logout call failed/timed-out, proceeding with local cleanup:', err.message);
+      });
+
+      // Broadcast to other tabs AFTER the API call completes (or times out).
+      // This prevents the storage event from triggering a redirect in this tab
+      // before the logout API has had a chance to clear the HttpOnly cookies.
+      broadcastLogout(reason);
+
+    } catch (error) {
+      console.error('[AuthContext] Logout logic error:', error);
+    } finally {
+      // ✅ Belt-and-suspenders: clear any non-httpOnly cookies or residual values
+      // that might have been set during older sessions or by non-httpOnly flows.
+      try {
+        const cookiesToClear = ['access_token', 'refresh_token', 'session_id'];
+        cookiesToClear.forEach(name => {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        });
+      } catch (_) { /* silently skip if cookies API unavailable */ }
+
+      import('../utils/auth').then(m => m.clearAuthData());
+      clearSecureStorage();
+
+      localStorage.removeItem('user');
+      localStorage.removeItem('session_id');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('loginResponse');
+      localStorage.removeItem('isAuthenticated');
+      sessionStorage.clear();
+
+      setSessionId(null);
+      setIsSessionValid(false);
+
+      dispatch(clearCredentials());
+
+      if (redirectToLogin) {
+        const path = window.location.pathname;
+        const isPatientRoute = path.startsWith('/patient-dashboard') ||
+          path === '/landing' ||
+          path === '/otp-verification' ||
+          path === '/patient-details';
+
+        if (isPatientRoute) {
+          window.location.href = `/landing?reason=${reason}`;
+        } else {
+          window.location.href = `/?reason=${reason}`;
+        }
+      } else {
+        setIsLoggingOut(false);
+      }
+    }
+  }, [dispatch, broadcastLogout]);
+
+  // 4. Initial state loader
   const [isInitialized, setIsInitialized] = useState(() => {
-    // If we're on a SuperAdmin subdomain, skip general user auth initialization
     if (isPlatformAppAdmin()) return true;
 
     const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
     const currentPath = window.location.pathname;
     return publicRoutes.includes(currentPath) || currentPath.startsWith('/patient-dashboard');
   });
-  const [isSessionValid, setIsSessionValid] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  /**
-   * Initialize auth state and check session status via cookies
-   */
+  // 5. Initialize auth state and check session status via cookies
   useEffect(() => {
     const validateSession = async () => {
-      // Skip validation for superadmin, public routes, and patient routes
       const currentPath = window.location.pathname;
       const publicRoutes = ['/', '/landing', '/otp-verification', '/patient-details', '/patient-details-form', '/appointment', '/confirmation', '/auth-callback', '/forgotpassword', '/change-password', '/admin/login', '/privacy-policy', '/terms-of-service'];
 
@@ -101,7 +217,6 @@ export const AuthProvider = ({ children }) => {
 
       console.log('[AuthContext] Initial validation starting...');
       try {
-        // SOC 2: Check authentication status using httpOnly cookies by calling /auth/me
         const result = await dispatch(checkAuth()).unwrap();
 
         if (result) {
@@ -109,7 +224,6 @@ export const AuthProvider = ({ children }) => {
           setIsSessionValid(true);
         }
 
-        // Register session invalidation handler with API interceptor
         setSessionInvalidationHandler(handleSessionInvalidation);
       } catch (error) {
         console.warn('[AuthContext] Initial validation failed:', error);
@@ -120,15 +234,47 @@ export const AuthProvider = ({ children }) => {
     };
 
     validateSession();
-  }, [dispatch]);
+  }, [dispatch, handleSessionInvalidation]);
 
-  // Removed beforeunload logout as it triggers on page refresh, clearing secure sessions unexpectedly.
-  // Security should be handled by cookie expiration (maxAge) and session validation on backend.
+  // 6. Multi-tab synchronization listener
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-  /**
-   * Set authentication credentials (called after login)
-   * @param {object} loginResponse - Login response with access_token, session_id, user
-   */
+    let authChannel;
+    try {
+      authChannel = new BroadcastChannel('medalph_auth_channel');
+      authChannel.onmessage = (event) => {
+        console.log('[AuthContext] Multi-tab sync message received:', event.data);
+        if (event.data?.type === 'LOGOUT') {
+          const intentAuth = localStorage.getItem('isAuthenticated') === 'true';
+          if (intentAuth) {
+            handleSessionInvalidation(event.data.reason || 'MULTI_TAB_LOGOUT');
+          }
+        }
+      };
+    } catch (e) {
+      console.warn('[AuthContext] BroadcastChannel failed to initialize:', e);
+    }
+
+    const handleStorageEvent = (event) => {
+      if (event.key === 'medalph_logout_trigger' && event.newValue) {
+        console.log('[AuthContext] Multi-tab localStorage fallback logout triggered');
+        const [reason] = event.newValue.split('_');
+        const intentAuth = localStorage.getItem('isAuthenticated') === 'true';
+        if (intentAuth) {
+          handleSessionInvalidation(reason || 'MULTI_TAB_LOGOUT');
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageEvent);
+
+    return () => {
+      if (authChannel) authChannel.close();
+      window.removeEventListener('storage', handleStorageEvent);
+    };
+  }, [handleSessionInvalidation]);
+
+  // 7. Set authentication credentials (called after login)
   const setAuthCredentials = useCallback((loginResponse) => {
     try {
       const { access_token, session_id, user } = loginResponse;
@@ -137,8 +283,6 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No access token in login response');
       }
 
-      // SOC 2: Token is handled via httpOnly cookies
-      // Store in memory for immediate use if needed by other components
       setSecureItem(SECURE_KEYS.JWT_TOKEN, access_token);
 
       if (session_id) {
@@ -146,7 +290,6 @@ export const AuthProvider = ({ children }) => {
         setSessionId(session_id);
       }
 
-      // Extract and store tenant/hospital IDs from token
       const context = extractTenantContext(access_token);
       if (context.tenant_id) {
         setSecureItem(SECURE_KEYS.TENANT_ID, context.tenant_id);
@@ -161,85 +304,6 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
   }, []);
-
-  /**
-   * Clear authentication and logout
-   * @param {boolean} redirectToLogin - Whether to redirect to login page
-   */
-  const logout = useCallback(async (redirectToLogin = true) => {
-    try {
-      setIsLoggingOut(true);
-      // 1. Attempt to call logout API (to clear httpOnly cookie on backend)
-      // SOC 2: Always try to notify backend for session invalidation
-      await authAPI.logout().catch(err => {
-        console.warn('[AuthContext] API logout failed, proceeding with local cleanup:', err.message);
-      });
-    } catch (error) {
-      console.error('[AuthContext] Logout logic error:', error);
-    } finally {
-      // 2. ABSOLUTELY clear all local and physical storage regardless of API success
-      // Uses the unified utility from utils/auth.js
-      import('../utils/auth').then(m => m.clearAuthData());
-
-      clearSecureStorage();
-
-      // Manual cleanup for redundant keys to be safe
-      localStorage.removeItem('user');
-      localStorage.removeItem('session_id');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('loginResponse');
-      localStorage.removeItem('isAuthenticated'); // Patient-side auth flag
-      sessionStorage.clear();
-
-      setSessionId(null);
-      setIsSessionValid(false);
-
-      // 3. Clear Redux state
-      dispatch(clearCredentials());
-
-      // 4. Redirect using window.location to ensure a clean slate
-      // 4. Redirect using window.location to ensure a clean slate
-      if (redirectToLogin) {
-        // If on patient routes, redirect to landing
-        const path = window.location.pathname;
-        const isPatientRoute = path.startsWith('/patient-dashboard') ||
-          path === '/landing' ||
-          path === '/otp-verification' ||
-          path === '/patient-details';
-
-        if (isPatientRoute) {
-          window.location.href = '/landing';
-        } else {
-          window.location.href = '/';
-        }
-      } else {
-        setIsLoggingOut(false);
-      }
-    }
-  }, [dispatch]);
-
-  /**
-   * Handle session invalidation (called by API interceptor)
-   */
-  const handleSessionInvalidation = useCallback((reason = 'Session expired or invalid') => {
-    console.warn('[AuthContext] Session invalidated:', reason);
-
-    // 1. Comprehensive local cleanup
-    import('../utils/auth').then(m => m.clearAuthData());
-    clearSecureStorage();
-
-    localStorage.removeItem('user');
-    localStorage.removeItem('session_id');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('loginResponse');
-    sessionStorage.clear();
-
-    // 2. Clear Redux state
-    dispatch(clearCredentials());
-
-    // 3. Redirect to login
-    window.location.href = '/';
-  }, [dispatch]);
 
   /**
    * Get current JWT token

@@ -37,6 +37,7 @@ import RolesManagement from "./Admin/RolesManagement";
 import PermissionsManagement from "./Admin/PermissionsManagement";
 import StaffRoleAssignment from "./Admin/StaffRoleAssignment";
 import ProtectedRoute from "./components/ProtectedRoute";
+import SessionTimeoutGuard from "./components/SessionTimeoutGuard";
 
 // App Admin Components
 import { AppAdminAuthProvider } from "./AppAdmin/contexts/AppAdminAuthContext";
@@ -400,6 +401,7 @@ function App() {
             </HospitalProvider>
           )}
           <Toaster position="top-right" />
+          <SessionTimeoutGuard />
         </Router>
       </PermissionsProvider>
     </AppAdminAuthProvider>

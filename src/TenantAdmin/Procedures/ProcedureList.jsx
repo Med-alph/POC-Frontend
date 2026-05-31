@@ -233,6 +233,7 @@ export default function ProcedureList({ fixedHospitalId = null, isHospitalAdmin 
                             <TableHead>Procedure Name</TableHead>
                             <TableHead>Department</TableHead>
                             <TableHead>Category</TableHead>
+                            <TableHead>CPT Code</TableHead>
                             <TableHead>Standard Price</TableHead>
                             <TableHead>Est. Duration</TableHead>
                             <TableHead>Status</TableHead>
@@ -242,13 +243,13 @@ export default function ProcedureList({ fixedHospitalId = null, isHospitalAdmin 
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center p-8 text-gray-600 italic">
+                                <TableCell colSpan={8} className="text-center p-8 text-gray-600 italic">
                                     Loading procedures...
                                 </TableCell>
                             </TableRow>
                         ) : paginatedProcedures.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center p-12">
+                                <TableCell colSpan={8} className="text-center p-12">
                                     <div className="flex flex-col items-center gap-2 text-gray-400">
                                         <Clipboard size={48} />
                                         <p>No procedures found for this hospital.</p>
@@ -268,6 +269,15 @@ export default function ProcedureList({ fixedHospitalId = null, isHospitalAdmin 
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                             {proc.category}
                                         </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        {(proc.cpt?.code || proc.cpt_code) ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                {proc.cpt?.code || proc.cpt_code}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-gray-400 italic">—</span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-gray-600 font-mono">₹{proc.price}</TableCell>
                                     <TableCell className="text-gray-600">{proc.duration} mins</TableCell>

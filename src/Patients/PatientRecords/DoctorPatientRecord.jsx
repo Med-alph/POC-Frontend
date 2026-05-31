@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart, GalleryThumbnails, Sparkles, Utensils, Upload, Eye, CheckCircle, ChevronDown, Loader2, Trash2, UserCircle2, MoreVertical } from "lucide-react";
+import { CalendarDays, FileText, Activity, Stethoscope, AlertCircle, X, Download, ArrowLeft, User, Phone, Mail, Droplet, Clock, Pill, FlaskConical, Heart, GalleryThumbnails, Sparkles, Utensils, Upload, Eye, CheckCircle, ChevronDown, Loader2, Trash2, UserCircle2, MoreVertical, ShieldCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -638,6 +638,38 @@ const DoctorPatientRecord = () => {
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Display standardized ICD-10 diagnoses */}
+                                        {consultation.diagnoses && consultation.diagnoses.length > 0 && (
+                                            <div className="mt-6 pt-6 border-t border-slate-100">
+                                                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                                                    Standardized Encounter Diagnoses (ICD-10-CM)
+                                                </p>
+                                                <div className="flex flex-wrap gap-3">
+                                                    {consultation.diagnoses.map((diag, idx) => {
+                                                        const isPrimary = diag.sequence === 1;
+                                                        return (
+                                                            <div key={idx} className="bg-slate-50/50 border border-slate-200/60 rounded-xl p-3 flex flex-col gap-1.5 max-w-sm">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded shadow-sm">
+                                                                        {diag.icd_code}
+                                                                    </span>
+                                                                    {isPrimary && (
+                                                                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-wider">
+                                                                            Primary
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                                                                    {diag.icd_code_description_snapshot}
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             )) : (
@@ -659,11 +691,38 @@ const DoctorPatientRecord = () => {
                                     <div className="flex-1">
                                         <p className="font-semibold text-slate-900 text-base">
                                             {typeof proc === 'string' ? proc : (proc.procedure?.name || proc.procedure_name || proc.name || 'Unnamed Procedure')}
+                                            {proc.cpt_code && (
+                                                <span className="ml-3 inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded shadow-sm">
+                                                    CPT: {proc.cpt_code}
+                                                </span>
+                                            )}
                                         </p>
                                         <p className="text-sm text-slate-500 mt-0.5">{formatDate(c.consultation_date)} • {c.staff?.staff_name}</p>
+                                        
+                                        {/* Display CPT description snapshot */}
+                                        {proc.cpt_code_description_snapshot && (
+                                            <p className="text-xs text-slate-400 italic mt-1 pl-1">
+                                                {proc.cpt_code_description_snapshot}
+                                            </p>
+                                        )}
+
                                         {typeof proc !== 'string' && proc.doctor_notes && (
                                             <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
                                                 <p className="text-sm text-slate-700 leading-relaxed">{proc.doctor_notes}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Display mapped medical necessity justifications */}
+                                        {proc.justifications && proc.justifications.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">
+                                                    Justified By (ICD-10):
+                                                </span>
+                                                {proc.justifications.map((j, idx) => (
+                                                    <span key={idx} className="inline-flex items-center gap-1 font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded shadow-sm" title={j.diagnosis?.icd_code_description_snapshot || j.icd_code_description_snapshot}>
+                                                        {j.diagnosis?.icd_code || j.icd_code}
+                                                    </span>
+                                                ))}
                                             </div>
                                         )}
                                     </div>

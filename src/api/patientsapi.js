@@ -100,6 +100,23 @@ export const patientsAPI = {
   },
 
   /**
+   * Get appointments for the currently authenticated patient.
+   * Uses the patient-scoped endpoint — no staff role required.
+   * Backend: GET /api/patients/me/appointments
+   */
+  getMyAppointments: async (params = {}) => {
+    const { status, fromDate, toDate, limit = 10, offset = 0 } = params;
+    const query = new URLSearchParams();
+    if (status)   query.append('status', status);
+    if (fromDate) query.append('fromDate', fromDate);
+    if (toDate)   query.append('toDate', toDate);
+    if (limit)    query.append('limit', String(limit));
+    if (offset)   query.append('offset', String(offset));
+    const qs = query.toString();
+    return apiRequest(`/patients/me/appointments${qs ? `?${qs}` : ''}`);
+  },
+
+  /**
    * Get patient by phone number and hospital ID
    * Returns patient object if found, null if not found
    */

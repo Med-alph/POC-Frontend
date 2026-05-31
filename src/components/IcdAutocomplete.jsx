@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Activity, ChevronDown, ClipboardList, Globe, Filter } from 'lucide-react';
-import proceduresAPI from '../api/proceduresapi';
-import { useSelector } from 'react-redux';
+import { Search, ChevronDown, BookOpen } from 'lucide-react';
+import clinicalCodingAPI from '../api/clinicalcodingapi';
 
-const ProcedureAutocomplete = ({
-    hospitalId,
+const IcdAutocomplete = ({
     onSelect,
-    placeholder = "Search procedures...",
+    placeholder = "Search ICD-10 diagnostic codes...",
     value = "",
     onChange,
     className = "",
@@ -17,13 +15,10 @@ const ProcedureAutocomplete = ({
     const [loading, setLoading] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
-    const [isGlobal, setIsGlobal] = useState(false);
 
     const inputRef = useRef(null);
     const dropdownRef = useRef(null);
     const debounceRef = useRef(null);
-    const user = useSelector((state) => state.auth.user);
-    const doctorDept = user?.department;
 
     const handleInputChange = (e) => {
         if (disabled) return;
@@ -37,43 +32,44 @@ const ProcedureAutocomplete = ({
             onChange(newValue);
         }
 
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
         debounceRef.current = setTimeout(() => {
-            searchProcedures(newValue, isGlobal);
+            searchIcd(newValue);
         }, 300);
     };
 
-    const toggleGlobal = () => {
-        const nextGlobal = !isGlobal;
-        setIsGlobal(nextGlobal);
-        searchProcedures(query, nextGlobal);
-    };
-
-    const searchProcedures = async (searchTerm = "", useGlobal = false) => {
-        if (!hospitalId) return;
+    const searchIcd = async (searchTerm = "") => {
+        if (!searchTerm || searchTerm.trim().length < 2) {
+            setSuggestions([]);
+            return;
+        }
 
         setLoading(true);
         try {
-            const deptFilter = useGlobal ? null : doctorDept;
-            const response = await proceduresAPI.search(hospitalId, searchTerm, deptFilter);
-
+            const response = await clinicalCodingAPI.searchIcd10(searchTerm);
             setSuggestions(response || []);
             setShowDropdown(true);
         } catch (error) {
-            console.error('Error searching procedures:', error);
+            console.error('Error searching ICD codes:', error);
             setSuggestions([]);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSelect = (procedure) => {
-        setQuery(procedure.name);
+    const handleSelect = (code) => {
+        // We want to pass the selected code object back.
+        // It has code, description, chapter, etc.
+        setQuery("");
         setSuggestions([]);
         setShowDropdown(false);
         setSelectedIndex(-1);
 
         if (onSelect) {
-            onSelect(procedure);
+            onSelect(code);
         }
     };
 
@@ -121,10 +117,6 @@ const ProcedureAutocomplete = ({
     }, []);
 
     useEffect(() => {
-        setQuery(value);
-    }, [value]);
-
-    useEffect(() => {
         return () => {
             if (debounceRef.current) {
                 clearTimeout(debounceRef.current);
@@ -143,8 +135,10 @@ const ProcedureAutocomplete = ({
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     onFocus={() => {
-                        setShowDropdown(true);
-                        searchProcedures(query, isGlobal);
+                        if (query.trim().length >= 2) {
+                            setShowDropdown(true);
+                            searchIcd(query);
+                        }
                     }}
                     placeholder={placeholder}
                     disabled={disabled}
@@ -157,75 +151,56 @@ const ProcedureAutocomplete = ({
                     onClick={() => {
                         if (!disabled) {
                             setShowDropdown(!showDropdown);
-                            if (!showDropdown) searchProcedures(query);
+                            if (!showDropdown && query.trim().length >= 2) searchIcd(query);
                         }
                     }}
                 >
                     {loading ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
                     ) : (
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleGlobal();
-                                }}
-                                title={isGlobal ? "Switch to Department Search" : "Switch to Global Search"}
-                                className={`p-1 rounded-md transition-colors ${isGlobal ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`}
-                            >
-                                {isGlobal ? <Globe className="h-4 w-4" /> : <Filter className="h-3 w-3" />}
-                            </button>
-                            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
-                        </div>
+                        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
                     )}
                 </div>
             </div>
 
-            {showDropdown && (
+            {showDropdown && query.trim().length >= 2 && (
                 <div
                     ref={dropdownRef}
-                    className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-72 overflow-hidden flex flex-col"
+                    className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-72 overflow-hidden flex flex-col animate-in fade-in duration-100"
                 >
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                         <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
-                            {isGlobal ? "Global Procedure List" : `${doctorDept || 'Department'} Procedures`}
+                            ICD-10-CM Standard Diagnostic Library
                         </span>
-                        {isGlobal && (
-                            <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">GLOBAL ACTIVE</span>
-                        )}
                     </div>
 
                     <div className="overflow-y-auto max-h-60">
                         {suggestions.length > 0 ? (
-                            suggestions.map((procedure, index) => (
+                            suggestions.map((item, index) => (
                                 <div
-                                    key={procedure.id}
-                                    onClick={() => handleSelect(procedure)}
-                                    className={`px-4 py-3 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${index === selectedIndex
+                                    key={item.id || item.code}
+                                    onClick={() => handleSelect(item)}
+                                    className={`px-4 py-2.5 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${index === selectedIndex
                                         ? 'bg-blue-50 dark:bg-blue-900/20'
                                         : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                                         }`}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <Activity className={`h-4 w-4 ${procedure.department_id === 'General' ? 'text-gray-400' : 'text-blue-500'}`} />
-                                            <div>
-                                                <div className="font-medium text-gray-900 dark:text-white">
-                                                    {procedure.name}
-                                                </div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                                    <span>{procedure.category} • {procedure.department_id || 'General'}</span>
-                                                    {(procedure.cpt?.code || procedure.cpt_code) && (
-                                                        <span className="font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded text-[10px] border border-indigo-100">
-                                                            CPT {procedure.cpt?.code || procedure.cpt_code}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                    <div className="flex items-start gap-2.5">
+                                        <BookOpen className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-sm text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded leading-none">
+                                                    {item.code}
+                                                </span>
+                                                {item.chapter && (
+                                                    <span className="text-[10px] text-gray-400 font-medium">
+                                                        Chapter: {item.chapter}
+                                                    </span>
+                                                )}
                                             </div>
-                                        </div>
-                                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                            ₹{procedure.price}
+                                            <div className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium break-words leading-relaxed">
+                                                {item.description}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -234,17 +209,8 @@ const ProcedureAutocomplete = ({
                             <div className="px-4 py-8 text-center">
                                 <Search className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                                 <p className="text-sm text-gray-500">
-                                    {query.length > 0 ? `No procedures found for "${query}"` : "Search to see procedures"}
+                                    No diagnosis found matching "{query}"
                                 </p>
-                                {!isGlobal && (
-                                    <button
-                                        type="button"
-                                        onClick={toggleGlobal}
-                                        className="text-xs text-blue-600 font-medium hover:underline mt-2"
-                                    >
-                                        Search across all departments
-                                    </button>
-                                )}
                             </div>
                         )}
                     </div>
@@ -254,4 +220,4 @@ const ProcedureAutocomplete = ({
     );
 };
 
-export default ProcedureAutocomplete;
+export default IcdAutocomplete;

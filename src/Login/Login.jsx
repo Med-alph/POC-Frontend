@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { setCredentials } from "../features/auth/authSlice"
 import { authAPI } from "../api/authapi"
@@ -24,6 +24,40 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  const location = useLocation()
+  const queryParams = new URLSearchParams(location.search)
+  const reason = queryParams.get("reason")
+
+  const REASON_MESSAGES = {
+    IDLE_TIMEOUT: {
+      title: "Session Expired due to Inactivity ⏰",
+      description: "For patient data protection, sessions are automatically logged out after 15 minutes of inactivity.",
+      bg: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-500/10 dark:text-amber-300",
+    },
+    ABSOLUTE_TIMEOUT: {
+      title: "Session Time Limit Reached ⏳",
+      description: "You have reached the maximum absolute session duration of 12 hours. Please log in again.",
+      bg: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-500/10 dark:text-amber-300",
+    },
+    TOKEN_REUSE_DETECTED: {
+      title: "Security Alert 🚨",
+      description: "A security anomaly was detected with your session. For your protection, all active sessions have been terminated. Please re-authenticate.",
+      bg: "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-500/10 dark:text-red-300",
+    },
+    SESSION_REVOKED: {
+      title: "Session Revoked 🔒",
+      description: "Your session has been securely closed or invalidated.",
+      bg: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/20 dark:border-blue-500/10 dark:text-blue-300",
+    },
+    MULTI_TAB_LOGOUT: {
+      title: "Logged Out in Another Tab 🗂️",
+      description: "You were logged out of Medalph in another browser tab. All active tabs have been synchronized.",
+      bg: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/20 dark:border-blue-500/10 dark:text-blue-300",
+    },
+  }
+
+  const reasonInfo = reason ? REASON_MESSAGES[reason] : null
 
   // Password Reset State
   const [resetMode, setResetMode] = useState(false)
@@ -156,6 +190,14 @@ export default function Login() {
           <CardDescription className="text-center text-gray-600">
             {resetMode ? "Your temporary password has expired. Please set a new one." : "Login to continue to your account"}
           </CardDescription>
+
+          {/* Session Warning Banners */}
+          {reasonInfo && (
+            <div className={`border rounded-md p-3 text-left ${reasonInfo.bg} mt-3`}>
+              <p className="text-sm font-semibold mb-1">{reasonInfo.title}</p>
+              <p className="text-xs opacity-90 leading-normal">{reasonInfo.description}</p>
+            </div>
+          )}
 
           {/* Compliance Notice */}
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
