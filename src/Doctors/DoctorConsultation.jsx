@@ -44,6 +44,7 @@ import proceduresAPI from "../api/proceduresapi";
 import ProcedureAutocomplete from "../components/ProcedureAutocomplete";
 import clinicalCodingAPI from "../api/clinicalcodingapi";
 import IcdAutocomplete from "../components/IcdAutocomplete";
+import copilotAPI from "../api/copilotapi";
 import { baseUrl } from "../constants/Constant";
 import { getAuthToken } from "../utils/auth";
 import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip";
@@ -106,6 +107,14 @@ const DoctorConsultation = () => {
     const [aiDraftApplied, setAiDraftApplied] = useState(false);
     const [showReplaceConfirmModal, setShowReplaceConfirmModal] = useState(false);
     const [pendingAiDraft, setPendingAiDraft] = useState(null);
+
+    // SOAP Assist (raw text → structured SOAP + ICD suggestions)
+    const [soapAssistRawText, setSoapAssistRawText] = useState("");
+    const [soapAssistLoading, setSoapAssistLoading] = useState(false);
+    const [soapAssistError, setSoapAssistError] = useState(null);
+    const [soapAssistWarning, setSoapAssistWarning] = useState(null);
+    // Pending AI-suggested ICD codes: [{ icd_code, icd_code_description_snapshot, confidence, checked }]
+    const [pendingIcdSuggestions, setPendingIcdSuggestions] = useState([]);
 
     // Voice transcription state
     const [isVoiceRecording, setIsVoiceRecording] = useState(false);
@@ -241,6 +250,7 @@ const DoctorConsultation = () => {
             followUpNote,
             followUpSlot,
             currentDietPlan,
+            soapAssistRawText,
             timestamp: new Date().getTime()
         };
         
@@ -297,6 +307,7 @@ const DoctorConsultation = () => {
             if (parsed.followUpNote) setFollowUpNote(parsed.followUpNote);
             if (parsed.followUpSlot) setFollowUpSlot(parsed.followUpSlot);
             if (parsed.currentDietPlan) setCurrentDietPlan(parsed.currentDietPlan);
+            if (parsed.soapAssistRawText) setSoapAssistRawText(parsed.soapAssistRawText);
             
             toast.success("Draft restored successfully!");
             setShowDraftBanner(false);
@@ -557,6 +568,123 @@ const DoctorConsultation = () => {
         // Small delay to ensure any pending state updates are finished
         await new Promise(resolve => setTimeout(resolve, 500));
         await handleGenerateAiSoap(fullText);
+    };
+
+    // SOAP Assist handler — POSTs raw clinical text to /soap-assist/analyse
+    const handleSoapAssist = async () => {
+        const text = soapAssistRawText.trim();
+        if (!text) {
+            toast.error("Please enter some clinical notes first.");
+            return;
+        }
+        if (text.length < 20) {
+            toast.error("Notes too short — add more detail for a useful SOAP draft.");
+            return;
+        }
+
+        setSoapAssistLoading(true);
+        setSoapAssistError(null);
+        setSoapAssistWarning(null);
+
+        try {
+            const result = await copilotAPI.analyseSoap(text);
+
+            const aiDraft = {
+                subjective: result.soap?.subjective || "",
+                objective: result.soap?.objective || "",
+                assessment: result.soap?.assessment || "",
+                plan: result.soap?.plan || "",
+            };
+
+            setPendingAiDraft(aiDraft);
+            setAiDraftApplied(true);
+
+            // Surface any safety warnings from the backend
+            if (result.warnings && result.warnings.length > 0) {
+                setSoapAssistWarning(result.warnings.join(" • "));
+            }
+
+            // Populate ICD suggestions (gate on feature flag)
+            if (isClinicalCodingEnabled && result.icdSuggestions && result.icdSuggestions.length > 0) {
+                // Filter out codes already added to diagnoses
+                const existingCodes = new Set(diagnoses.map(d => d.icd_code || d.code));
+                const fresh = result.icdSuggestions
+                    .filter(s => !existingCodes.has(s.code))
+                    .map(s => ({
+                        icd_code: s.code,
+                        icd_code_description_snapshot: s.description,
+                        confidence: s.confidence || "medium",
+                        checked: true, // pre-checked by default, doctor can uncheck
+                    }));
+                setPendingIcdSuggestions(fresh);
+            }
+
+            toast.success("SOAP draft ready — review below.");
+        } catch (err) {
+            console.error("SOAP Assist failed:", err);
+            const msg = err.message || "";
+            if (msg.includes("403") || msg.includes("Forbidden")) {
+                setSoapAssistError("Clinical coding not enabled — contact your admin.");
+            } else if (msg.includes("429") || msg.includes("Too Many")) {
+                setSoapAssistError("Too many requests, please wait a moment.");
+            } else if (msg.includes("400") || msg.includes("Bad Request")) {
+                setSoapAssistError("Text is too short or contains unsupported characters.");
+            } else {
+                setSoapAssistError("AI unavailable — please fill SOAP manually.");
+            }
+        } finally {
+            setSoapAssistLoading(false);
+        }
+    };
+
+    // Accept all AI-suggested ICD codes that are still checked.
+    // Uses a single setDiagnoses call to avoid the stale-closure bug where
+    // forEach + handleAddDiagnosis each read the same old `diagnoses` snapshot,
+    // causing every code to get sequence:1 and duplicate-detection to miss them.
+    const handleApplyIcdSuggestions = () => {
+        const toAdd = pendingIcdSuggestions.filter(s => s.checked);
+        if (toAdd.length === 0) {
+            toast("No codes selected.");
+            setPendingIcdSuggestions([]);
+            return;
+        }
+
+        // Deduplicate against current diagnoses, then append in one atomic update
+        const existingCodes = new Set(diagnoses.map(d => d.icd_code || d.code));
+        const fresh = toAdd.filter(s => !existingCodes.has(s.icd_code));
+
+        if (fresh.length === 0) {
+            toast("All selected codes are already in the encounter.");
+            setPendingIcdSuggestions([]);
+            return;
+        }
+
+        const baseSequence = diagnoses.length; // 0 = list was empty, first new gets seq 1
+        const newDiagnoses = fresh.map((s, idx) => ({
+            icd_code: s.icd_code,
+            icd_code_description_snapshot: s.icd_code_description_snapshot,
+            sequence: baseSequence + idx === 0 ? 1 : 2,
+        }));
+
+        const updatedDiagnoses = [...diagnoses, ...newDiagnoses];
+        setDiagnoses(updatedDiagnoses);
+
+        // Auto-justify any unjustified procedures with the first/primary diagnosis
+        const primaryCode = updatedDiagnoses.find(d => d.sequence === 1)?.icd_code;
+        if (primaryCode) {
+            setProcedures(prev => prev.map(proc => {
+                if (proc.procedure_id && (!proc.justified_by_icd_codes || proc.justified_by_icd_codes.length === 0)) {
+                    return { ...proc, justified_by_icd_codes: [primaryCode] };
+                }
+                return proc;
+            }));
+        }
+
+        setPendingIcdSuggestions([]);
+        const skipped = toAdd.length - fresh.length;
+        toast.success(
+            `${fresh.length} code${fresh.length > 1 ? "s" : ""} added${skipped > 0 ? ` (${skipped} already present, skipped)` : ""}.`
+        );
     };
 
     // Handle voice transcription errors
@@ -1184,8 +1312,75 @@ const DoctorConsultation = () => {
                     )}
                 </div>
 
-                {aiDraftApplied && pendingAiDraft && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-500">
+                {/* SOAP Assist — raw notes → structured SOAP + ICD suggestions */}
+                {isConsultationStarted && !isCompleted && (
+                    <div className="mb-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-blue-50/40 p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-indigo-500 flex-shrink-0" />
+                            <span className="text-sm font-semibold text-indigo-800">Clinical Notes</span>
+                            <span className="text-[10px] bg-indigo-100 text-indigo-600 font-bold px-2 py-0.5 rounded-full border border-indigo-200 ml-auto">AI ASSIST</span>
+                        </div>
+                        <p className="text-xs text-indigo-600/80 mb-3">
+                            Type or paste your raw consultation notes. AI will structure them into SOAP fields
+                            {isClinicalCodingEnabled ? " and suggest ICD-10 codes." : "."}
+                        </p>
+                        <textarea
+                            className="w-full border border-indigo-200 bg-white rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 placeholder-gray-400 resize-none transition-all"
+                            rows={4}
+                            maxLength={4000}
+                            placeholder="e.g. Fever 3 days, cough, no SOB. Temp 38.5°C, throat red. Likely viral URI. Give paracetamol, review in 3 days."
+                            value={soapAssistRawText}
+                            onChange={(e) => {
+                                setSoapAssistRawText(e.target.value);
+                                if (soapAssistError) setSoapAssistError(null);
+                            }}
+                            disabled={soapAssistLoading}
+                        />
+                        <div className="flex items-center justify-between mt-2 gap-3 flex-wrap">
+                            <span className="text-[11px] text-gray-400 tabular-nums">
+                                {soapAssistRawText.length} / 4000
+                            </span>
+                            <button
+                                onClick={handleSoapAssist}
+                                disabled={soapAssistLoading || !soapAssistRawText.trim() || isReadOnly}
+                                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm"
+                            >
+                                {soapAssistLoading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Generating…
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="h-4 w-4" />
+                                        Generate SOAP{isClinicalCodingEnabled ? " & Suggest Codes" : ""}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Error state */}
+                        {soapAssistError && (
+                            <div className="mt-3 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 animate-in fade-in duration-200">
+                                <AlertCircleIcon className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                                <p className="text-xs text-red-700 font-medium">{soapAssistError}</p>
+                            </div>
+                        )}
+
+                        {/* Non-blocking safety warning */}
+                        {soapAssistWarning && !soapAssistError && (
+                            <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 animate-in fade-in duration-200">
+                                <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs font-semibold text-amber-800">Review AI output before saving</p>
+                                    <p className="text-xs text-amber-700 mt-0.5">{soapAssistWarning}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {aiDraftApplied && pendingAiDraft && (                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-500">
                         <div className="flex items-center gap-2">
                             <Sparkles className="h-5 w-5 text-blue-600" />
                             <div>
@@ -1195,14 +1390,14 @@ const DoctorConsultation = () => {
                         </div>
                         <button
                             onClick={() => {
-                                setSoapNotes(pendingAiDraft);
+                                setSoapNotes(prev => ({ ...prev, ...pendingAiDraft }));
                                 setPendingAiDraft(null);
                                 setAiDraftApplied(false);
                                 toast.success("All AI suggestions applied");
                             }}
                             className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 font-medium whitespace-nowrap"
                         >
-                            Apply All
+                            Replace All
                         </button>
                     </div>
                 )}
@@ -1214,16 +1409,16 @@ const DoctorConsultation = () => {
                                 <label className="block text-sm font-semibold text-gray-700 capitalize">
                                     {field}
                                 </label>
-                                {pendingAiDraft?.[field] && !soapNotes[field] && (
+                                {pendingAiDraft?.[field] && (
                                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 uppercase tracking-wider animate-pulse">
                                         <Sparkles className="h-3 w-3" />
-                                        AI Draft Available
+                                        {soapNotes[field] ? "AI Update Ready" : "AI Draft Available"}
                                     </div>
                                 )}
                             </div>
                             <div className="relative">
                                 <textarea
-                                    className={`w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-400 transition-all ${pendingAiDraft?.[field] && !soapNotes[field]
+                                    className={`w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-400 transition-all ${pendingAiDraft?.[field]
                                         ? 'border-blue-200 bg-blue-50/30'
                                         : 'border-gray-200'
                                         }`}
@@ -1231,8 +1426,8 @@ const DoctorConsultation = () => {
                                     value={soapNotes[field]}
                                     onChange={(e) => handleSoapChange(field, e.target.value)}
                                     onKeyDown={(e) => {
-                                        if (pendingAiDraft?.[field] && !soapNotes[field]) {
-                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                        if (pendingAiDraft?.[field]) {
+                                            if (e.key === 'Enter' && !e.shiftKey && !soapNotes[field]) {
                                                 e.preventDefault();
                                                 handleSoapChange(field, pendingAiDraft[field]);
                                                 toast.success(`${field} accepted`);
@@ -1247,14 +1442,39 @@ const DoctorConsultation = () => {
                                     placeholder={pendingAiDraft?.[field] && !soapNotes[field] ? pendingAiDraft[field] : `Enter ${field} details...`}
                                     disabled={!isConsultationStarted || isCompleted}
                                 />
-                                {pendingAiDraft?.[field] && !soapNotes[field] && (
+                                {pendingAiDraft?.[field] && (
                                     <button
                                         onClick={() => handleSoapChange(field, pendingAiDraft[field])}
                                         className="absolute right-2 top-2 p-1.5 bg-white shadow-sm border border-blue-100 rounded-md text-blue-600 hover:bg-blue-600 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                                        title="Apply AI suggestion"
+                                        title={soapNotes[field] ? "Replace with AI suggestion" : "Apply AI suggestion"}
                                     >
                                         <Sparkles className="h-4 w-4" />
                                     </button>
+                                )}
+                                {/* Show AI draft preview below field when field already has content */}
+                                {pendingAiDraft?.[field] && soapNotes[field] && (
+                                    <div className="mt-1.5 rounded-md border border-blue-100 bg-blue-50/60 px-3 py-2">
+                                        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">AI Suggestion</p>
+                                        <p className="text-xs text-blue-800 leading-relaxed whitespace-pre-wrap">{pendingAiDraft[field]}</p>
+                                        <div className="flex gap-2 mt-2">
+                                            <button
+                                                onClick={() => handleSoapChange(field, pendingAiDraft[field])}
+                                                className="text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded transition-colors"
+                                            >
+                                                Replace
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    const newDraft = { ...pendingAiDraft };
+                                                    delete newDraft[field];
+                                                    setPendingAiDraft(newDraft);
+                                                }}
+                                                className="text-[11px] font-semibold text-gray-500 hover:text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 px-2.5 py-1 rounded transition-colors"
+                                            >
+                                                Keep mine
+                                            </button>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -1351,6 +1571,77 @@ const DoctorConsultation = () => {
                             <p className="text-xs text-gray-400 italic mt-3">
                                 No standardized diagnoses added to this encounter yet. Standardize diagnosis via autocomplete above.
                             </p>
+                        )}
+
+                        {/* AI-suggested ICD codes from SOAP Assist */}
+                        {pendingIcdSuggestions.length > 0 && (
+                            <div className="mt-5 border border-indigo-100 rounded-xl bg-indigo-50/40 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4 text-indigo-500" />
+                                        <span className="text-sm font-semibold text-indigo-800">
+                                            AI Suggested Codes
+                                        </span>
+                                        <span className="text-[10px] text-indigo-500 font-medium">
+                                            ({pendingIcdSuggestions.filter(s => s.checked).length} selected)
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setPendingIcdSuggestions([])}
+                                            className="text-xs text-gray-500 hover:text-gray-700 font-medium px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                                        >
+                                            Dismiss
+                                        </button>
+                                        <button
+                                            onClick={handleApplyIcdSuggestions}
+                                            disabled={!isConsultationStarted || isCompleted || isReadOnly || !pendingIcdSuggestions.some(s => s.checked)}
+                                            className="text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-3 py-1 rounded-lg transition-colors"
+                                        >
+                                            Add Selected
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-indigo-600/70 mb-3">
+                                    Uncheck codes to exclude. Click "Add Selected" to add them to the encounter.
+                                </p>
+                                <div className="space-y-2">
+                                    {pendingIcdSuggestions.map((suggestion, idx) => {
+                                        const confidenceConfig = {
+                                            high: { label: "HIGH", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                                            medium: { label: "MED", cls: "bg-amber-100 text-amber-700 border-amber-200" },
+                                            low: { label: "LOW", cls: "bg-gray-100 text-gray-500 border-gray-200" },
+                                        };
+                                        const conf = confidenceConfig[suggestion.confidence] || confidenceConfig.low;
+                                        return (
+                                            <label
+                                                key={suggestion.icd_code}
+                                                className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${suggestion.checked ? "bg-white border-indigo-200 shadow-sm" : "bg-gray-50/60 border-gray-200 opacity-60"}`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={suggestion.checked}
+                                                    onChange={() => {
+                                                        setPendingIcdSuggestions(prev =>
+                                                            prev.map((s, i) => i === idx ? { ...s, checked: !s.checked } : s)
+                                                        );
+                                                    }}
+                                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 flex-shrink-0"
+                                                />
+                                                <span className="font-bold text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 whitespace-nowrap">
+                                                    {suggestion.icd_code}
+                                                </span>
+                                                <span className="text-xs text-gray-700 font-medium flex-1 min-w-0 truncate">
+                                                    {suggestion.icd_code_description_snapshot}
+                                                </span>
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border flex-shrink-0 ${conf.cls}`}>
+                                                    {conf.label}
+                                                </span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}
