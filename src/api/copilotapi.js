@@ -32,6 +32,20 @@ const apiRequest = async (endpoint, options = {}) => {
 
 const copilotAPI = {
   /**
+   * Generate structured SOAP notes + ICD-10 suggestions from free-form clinical text
+   * @param {string} rawText - Free-form clinical notes (max 4000 chars)
+   * @param {string} [consultationId] - Optional consultation UUID for context
+   * @returns {Promise<{ soap: { subjective, objective, assessment, plan }, icdSuggestions: Array, warnings: Array, timestamp: string }>}
+   */
+  analyseSoap: async (rawText, consultationId = null) => {
+    const body = { rawText };
+    if (consultationId) body.consultationId = consultationId;
+    return apiRequest('/soap-assist/analyse', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+  /**
    * Get AI Clinical Copilot insights for a patient
    * @param {string} patientId - Patient ID
    * @param {string} userId - User ID (doctor/clinician ID)
