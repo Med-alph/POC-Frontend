@@ -66,8 +66,8 @@ const FeatureToggle = ({ feature, enabled, limitValue, onChange }) => {
             </label>
             <input
               id={`limit-${feature.key}`}
-              type="number"
-              min="1"
+              type="text"
+              inputMode="numeric"
               value={localLimitValue}
               onChange={handleLimitChange}
               className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
