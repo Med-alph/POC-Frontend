@@ -106,7 +106,8 @@ export const UI_MODULES = {
   CANCELLATION_REQUESTS: 'CANCELLATION_REQUESTS',
   EMAIL_TEMPLATES: 'EMAIL_TEMPLATES',
   PROCEDURES: 'PROCEDURES',
-  PHARMACY: 'PHARMACY'
+  PHARMACY: 'PHARMACY',
+  CLINICAL_CODING: 'CLINICAL_CODING'
 };
 
 export const UI_MODULE_LABELS = {
@@ -128,7 +129,8 @@ export const UI_MODULE_LABELS = {
   CANCELLATION_REQUESTS: 'Cancellation Requests',
   EMAIL_TEMPLATES: 'Email Notifications',
   PROCEDURES: 'Procedures',
-  PHARMACY: 'Pharmacy Management'
+  PHARMACY: 'Pharmacy Management',
+  CLINICAL_CODING: 'Medical Coding (ICD/CPT)'
 };
 
 // Plan Feature → UI Modules Mapping
@@ -164,6 +166,7 @@ export const PLAN_FEATURE_TO_MODULES = {
 
   // Enterprise Features
   'ai_analysis': [UI_MODULES.AI_ANALYSIS],
+  'clinical_coding': [UI_MODULES.CLINICAL_CODING],
 
   // Future features (to be added to backend)
   'billing_management': [UI_MODULES.BILLING],
@@ -187,6 +190,7 @@ export const MODULE_TO_PLAN_FEATURES = {
   [UI_MODULES.NOTIFICATIONS]: ['whatsapp_integration'],
   [UI_MODULES.EMAIL_TEMPLATES]: ['whatsapp_integration'],
   [UI_MODULES.AI_ANALYSIS]: ['ai_analysis'],
+  [UI_MODULES.CLINICAL_CODING]: ['clinical_coding'],
   [UI_MODULES.PROCEDURES]: ['procedures'],
   [UI_MODULES.BILLING]: ['billing_management'], // Future
   [UI_MODULES.REPORTS]: ['reports_analytics'] // Future

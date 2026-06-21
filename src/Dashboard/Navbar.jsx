@@ -173,6 +173,16 @@ export default function Navbar({ onMenuClick }) {
   // Determine navigation items based on role first, then designation_group
   const isDoctor = user?.role?.toLowerCase() === "doctor" ||
     (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist");
+
+  // Detect medical coder role (same logic as Sidebar.jsx)
+  const isCoderRole =
+    user?.designation_group?.toLowerCase()?.includes("coder") ||
+    user?.designation?.toLowerCase()?.includes("coder") ||
+    ["coder", "medical_coder", "medical coder"].some(r =>
+      (typeof user?.role === "string" ? user.role.toLowerCase() : "") === r ||
+      (Array.isArray(user?.roles) && user.roles.map(x => x.toLowerCase()).includes(r))
+    );
+
   const filteredNavItems = isDoctor ? doctorNavItems : navigationItems;
 
   console.log('User role:', user?.role);
@@ -306,7 +316,7 @@ export default function Navbar({ onMenuClick }) {
         <SubscriptionBanner variant="navbar" />
 
         <div className="flex items-center gap-2 sm:gap-4">
-          {(isDoctor || (hospitalInfo?.is_solo_practice && (user?.roles?.includes('Admin') || user?.role === 'Admin'))) && (
+          {!isCoderRole && (isDoctor || (hospitalInfo?.is_solo_practice && (user?.roles?.includes('Admin') || user?.role === 'Admin'))) && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

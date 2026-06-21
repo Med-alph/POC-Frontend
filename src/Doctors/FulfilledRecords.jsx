@@ -176,7 +176,7 @@ export default function FulfilledRecords() {
         isOpen={!!previewUrl} 
         url={previewUrl} 
         onClose={() => setPreviewUrl(null)} 
-        title="Encounter Summary Report"
+        title="Visit Summary Report"
       />
     </div>
   );

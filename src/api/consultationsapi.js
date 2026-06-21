@@ -53,6 +53,14 @@ const consultationsAPI = {
   getByPatient: async (patientId) => {
     return apiRequest(`/consultations/patient/${patientId}`);
   },
+
+  // Doctor amends a completed consultation (triggers pending_recoding if previously coded)
+  update: async (consultationId, data) => {
+    return apiRequest(`/consultations/${consultationId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 export default consultationsAPI;

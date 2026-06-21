@@ -30,7 +30,7 @@ const ReportExportButton = ({
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            const filename = consultationId ? `encounter_${consultationId}.pdf` : `${type}_${patientId}.pdf`;
+            const filename = consultationId ? `visit_${consultationId}.pdf` : `${type}_${patientId}.pdf`;
             link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
