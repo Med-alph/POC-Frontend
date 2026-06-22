@@ -87,11 +87,15 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
 
       {/* Card body */}
       <div className="flex-1 pb-6 pt-1">
-        {/* "Currently Coding" pill — only in coder mode */}
+        {/* "Currently Open" pill — only in coder mode, shows which record is open in workspace */}
         {isCurrent && isCoder && (
-          <div className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 bg-violet-100 border border-violet-200 px-2 py-0.5 rounded-full mb-1.5">
-            <Pencil className="h-2.5 w-2.5" />
-            Currently Coding
+          <div className="inline-flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 bg-violet-100 border border-violet-200 px-2 py-0.5 rounded-full">
+              <Pencil className="h-2.5 w-2.5" />
+              Currently Open
+            </span>
+            {/* Still show the actual coding status so there's no ambiguity */}
+            <CodingBadge status={c.coding_status} />
           </div>
         )}
 
