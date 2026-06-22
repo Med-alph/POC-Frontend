@@ -115,11 +115,14 @@ export default function Login() {
                         userRoles.includes("medical coder") ||
                         userRoles.includes("medical_coder");
 
-        if (designationGroup === "doctor") {
-          setTimeout(() => navigate("/doctor-dashboard"), 1500)
-          return
-        } else if (isCoder) {
+        // Coder check MUST come before the doctor check because the backend may
+        // return designation_group = "Doctor" even for coder-role staff. Roles
+        // array is the authoritative source for the coder designation.
+        if (isCoder) {
           setTimeout(() => navigate("/medical-coding"), 1500)
+          return
+        } else if (designationGroup === "doctor") {
+          setTimeout(() => navigate("/doctor-dashboard"), 1500)
           return
         } else {
           setTimeout(() => navigate("/dashboard"), 1500)
