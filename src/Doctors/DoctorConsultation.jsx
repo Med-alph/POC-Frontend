@@ -72,6 +72,15 @@ const DoctorConsultation = () => {
     const [cancellationReason, setCancellationReason] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
+    // Stores the consultation record once the appointment is fulfilled (for coding-status banner)
+    const [existingConsultation, setExistingConsultation] = useState(null);
+
+    // Controlled amendment mode — allows doctor to edit a completed consultation
+    // only via "Edit for Clarification" or "Amend Consultation" actions.
+    const [isAmendMode, setIsAmendMode] = useState(false);
+    const [isAmendSaving, setIsAmendSaving] = useState(false);
+    const [showAmendWarning, setShowAmendWarning] = useState(false);
+
     const [cancelRequested, setCancelRequested] = useState(false);
 
     // Image upload state
@@ -204,6 +213,17 @@ const DoctorConsultation = () => {
                     setConsultationStartTime(new Date(response.actual_start_time));
                 }
 
+                // If appointment is fulfilled, also fetch the consultation to get coding_status
+                if (['fulfilled', 'completed'].includes(response.status?.toLowerCase())) {
+                    try {
+                        const existingCons = await consultationsAPI.getByAppointment(appointmentId);
+                        if (existingCons) setExistingConsultation(existingCons);
+                    } catch (consErr) {
+                        // Non-blocking — just means the consultation hasn't been created yet
+                        console.warn('[CODING BANNER] Could not fetch existing consultation:', consErr?.message);
+                    }
+                }
+
                 // Check if a cancellation request exists for this appointment by this doctor
                 const hasCancelRequest = await cancellationRequestAPI.hasRequestForAppointment(appointmentId, user.id);
                 setCancelRequested(hasCancelRequest);
@@ -226,6 +246,10 @@ const DoctorConsultation = () => {
     const canCancelAppointment = !['fulfilled', 'completed', 'cancelled', 'in-progress'].includes(appointmentData?.status?.toLowerCase());
     const isCompleted = ['fulfilled', 'completed'].includes(appointmentData?.status?.toLowerCase());
     const isCancelled = appointmentData?.status?.toLowerCase() === 'cancelled';
+
+    // When in amend mode, treat the form as editable (same as in-progress) so
+    // all fields that gate on `!isConsultationStarted || isCompleted` open up.
+    const effectivelyEditable = isConsultationStarted || isAmendMode;
 
     // --- DRAFT SYSTEM LOGIC ---
     const getDraftKey = () => `cons_draft_${user?.hospital_id || 'h'}_${user?.id || 'u'}_${appointmentId}`;
@@ -493,7 +517,7 @@ const DoctorConsultation = () => {
             toast.success("Consultation completed and saved successfully!");
             clearDraft(); // Important: Clear draft on success
             
-            // Generate and show the Encounter Summary Report
+            // Generate and show the Visit Summary Report
             try {
                 setIsGeneratingReport(true);
                 const response = await reportsAPI.generateEncounterReport(consultationIdCreated, { preview: true });
@@ -501,7 +525,7 @@ const DoctorConsultation = () => {
                 const url = window.URL.createObjectURL(blob);
                 setPreviewUrl(url);
             } catch (reportErr) {
-                console.error("Failed to generate encounter report:", reportErr);
+                console.error("Failed to generate visit report:", reportErr);
                 toast.error("Consultation saved, but summary report generation failed.");
                 setTimeout(() => {
                     window.history.back();
@@ -552,6 +576,146 @@ const DoctorConsultation = () => {
         // Reset AI draft flag if doctor manually edits
         if (aiDraftApplied) {
             setAiDraftApplied(false);
+        }
+    };
+
+    // ── Enter Amend Mode ──────────────────────────────────────────────────────
+    // Populate form fields from the existing saved consultation so the doctor
+    // can see and edit the previously saved data.
+    const enterAmendMode = () => {
+        if (!existingConsultation) return;
+
+        setSoapNotes({
+            subjective: existingConsultation.subjective || "",
+            objective: existingConsultation.objective || "",
+            assessment: existingConsultation.assessment || "",
+            plan: existingConsultation.plan || "",
+        });
+
+        if (existingConsultation.prescriptions?.length > 0) {
+            setPrescriptions(existingConsultation.prescriptions.map(p => ({
+                id: p.id,                          // preserve DB id for upsert
+                medicine_name: p.medicine_name || "",
+                dosage: p.dosage || "",
+                frequency: p.frequency || "",
+                duration: p.duration || "",
+                quantity: p.quantity ?? "",
+            })));
+        } else {
+            setPrescriptions([{ medicine_name: "", dosage: "", frequency: "", duration: "", quantity: "" }]);
+        }
+
+        if (existingConsultation.lab_orders?.length > 0) {
+            setLabOrders(existingConsultation.lab_orders.map(l => ({
+                id: l.id,                          // preserve DB id for upsert
+                test_name: l.test_name || "",
+                instructions: l.instructions || "",
+            })));
+        } else {
+            setLabOrders([{ test_name: "", instructions: "" }]);
+        }
+
+        if (existingConsultation.diagnoses?.length > 0) {
+            setDiagnoses(existingConsultation.diagnoses.map(d => ({
+                id: d.id,                          // preserve DB id for upsert
+                icd_code: d.icd_code,
+                icd_code_description_snapshot: d.icd_code_description_snapshot,
+                sequence: d.sequence || 1,
+            })));
+        }
+
+        // Preserve procedures with their DB ids so CPT codes aren't duplicated
+        if (existingConsultation.procedures?.length > 0) {
+            setProcedures(existingConsultation.procedures.map(p => ({
+                id: p.id,                          // preserve DB id for upsert
+                procedure_id: p.procedure_id || p.procedure?.id,
+                procedure_name: p.procedure?.name || "",
+                price: p.actual_price_charged || 0,
+                clinical_notes: p.doctor_notes || "",
+                category: p.procedure?.category || "",
+                cpt_code: p.cpt_code || null,
+                cpt_code_description_snapshot: p.cpt_code_description_snapshot || null,
+                justified_by_icd_codes: p.justified_by_icd_codes || [],
+            })));
+        }
+
+        setIsAmendMode(true);
+    };
+
+    // ── Amend Save ────────────────────────────────────────────────────────────
+    // Saves doctor edits to a completed/coded consultation.
+    // Backend is responsible for transitioning coding_status → pending_recoding
+    // whenever a previously-coded consultation is patched.
+    const handleAmendSave = async () => {
+        if (!existingConsultation?.id) {
+            toast.error("Could not find consultation record to update.");
+            return;
+        }
+        try {
+            setIsAmendSaving(true);
+
+            const amendData = {
+                subjective: soapNotes.subjective || null,
+                objective: soapNotes.objective || null,
+                assessment: soapNotes.assessment || null,
+                plan: soapNotes.plan || null,
+                diagnoses: isClinicalCodingEnabled ? diagnoses.map((d, index) => ({
+                    // pass id so backend can UPDATE the existing row instead of INSERT
+                    ...(d.id && { id: d.id }),
+                    icd_code: d.icd_code || d.code,
+                    icd_code_description_snapshot: d.icd_code_description_snapshot || d.description,
+                    sequence: Number(d.sequence) || (index + 1),
+                })) : [],
+                prescriptions: prescriptions
+                    .filter(p => p.medicine_name?.trim())
+                    .map(p => ({
+                        // pass id so backend can UPDATE instead of INSERT
+                        ...(p.id && { id: p.id }),
+                        medicine_name: p.medicine_name,
+                        dosage: p.dosage,
+                        frequency: p.frequency,
+                        duration: p.duration,
+                        quantity: p.quantity ? Number(p.quantity) : null,
+                    })),
+                lab_orders: labOrders
+                    .filter(l => l.test_name?.trim())
+                    .map(l => ({
+                        // pass id so backend can UPDATE instead of INSERT
+                        ...(l.id && { id: l.id }),
+                        test_name: l.test_name,
+                        instructions: l.instructions || null,
+                    })),
+                procedures: procedures
+                    .filter(p => p.procedure_id)
+                    .map(p => ({
+                        procedure_id: p.procedure_id,
+                        // pass id so backend can UPDATE instead of INSERT
+                        ...(p.id && { id: p.id }),
+                        actual_price_charged: Number(p.price) || 0,
+                        doctor_notes: p.clinical_notes || null,
+                        cpt_code: isClinicalCodingEnabled ? (p.cpt_code || null) : null,
+                        cpt_code_description_snapshot: isClinicalCodingEnabled ? (p.cpt_code_description_snapshot || null) : null,
+                        justified_by_icd_codes: isClinicalCodingEnabled ? (p.justified_by_icd_codes || []) : [],
+                    })),
+            };
+
+            await consultationsAPI.update(existingConsultation.id, amendData);
+
+            // Re-fetch the consultation so the coding banner reflects the new status
+            try {
+                const refreshed = await consultationsAPI.getByAppointment(appointmentId);
+                if (refreshed) setExistingConsultation(refreshed);
+            } catch (_) {
+                // Non-fatal — banner will update on next page load
+            }
+
+            toast.success("Consultation updated. Sent back to coder queue for re-coding.");
+            setIsAmendMode(false);
+        } catch (err) {
+            console.error("Failed to save amendment:", err);
+            toast.error(`Failed to update consultation: ${err.message}`);
+        } finally {
+            setIsAmendSaving(false);
         }
     };
 
@@ -654,7 +818,7 @@ const DoctorConsultation = () => {
         const fresh = toAdd.filter(s => !existingCodes.has(s.icd_code));
 
         if (fresh.length === 0) {
-            toast("All selected codes are already in the encounter.");
+            toast("All selected codes are already in this visit.");
             setPendingIcdSuggestions([]);
             return;
         }
@@ -862,7 +1026,7 @@ const DoctorConsultation = () => {
         // Prevent duplicate diagnoses
         const exists = diagnoses.some(d => (d.icd_code || d.code) === targetCode);
         if (exists) {
-            toast.error("Diagnosis is already added to this encounter.");
+            toast.error("Diagnosis is already added to this visit.");
             return;
         }
 
@@ -1080,6 +1244,87 @@ const DoctorConsultation = () => {
                 </div>
             )}
 
+            {/* ── Coding Status Banners (shown to doctor on completed consultations) ── */}
+            {isCompleted && existingConsultation?.coding_status === 'clarification_required' && (
+                <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="bg-orange-100 p-2 rounded-full flex-shrink-0">
+                            <AlertTriangle className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-orange-900">Medical Coder Needs Clarification</h4>
+                            <p className="text-xs text-orange-700 mt-0.5">
+                                The medical coder has flagged this consultation and is requesting additional clinical information before assigning ICD/CPT codes.
+                            </p>
+                            {existingConsultation?.coding_comments && (
+                                <p className="text-xs font-semibold text-orange-800 mt-2 bg-orange-100 rounded-lg px-3 py-2 border border-orange-200">
+                                    💬 "{existingConsultation.coding_comments}"
+                                </p>
+                            )}
+                            {!isAmendMode && (
+                                <button
+                                    onClick={() => enterAmendMode()}
+                                    className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                                >
+                                    <AlertCircleIcon className="h-3.5 w-3.5" />
+                                    Edit Consultation to Respond
+                                </button>
+                            )}
+                            {isAmendMode && (
+                                <p className="mt-2 text-xs font-semibold text-orange-700 bg-orange-100 rounded-lg px-3 py-1.5 border border-orange-300 inline-block">
+                                    ✏️ Edit mode active — update the consultation below and click "Save &amp; Send for Re-coding"
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isCompleted && existingConsultation?.coding_status === 'pending_recoding' && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <AlertCircleIcon className="h-5 w-5 text-rose-600 flex-shrink-0" />
+                        <div>
+                            <p className="text-sm font-bold text-rose-800">Consultation Re-coding Triggered</p>
+                            <p className="text-xs text-rose-600 mt-0.5">This consultation was edited after coding was completed. The medical coder has been alerted and will re-code it.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isCompleted && existingConsultation?.coding_status === 'coded' && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                            <div>
+                                <p className="text-sm font-bold text-emerald-800">Consultation Successfully Coded ✓</p>
+                                <p className="text-xs text-emerald-600 mt-0.5">
+                                    ICD/CPT coding has been completed by the medical coder
+                                    {existingConsultation?.coding_completed_at
+                                        ? ` on ${new Date(existingConsultation.coding_completed_at).toLocaleDateString()}`
+                                        : ''}.
+                                </p>
+                            </div>
+                        </div>
+                        {!isAmendMode && (
+                            <button
+                                onClick={() => setShowAmendWarning(true)}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-emerald-300 hover:bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg transition-colors"
+                            >
+                                <AlertCircleIcon className="h-3.5 w-3.5" />
+                                Amend Consultation
+                            </button>
+                        )}
+                        {isAmendMode && (
+                            <p className="text-xs font-semibold text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 border border-amber-200">
+                                ✏️ Amend mode — save will return this consultation for re-coding
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {isConsultationStarted && !isCompleted && !isCancelled && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1094,6 +1339,7 @@ const DoctorConsultation = () => {
                     </div>
                 </div>
             )}
+
 
             <div className="bg-white shadow rounded-lg p-6 border-l-4 border-blue-500 overflow-hidden">
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-0">
@@ -1297,12 +1543,15 @@ const DoctorConsultation = () => {
             )}
 
             {/* SOAP Notes Section */}
-            <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+            <div className={`bg-white shadow rounded-lg p-5 ${!effectivelyEditable && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
                         <Stethoscope className="h-5 w-5 text-blue-500" /> Consultation Notes (SOAP)
-                        {!isConsultationStarted && !isCompleted && (
+                        {!effectivelyEditable && !isCompleted && (
                             <span className="text-xs text-gray-500 font-normal ml-2">(Start consultation to edit)</span>
+                        )}
+                        {isAmendMode && (
+                            <span className="text-xs text-amber-600 font-semibold ml-2 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Amendment Mode</span>
                         )}
                     </h2>
                     {isConsultationStarted && !isCompleted && aiGenerationInProgress && (
@@ -1313,7 +1562,7 @@ const DoctorConsultation = () => {
                 </div>
 
                 {/* SOAP Assist — raw notes → structured SOAP + ICD suggestions */}
-                {isConsultationStarted && !isCompleted && (
+                {(effectivelyEditable || isAmendMode) && (
                     <div className="mb-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-blue-50/40 p-4">
                         <div className="flex items-center gap-2 mb-2">
                             <Sparkles className="h-4 w-4 text-indigo-500 flex-shrink-0" />
@@ -1440,7 +1689,7 @@ const DoctorConsultation = () => {
                                         }
                                     }}
                                     placeholder={pendingAiDraft?.[field] && !soapNotes[field] ? pendingAiDraft[field] : `Enter ${field} details...`}
-                                    disabled={!isConsultationStarted || isCompleted}
+                                    disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                                 />
                                 {pendingAiDraft?.[field] && (
                                     <button
@@ -1488,7 +1737,7 @@ const DoctorConsultation = () => {
                             <div>
                                 <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
                                     <ShieldCheck className="h-5 w-5 text-emerald-500" />
-                                    Standardized Encounter Diagnoses (ICD-10-CM)
+                                    Standardized Visit Diagnoses (ICD-10-CM)
                                 </h3>
                                 <p className="text-xs text-gray-500 mt-0.5">
                                     Search and link standard medical codes. The first added diagnosis defaults to Primary.
@@ -1502,7 +1751,7 @@ const DoctorConsultation = () => {
                         <div className="max-w-2xl">
                             <IcdAutocomplete
                                 onSelect={handleAddDiagnosis}
-                                disabled={!isConsultationStarted || isCompleted}
+                                disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                                 placeholder="Search diagnoses by name or code (e.g. 'Diabetes', 'E11.9')..."
                             />
                         </div>
@@ -1569,7 +1818,7 @@ const DoctorConsultation = () => {
                             </div>
                         ) : (
                             <p className="text-xs text-gray-400 italic mt-3">
-                                No standardized diagnoses added to this encounter yet. Standardize diagnosis via autocomplete above.
+                                No standardized diagnoses added to this visit yet. Standardize diagnosis via autocomplete above.
                             </p>
                         )}
 
@@ -1603,7 +1852,7 @@ const DoctorConsultation = () => {
                                     </div>
                                 </div>
                                 <p className="text-xs text-indigo-600/70 mb-3">
-                                    Uncheck codes to exclude. Click "Add Selected" to add them to the encounter.
+                                    Uncheck codes to exclude. Click "Add Selected" to add them to this visit.
                                 </p>
                                 <div className="space-y-2">
                                     {pendingIcdSuggestions.map((suggestion, idx) => {
@@ -1648,11 +1897,11 @@ const DoctorConsultation = () => {
             </div>
 
             {/* Image Upload Section */}
-            <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+            <div className={`bg-white shadow rounded-lg p-5 ${!effectivelyEditable && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 w-full">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
                         <Camera className="h-5 w-5 text-blue-500 flex-shrink-0" /> <span className="truncate">Patient Images</span>
-                        {!isConsultationStarted && !isCompleted && (
+                        {!effectivelyEditable && !isCompleted && (
                             <span className="text-xs text-gray-500 font-normal ml-2 break-words">(Start consultation to upload)</span>
                         )}
                     </h2>
@@ -1697,7 +1946,7 @@ const DoctorConsultation = () => {
             </div>
 
             {/* Prescription Section */}
-            <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+            <div className={`bg-white shadow rounded-lg p-5 ${!effectivelyEditable && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 w-full">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
                         <Pill className="h-5 w-5 text-blue-500 flex-shrink-0" /> <span className="truncate">Prescriptions</span>
@@ -1803,7 +2052,7 @@ const DoctorConsultation = () => {
                                 setPrescriptions(updated);
                             }}
                             onSelect={(medication) => handleMedicationSelect(index, medication)}
-                            disabled={!isConsultationStarted || isCompleted}
+                            disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                             className="w-full"
                         />
                         <input
@@ -1816,7 +2065,7 @@ const DoctorConsultation = () => {
                                 updated[index].dosage = e.target.value;
                                 setPrescriptions(updated);
                             }}
-                            disabled={!isConsultationStarted || isCompleted}
+                            disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                         />
                         <input
                             type="text"
@@ -1828,7 +2077,7 @@ const DoctorConsultation = () => {
                                 updated[index].frequency = e.target.value;
                                 setPrescriptions(updated);
                             }}
-                            disabled={!isConsultationStarted || isCompleted}
+                            disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                         />
                         <input
                             type="text"
@@ -1840,7 +2089,7 @@ const DoctorConsultation = () => {
                                 updated[index].duration = e.target.value;
                                 setPrescriptions(updated);
                             }}
-                            disabled={!isConsultationStarted || isCompleted}
+                            disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                         />
                         <input
                             type="number"
@@ -1853,7 +2102,7 @@ const DoctorConsultation = () => {
                                 updated[index].quantity = e.target.value;
                                 setPrescriptions(updated);
                             }}
-                            disabled={!isConsultationStarted || isCompleted}
+                            disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                         />
                     </div>
                 ))}
@@ -1872,7 +2121,7 @@ const DoctorConsultation = () => {
             </div>
 
             {/* Lab Orders Section */}
-            <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+            <div className={`bg-white shadow rounded-lg p-5 ${!effectivelyEditable && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
                 <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-3">
                     <FlaskConical className="h-5 w-5 text-blue-500" /> Lab / Scan Orders
                 </h2>
@@ -1890,7 +2139,7 @@ const DoctorConsultation = () => {
                                     updated[index].test_name = e.target.value;
                                     setLabOrders(updated);
                                 }}
-                                disabled={!isConsultationStarted || isCompleted}
+                                disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                             />
                         </div>
                         <div className="md:col-span-6">
@@ -1904,7 +2153,7 @@ const DoctorConsultation = () => {
                                     updated[index].instructions = e.target.value;
                                     setLabOrders(updated);
                                 }}
-                                disabled={!isConsultationStarted || isCompleted}
+                                disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                             />
                         </div>
                         <div className="md:col-span-1 flex justify-center">
@@ -1983,7 +2232,7 @@ const DoctorConsultation = () => {
             </div>
 
             {/* Procedures Section */}
-            <div className={`bg-white shadow rounded-lg p-5 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+            <div className={`bg-white shadow rounded-lg p-5 ${!effectivelyEditable && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
                 <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 mb-3">
                     <Activity className="h-5 w-5 text-blue-500" /> Procedures Performed
                 </h2>
@@ -1997,7 +2246,7 @@ const DoctorConsultation = () => {
                                     hospitalId={appointmentData?.hospital_id}
                                     value={proc.procedure_name}
                                     onSelect={(p) => handleProcedureSelect(index, p)}
-                                    disabled={!isConsultationStarted || isCompleted}
+                                    disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                                     placeholder="Search or select procedure"
                                 />
                             </div>
@@ -2026,7 +2275,7 @@ const DoctorConsultation = () => {
                                             updated[index].price = parseFloat(e.target.value) || 0;
                                             setProcedures(updated);
                                         }}
-                                        disabled={!isConsultationStarted || isCompleted}
+                                        disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                                     />
                                 </div>
                             </div>
@@ -2042,7 +2291,7 @@ const DoctorConsultation = () => {
                                         updated[index].clinical_notes = e.target.value;
                                         setProcedures(updated);
                                     }}
-                                    disabled={!isConsultationStarted || isCompleted}
+                                    disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                                 />
                             </div>
                             <div className="md:col-span-1 flex justify-center pt-2">
@@ -2094,7 +2343,7 @@ const DoctorConsultation = () => {
                                                         type="checkbox"
                                                         className="h-3.5 w-3.5 text-blue-600 focus:ring-blue-400 border-gray-300 rounded cursor-pointer"
                                                         checked={isChecked}
-                                                        disabled={!isConsultationStarted || isCompleted}
+                                                        disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                                                         onChange={(e) => {
                                                             const updated = [...procedures];
                                                             const currentJustifications = updated[index].justified_by_icd_codes || [];
@@ -2148,7 +2397,7 @@ const DoctorConsultation = () => {
             />
 
             {/* Follow-up Section */}
-            <div className={`bg-white shadow rounded-lg p-5 border-l-4 border-indigo-500 ${!isConsultationStarted && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+            <div className={`bg-white shadow rounded-lg p-5 border-l-4 border-indigo-500 ${!effectivelyEditable && !isCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 w-full">
                     <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
                         <CalendarCheck className="h-5 w-5 text-indigo-500 flex-shrink-0" /> <span className="truncate">Plan Next Visit (Follow-Up)</span>
@@ -2158,7 +2407,7 @@ const DoctorConsultation = () => {
                         <button
                             onClick={() => setIsFollowUpRequired(!isFollowUpRequired)}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isFollowUpRequired ? 'bg-indigo-600' : 'bg-gray-200'}`}
-                            disabled={!isConsultationStarted || isCompleted}
+                            disabled={!effectivelyEditable || (isCompleted && !isAmendMode)}
                         >
                             <span
                                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isFollowUpRequired ? 'translate-x-6' : 'translate-x-1'}`}
@@ -2184,7 +2433,7 @@ const DoctorConsultation = () => {
                                                 key={opt.label}
                                                 onClick={() => handleQuickDate(opt.days)}
                                                 className="px-3 py-1.5 text-xs font-medium bg-indigo-50 text-indigo-700 rounded-md hover:bg-indigo-100 border border-indigo-100 transition-colors"
-                                                disabled={isCompleted}
+                                                disabled={isCompleted && !isAmendMode}
                                             >
                                                 {opt.label}
                                             </button>
@@ -2198,7 +2447,7 @@ const DoctorConsultation = () => {
                                             value={followUpDate}
                                             min={new Date().toISOString().split("T")[0]}
                                             onChange={(e) => setFollowUpDate(e.target.value)}
-                                            disabled={isCompleted}
+                                            disabled={isCompleted && !isAmendMode}
                                         />
                                     </div>
                                 </div>
@@ -2211,7 +2460,7 @@ const DoctorConsultation = () => {
                                         placeholder="e.g., Review lab results, Check stitches recovery..."
                                         value={followUpNote}
                                         onChange={(e) => setFollowUpNote(e.target.value)}
-                                        disabled={isCompleted}
+                                        disabled={isCompleted && !isAmendMode}
                                     />
                                 </div>
                             </div>
@@ -2243,7 +2492,7 @@ const DoctorConsultation = () => {
                                                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                                                         : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50'
                                                     }`}
-                                                disabled={isCompleted}
+                                                disabled={isCompleted && !isAmendMode}
                                             >
                                                 {slot.display_time || slot.time.substring(0, 5)}
                                             </button>
@@ -2260,11 +2509,38 @@ const DoctorConsultation = () => {
             <div className="flex flex-col sm:flex-row justify-end gap-3 w-full mt-6">
                 <button
                     className="w-full sm:w-auto bg-gray-500 text-white px-6 py-3 sm:py-2 rounded-md hover:bg-gray-600 flex items-center justify-center"
-                    onClick={() => window.history.back()}
-                    disabled={isSaving}
+                    onClick={() => {
+                        if (isAmendMode) {
+                            setIsAmendMode(false);
+                        } else {
+                            window.history.back();
+                        }
+                    }}
+                    disabled={isSaving || isAmendSaving}
                 >
-                    {isCompleted || isCancelled ? 'Close' : 'Back'}
+                    {isAmendMode ? 'Cancel Amendment' : (isCompleted || isCancelled ? 'Close' : 'Back')}
                 </button>
+
+                {/* Save Amendment button — shown only in amend mode */}
+                {isAmendMode && (
+                    <button
+                        onClick={handleAmendSave}
+                        disabled={isAmendSaving || isReadOnly}
+                        className="flex items-center justify-center w-full sm:w-auto gap-2 bg-amber-600 text-white px-6 py-3 sm:py-2 rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isAmendSaving ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <AlertCircleIcon className="h-4 w-4" />
+                                Save &amp; Send for Re-coding
+                            </>
+                        )}
+                    </button>
+                )}
 
                 {canEndConsultation && (
                     <ReadOnlyTooltip>
@@ -2293,6 +2569,42 @@ const DoctorConsultation = () => {
                     </ReadOnlyTooltip>
                 )}
             </div>
+
+            {/* Amend Consultation Warning Modal */}
+            {showAmendWarning && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-96 shadow-xl">
+                        <div className="flex items-start gap-3 mb-4">
+                            <div className="bg-amber-100 p-2 rounded-full flex-shrink-0">
+                                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-semibold text-gray-800">Amend Coded Consultation?</h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    This consultation has already been coded. Updating clinical details will move it back to <strong>Pending Re-coding</strong> and alert the medical coder.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowAmendWarning(false)}
+                                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowAmendWarning(false);
+                                    enterAmendMode();
+                                }}
+                                className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-semibold"
+                            >
+                                Amend Consultation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Cancel Appointment Modal */}
             {showCancelModal && (
@@ -2383,7 +2695,7 @@ const DoctorConsultation = () => {
                     setPreviewUrl(null);
                     window.history.back();
                 }} 
-                title="Encounter Summary Report"
+                title="Visit Summary Report"
             />
         </div>
     );

@@ -104,8 +104,22 @@ export default function Login() {
           return;
         }
 
-        if (response.user.designation_group?.toLowerCase() === "doctor") {
+        const designationGroup = response.user.designation_group?.toLowerCase();
+        const designationName = response.user.designation?.toLowerCase() || "";
+        const userRoles = response.user.roles?.map(r => r.toLowerCase()) || [];
+        const isCoder = designationGroup === "coder" || 
+                        designationGroup === "medical_coder" || 
+                        designationGroup === "medical coder" ||
+                        designationName.includes("coder") ||
+                        userRoles.includes("coder") ||
+                        userRoles.includes("medical coder") ||
+                        userRoles.includes("medical_coder");
+
+        if (designationGroup === "doctor") {
           setTimeout(() => navigate("/doctor-dashboard"), 1500)
+          return
+        } else if (isCoder) {
+          setTimeout(() => navigate("/medical-coding"), 1500)
           return
         } else {
           setTimeout(() => navigate("/dashboard"), 1500)

@@ -29,7 +29,7 @@ const SubscriptionsOverview = () => {
         acc.total++;
         acc[sub.status]++;
         if (sub.status === 'active' && sub.plan?.price) {
-          acc.totalRevenue += sub.plan.price;
+          acc.totalRevenue += Number(sub.plan.price);
         }
         return acc;
       }, { total: 0, active: 0, expired: 0, cancelled: 0, totalRevenue: 0 });
@@ -144,9 +144,11 @@ const SubscriptionsOverview = () => {
                 </svg>
               </div>
             </div>
-            <div className="ml-4">
+            <div className="ml-4 min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-500">Monthly Revenue</p>
-              <p className="text-2xl font-semibold text-gray-900">${stats.totalRevenue}</p>
+              <p className="text-2xl font-semibold text-gray-900 truncate">
+                ${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
             </div>
           </div>
         </div>

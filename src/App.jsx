@@ -100,6 +100,10 @@ import HospitalAdminSettings from "./Settings/HospitalAdminSettings";
 import TicketChatPage from "./components/support/TicketChatPage";
 import FeedbackAnalytics from "./Admin/FeedbackAnalytics";
 
+// Medical Coding
+import ClinicalCodingLayout from "./ClinicalCoding/ClinicalCodingLayout";
+import CodingQueue from "./ClinicalCoding/CodingQueue";
+import CodingWorkspace from "./ClinicalCoding/CodingWorkspace";
 
 function HospitalApp() {
   const location = useLocation();
@@ -250,6 +254,13 @@ function HospitalApp() {
                   <Route path="queue" element={<PharmacyQueue />} />
                   <Route path="orders/:orderId" element={<OrderDetail />} />
                   <Route path="stats" element={<PharmacyStats />} />
+                </Route>
+
+                {/* Medical Coding Routes */}
+                <Route path="/medical-coding" element={<ClinicalCodingLayout />}>
+                  <Route index element={<CodingQueue />} />
+                  <Route path="queue" element={<CodingQueue />} />
+                  <Route path="workspace/:consultationId" element={<CodingWorkspace />} />
                 </Route>
 
                 {/* Doctor view routes */}

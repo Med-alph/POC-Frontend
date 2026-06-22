@@ -5,7 +5,7 @@ import {
   Home, Users, Stethoscope, Calendar, Clock, 
   Package, Sparkles, MessageSquare, Shield, Mail, 
   Banknote, FileText, Clipboard, X, ChevronRight,
-  LayoutDashboard, Bell, AlertCircle, TrendingUp, Image, Syringe, Pill
+  LayoutDashboard, Bell, AlertCircle, TrendingUp, Image, Syringe, Pill, Code2
 } from "lucide-react";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { UI_MODULES } from "../constants/Constant";
@@ -28,6 +28,7 @@ const navigationItems = [
   { id: "revenue", label: "Revenue Analytics", path: "/admin/revenue", icon: TrendingUp, isAdminOnly: true, subscriptionModule: "REPORTS", requiredModule: UI_MODULES.REPORTS },
   { id: "master-procedures", label: "Master Procedures", path: "/admin/master-procedures", icon: Clipboard, isAdminOnly: true, requiredModule: UI_MODULES.PROCEDURES },
   { id: "clinical-masters", label: "Clinical Masters", path: "/admin/clinical-masters", icon: Syringe, isAdminOnly: true, subscriptionModule: "VACCINES", specialty: "PEDIATRICS" },
+  { id: "medical-coding", label: "Medical Coding", path: "/medical-coding", icon: Code2, requiredModule: UI_MODULES.CLINICAL_CODING },
   { id: "feedback", label: "Patient Feedback", path: "/hospital/feedback", icon: MessageSquare, isAdminOnly: true },
 ];
 
@@ -64,6 +65,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const hasDoctorRole = isRoleMatch(user?.roles || user?.role, ["doctor"]);
   const isAdminRole = isRoleMatch(user?.roles || user?.role, ["admin", "tenant_admin", "hospital_admin"]);
   const isSoloPractice = hospitalInfo?.is_solo_practice === true;
+  const isCoderRole = isRoleMatch(user?.roles || user?.role, ["coder", "medical_coder", "medical coder"]) ||
+                      user?.designation_group?.toLowerCase()?.includes("coder") ||
+                      user?.designation?.toLowerCase()?.includes("coder");
   
   let filteredNavItems = [];
 
@@ -87,6 +91,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     filteredNavItems = merged;
   } else if (hasDoctorRole && !isAdminRole) {
     filteredNavItems = doctorNavItems;
+  } else if (isCoderRole) {
+    filteredNavItems = navigationItems.filter(item => item.id === "medical-coding");
   } else {
     filteredNavItems = navigationItems;
   }

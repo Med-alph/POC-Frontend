@@ -11,8 +11,9 @@ const PlanForm = ({ plan, features, onSave, onPlanChange, saving, isEditing }) =
   }, [plan]);
 
   const handleInputChange = (e) => {
-    const { name, value, type } = e.target;
-    const newValue = type === 'number' ? parseFloat(value) || 0 : value;
+    const { name, value } = e.target;
+    const numericFields = ['price', 'trial_days', 'grace_period_hours'];
+    const newValue = numericFields.includes(name) ? parseFloat(value) || 0 : value;
     
     const updatedData = {
       ...formData,
@@ -174,11 +175,10 @@ const PlanForm = ({ plan, features, onSave, onPlanChange, saving, isEditing }) =
                 <span className="text-gray-500 sm:text-sm">$</span>
               </div>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 id="price"
                 name="price"
-                min="0"
-                step="0.01"
                 value={formData.price}
                 onChange={handleInputChange}
                 className={`block w-full pl-7 pr-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
@@ -215,10 +215,10 @@ const PlanForm = ({ plan, features, onSave, onPlanChange, saving, isEditing }) =
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 id="trial_days"
                 name="trial_days"
-                min="0"
                 value={formData.trial_days || 0}
                 onChange={handleInputChange}
                 className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -234,10 +234,10 @@ const PlanForm = ({ plan, features, onSave, onPlanChange, saving, isEditing }) =
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 id="grace_period_hours"
                 name="grace_period_hours"
-                min="0"
                 value={formData.grace_period_hours || 0}
                 onChange={handleInputChange}
                 className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"

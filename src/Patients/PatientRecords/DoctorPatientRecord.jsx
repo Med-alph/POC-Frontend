@@ -20,8 +20,9 @@ import { getModuleComponent, ModuleRegistry } from "../../Specialties/ModuleRegi
 import ChildHeader from "../../Specialties/Pediatrics/ChildHeader";
 import ReportExportButton from "../../components/Reports/ReportExportButton";
 import ReportPreviewModal from "../../components/Reports/ReportPreviewModal";
+import PatientTimeline from "../../components/PatientTimeline";
 
-const staticTabs = ["Appointments", "SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes", 'Gallery'];
+const staticTabs = ["Timeline", "Appointments", "SOAP Notes", "Procedures", "Medications", "Diet Plans", "Lab Results", "Allergies & Notes", 'Gallery'];
 
 const DoctorPatientRecord = () => {
     const { patientId } = useParams();
@@ -557,7 +558,16 @@ const DoctorPatientRecord = () => {
 
                 {/* Main Content Area */}
                 <div className="min-h-[500px]">
-                    {activeTab === "Appointments" && (
+                {/* ── Timeline Tab ── */}
+                {activeTab === "Timeline" && (
+                    <PatientTimeline
+                        patientId={patientId}
+                        mode="doctor"
+                        limit={15}
+                    />
+                )}
+
+                {activeTab === "Appointments" && (
                         <div className="space-y-4">
                             {consultations.length > 0 ? consultations.map((consultation, i) => (
                                 <div key={i} className="flex items-center justify-between p-5 bg-white rounded-3xl border border-slate-200/60 shadow-sm transition-all hover:shadow-md">
@@ -644,7 +654,7 @@ const DoctorPatientRecord = () => {
                                             <div className="mt-6 pt-6 border-t border-slate-100">
                                                 <p className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                                                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                                                    Standardized Encounter Diagnoses (ICD-10-CM)
+                                                    Standardized Visit Diagnoses (ICD-10-CM)
                                                 </p>
                                                 <div className="flex flex-wrap gap-3">
                                                     {consultation.diagnoses.map((diag, idx) => {
@@ -1012,7 +1022,7 @@ const DoctorPatientRecord = () => {
                 isOpen={!!previewUrl} 
                 url={previewUrl} 
                 onClose={() => setPreviewUrl(null)} 
-                title="Encounter Summary Report"
+                title="Visit Summary Report"
             />
         </div>
     );

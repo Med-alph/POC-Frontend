@@ -58,6 +58,10 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
   const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Undo state for "Clone to Weekdays/Weekend" actions
+  const [undoSnapshot, setUndoSnapshot] = useState(null); // { availability, availabilityErrors, label }
+  const [undoTimer, setUndoTimer] = useState(null);
+
 
   useEffect(() => {
     async function loadDesignations() {
@@ -145,6 +149,10 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
       });
       setAvailabilityErrors({});
       setFormErrors({});
+      // Clear undo state on dialog close/reset
+      if (undoTimer) clearTimeout(undoTimer);
+      setUndoSnapshot(null);
+      setUndoTimer(null);
     }
   }, [open, editStaff]);
 
@@ -238,6 +246,25 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
       return toast.error("Please fix errors in source day before copying");
     }
 
+    // Snapshot current state for undo
+    const snapshot = {
+      availability: JSON.parse(JSON.stringify(formData.availability)),
+      availabilityErrors: { ...availabilityErrors },
+      label: sourceDay === "Monday" ? "Clone Monday to Weekdays" : `Clone ${sourceDay} to ${targetDays.join(', ')}`
+    };
+
+    // Clear any existing undo timer
+    if (undoTimer) clearTimeout(undoTimer);
+
+    setUndoSnapshot(snapshot);
+
+    // Auto-dismiss undo after 8 seconds
+    const timer = setTimeout(() => {
+      setUndoSnapshot(null);
+      setUndoTimer(null);
+    }, 8000);
+    setUndoTimer(timer);
+
     setFormData((prev) => {
       const newAvail = { ...prev.availability };
       targetDays.forEach((day) => {
@@ -256,7 +283,17 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
       return newErrs;
     });
 
-    toast.success("Schedule copied successfully");
+    toast.success("Schedule copied — click Undo to revert");
+  };
+
+  const undoCopy = () => {
+    if (!undoSnapshot) return;
+    if (undoTimer) clearTimeout(undoTimer);
+    setFormData((prev) => ({ ...prev, availability: undoSnapshot.availability }));
+    setAvailabilityErrors(undoSnapshot.availabilityErrors);
+    setUndoSnapshot(null);
+    setUndoTimer(null);
+    toast.success("Undo successful");
   };
 
   const validateForm = () => {
@@ -295,6 +332,10 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
 
     if (formData.experience && isNaN(Number(formData.experience))) {
       errors.experience = "Experience must be a number";
+    } else if (formData.experience !== '' && Number(formData.experience) > 80) {
+      errors.experience = "Experience cannot exceed 80 years";
+    } else if (formData.experience !== '' && Number(formData.experience) < 0) {
+      errors.experience = "Experience cannot be negative";
     }
 
     let hasAvailability = false;
@@ -447,7 +488,18 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                       name="staff_name"
                       placeholder="e.g. Dr. Sarah Johnson"
                       value={formData.staff_name}
-                      onChange={handleChange}
+                      onKeyDown={(e) => {
+                        // Allow control keys
+                        const control = ['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+                        if (control.includes(e.key)) return;
+                        // Allow letters (any language), spaces, dots, hyphens, apostrophes only
+                        if (!/^[a-zA-Z\s.\-']$/.test(e.key)) e.preventDefault();
+                      }}
+                      onChange={(e) => {
+                        // Strip digits and disallowed special chars as a safety net
+                        const clean = e.target.value.replace(/[^a-zA-Z\s.\-']/g, '');
+                        setFormData((prev) => ({ ...prev, staff_name: clean }));
+                      }}
                       className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
                       required
                     />
@@ -500,7 +552,24 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                       name="contact_info"
                       placeholder="+91 12345 67890"
                       value={formData.contact_info}
-                      onChange={handleChange}
+                      onKeyDown={(e) => {
+                        const control = ['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+                        if (control.includes(e.key)) return;
+                        // Allow digits, +, space, hyphen
+                        // + only allowed if at position 0
+                        if (e.key === '+' && e.target.selectionStart === 0) return;
+                        if (/^\d$/.test(e.key)) return;
+                        if (e.key === ' ' || e.key === '-') return;
+                        e.preventDefault();
+                      }}
+                      onChange={(e) => {
+                        // Strip any alphabetic or disallowed special chars
+                        // Keep: digits, +, space, hyphen
+                        let clean = e.target.value.replace(/[^0-9+\s-]/g, '');
+                        // Ensure + only appears at the very start
+                        clean = clean.replace(/(?!^)\+/g, '');
+                        setFormData((prev) => ({ ...prev, contact_info: clean }));
+                      }}
                       className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
                       required
                     />
@@ -535,15 +604,28 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Clinical Experience (Years)</label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       name="experience"
                       placeholder="0"
-                      min="0"
-                      max="50"
                       value={formData.experience}
-                      onChange={handleChange}
+                      onKeyDown={(e) => {
+                        // Allow: backspace, delete, tab, escape, enter, arrow keys
+                        const allowed = ['Backspace','Delete','Tab','Escape','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+                        if (allowed.includes(e.key)) return;
+                        // Block anything that isn't a digit
+                        if (!/^\d$/.test(e.key)) e.preventDefault();
+                      }}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, ''); // strip non-digits
+                        const num = raw === '' ? '' : Math.min(Number(raw), 80).toString();
+                        setFormData((prev) => ({ ...prev, experience: num }));
+                      }}
                       className="h-10 transition-shadow focus:ring-2 focus:ring-blue-500/20"
                     />
+                    {formData.experience !== '' && Number(formData.experience) > 80 && (
+                      <p className="text-xs text-red-500">Experience cannot exceed 80 years</p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -582,6 +664,28 @@ export default function CreateStaffDialog({ hospitalId, onAdd, open, setOpen, ed
                 </div>
 
                 <div className="space-y-8">
+                  {/* Undo Banner */}
+                  {undoSnapshot && (
+                    <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2.5">
+                      <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span><span className="font-semibold">{undoSnapshot.label}</span> applied</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={undoCopy}
+                        className="flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 bg-blue-100 dark:bg-blue-800/40 hover:bg-blue-200 dark:hover:bg-blue-700/40 px-3 py-1 rounded-md transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                        Undo
+                      </button>
+                    </div>
+                  )}
+
                   {/* Weekdays Group */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
@@ -711,6 +815,7 @@ function DayRow({ day, data, errors, onToggle, onSessionChange, onAddSession, on
                       <div className="relative flex-1 min-w-0">
                         <Input
                           type="time"
+                          step="60"
                           value={session.start}
                           onChange={(e) => onSessionChange(day, index, 'start', e.target.value)}
                           className={`h-9 bg-white dark:bg-gray-950 text-[13px] border-gray-200 dark:border-gray-800 transition-colors ${hasError ? 'border-red-500 ring-1 ring-red-100' : 'focus:ring-2 focus:ring-blue-500/20'}`}
@@ -720,6 +825,7 @@ function DayRow({ day, data, errors, onToggle, onSessionChange, onAddSession, on
                       <div className="relative flex-1 min-w-0">
                         <Input
                           type="time"
+                          step="60"
                           value={session.end}
                           onChange={(e) => onSessionChange(day, index, 'end', e.target.value)}
                           className={`h-9 bg-white dark:bg-gray-950 text-[13px] border-gray-200 dark:border-gray-800 transition-colors ${hasError ? 'border-red-500 ring-1 ring-red-100' : 'focus:ring-2 focus:ring-blue-500/20'}`}

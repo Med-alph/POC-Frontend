@@ -27,6 +27,12 @@ const DoctorAttendance = () => {
     reason: ''
   });
 
+  // Date bounds for leave: today as min, 1 year from today as max
+  const todayStr = new Date().toISOString().split('T')[0];
+  const leaveMaxDate = new Date();
+  leaveMaxDate.setFullYear(leaveMaxDate.getFullYear() + 1);
+  const leaveMaxDateStr = leaveMaxDate.toISOString().split('T')[0];
+
   // Permission management state
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [permissionList, setPermissionList] = useState([]);
@@ -403,6 +409,8 @@ const DoctorAttendance = () => {
                     // Days of the month
                     for (let day = 1; day <= daysInMonth; day++) {
                       const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      const dayOfWeek = new Date(currentYear, currentMonth - 1, day).getDay();
+                      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                       const dayRecords = attendanceHistory.filter(r => r.date === dateStr);
                       const totalHours = dayRecords.reduce((sum, r) => sum + (Number(r.total_hours) || 0), 0);
                       const approvedLeave = getApprovedLeaveForDate(dateStr);
@@ -410,36 +418,66 @@ const DoctorAttendance = () => {
                       const isOnLeave = !!approvedLeave;
                       const isSelected = selectedDate === dateStr;
                       const isToday = dateStr === new Date().toISOString().split('T')[0];
+                      const isFuture = dateStr > new Date().toISOString().split('T')[0];
+
+                      // Determine cell style based on priority: selected > leave > present > weekend > absent/future
+                      let cellClass = '';
+                      let dayNumClass = '';
+                      let labelText = null;
+                      let labelClass = '';
+
+                      if (isSelected) {
+                        cellClass = 'bg-blue-600 border-blue-700 shadow-lg scale-105 dark:bg-blue-500 dark:border-blue-400';
+                        dayNumClass = 'text-white font-bold';
+                        labelClass = 'text-blue-100';
+                      } else if (isOnLeave) {
+                        cellClass = 'bg-amber-400 border-amber-500 hover:bg-amber-500 dark:bg-amber-500 dark:border-amber-400';
+                        dayNumClass = 'text-white font-bold';
+                        labelText = 'Leave';
+                        labelClass = 'text-amber-900 dark:text-amber-100';
+                      } else if (isPresent) {
+                        cellClass = 'bg-emerald-500 border-emerald-600 hover:bg-emerald-600 dark:bg-emerald-600 dark:border-emerald-500';
+                        dayNumClass = 'text-white font-bold';
+                        labelText = `${totalHours.toFixed(1)}h`;
+                        labelClass = 'text-emerald-100';
+                      } else if (isFuture) {
+                        cellClass = isWeekend
+                          ? 'bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700'
+                          : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750';
+                        dayNumClass = isWeekend ? 'text-slate-400 dark:text-slate-500' : 'text-gray-500 dark:text-gray-400';
+                      } else if (isWeekend) {
+                        cellClass = 'bg-slate-100 border-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-600';
+                        dayNumClass = 'text-slate-500 dark:text-slate-400';
+                      } else {
+                        // Past weekday, absent
+                        cellClass = 'bg-rose-50 border-rose-200 hover:bg-rose-100 dark:bg-rose-900/20 dark:border-rose-800';
+                        dayNumClass = 'text-rose-700 dark:text-rose-400 font-semibold';
+                        labelText = 'Absent';
+                        labelClass = 'text-rose-500 dark:text-rose-400';
+                      }
+
+                      // Today ring override
+                      const todayRing = isToday && !isSelected ? ' ring-2 ring-blue-500 ring-offset-1' : '';
 
                       days.push(
                         <button
                           key={day}
                           onClick={() => setSelectedDate(dateStr)}
-                          className={`h-16 p-2 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${isSelected
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                            : isToday
-                              ? 'border-blue-300 dark:border-blue-700'
-                              : 'border-gray-200 dark:border-gray-700'
-                            } ${isOnLeave
-                              ? 'bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border-orange-200 dark:border-orange-800'
-                              : isPresent
-                                ? 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30'
-                                : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
-                            }`}
+                          className={`h-16 p-1 rounded-xl border-2 transition-all duration-150 flex flex-col items-center justify-center${todayRing} ${cellClass}`}
                         >
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white">{day}</div>
-                          {isOnLeave && (
-                            <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-0.5">
-                              Leave
+                          <div className={`text-sm leading-none ${dayNumClass}`}>{day}</div>
+                          {isToday && !isSelected && (
+                            <div className="w-1 h-1 rounded-full bg-blue-500 mt-1" />
+                          )}
+                          {labelText && !isSelected && (
+                            <div className={`text-xs font-medium mt-0.5 leading-none ${labelClass}`}>
+                              {labelText}
                             </div>
                           )}
-                          {isPresent && !isOnLeave && (
-                            <div className="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">
-                              {totalHours.toFixed(1)}h
+                          {isSelected && (
+                            <div className={`text-xs font-medium mt-0.5 leading-none ${labelClass}`}>
+                              {isOnLeave ? 'Leave' : isPresent ? `${totalHours.toFixed(1)}h` : isToday ? 'Today' : ''}
                             </div>
-                          )}
-                          {isToday && (
-                            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-0.5">Today</div>
                           )}
                         </button>
                       );
@@ -449,8 +487,15 @@ const DoctorAttendance = () => {
                       <div>
                         {/* Day headers */}
                         <div className="grid grid-cols-7 gap-2 mb-2">
-                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <div key={day} className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 py-2">
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+                            <div
+                              key={day}
+                              className={`text-center text-xs font-bold py-2 rounded-md ${
+                                i === 0 || i === 6
+                                  ? 'text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20'
+                                  : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
+                              }`}
+                            >
                               {day}
                             </div>
                           ))}
@@ -458,6 +503,33 @@ const DoctorAttendance = () => {
                         {/* Calendar grid */}
                         <div className="grid grid-cols-7 gap-2">
                           {days}
+                        </div>
+                        {/* Legend */}
+                        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-emerald-500" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Present</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-rose-200 border border-rose-300" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Absent</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-amber-400" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">On Leave</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-slate-200 border border-slate-300" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Weekend</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-blue-600" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Selected</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded border-2 border-blue-500" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Today</span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -867,7 +939,9 @@ const DoctorAttendance = () => {
                   <input
                     type="date"
                     value={leaveForm.start_date}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, start_date: e.target.value })}
+                    onChange={(e) => setLeaveForm({ ...leaveForm, start_date: e.target.value, end_date: '' })}
+                    min={todayStr}
+                    max={leaveMaxDateStr}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
@@ -878,6 +952,8 @@ const DoctorAttendance = () => {
                     type="date"
                     value={leaveForm.end_date}
                     onChange={(e) => setLeaveForm({ ...leaveForm, end_date: e.target.value })}
+                    min={leaveForm.start_date || todayStr}
+                    max={leaveMaxDateStr}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />

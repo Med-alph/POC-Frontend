@@ -21,14 +21,24 @@ const PlanPreview = ({ plan, features }) => {
   };
 
   // Get feature details for selected features - updated to work with API response
-  const selectedFeatureDetails = plan.planFeatures?.map(planFeature => {
-    const featureDetail = features.find(f => f.key === planFeature.feature_key || f.id === planFeature.feature_id);
-    return {
-      ...featureDetail,
-      ...planFeature,
-      name: featureDetail?.name || planFeature.feature_key
-    };
-  }).filter(Boolean) || [];
+  // During create: plan.features holds the live form state { feature_key, enabled, limit_value }
+  // During edit (loaded from API): plan.planFeatures holds the saved state
+  const rawFeatures = plan.features?.length
+    ? plan.features
+    : (plan.planFeatures || []);
+
+  const selectedFeatureDetails = rawFeatures
+    .filter(pf => pf.enabled)
+    .map(planFeature => {
+      const featureDetail = features.find(
+        f => f.key === planFeature.feature_key || f.id === planFeature.feature_id
+      );
+      return {
+        ...featureDetail,
+        ...planFeature,
+        name: featureDetail?.name || planFeature.feature_key
+      };
+    }).filter(Boolean);
 
   // Group features by category for better display
   const featuresByCategory = selectedFeatureDetails.reduce((acc, feature) => {
