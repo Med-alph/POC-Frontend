@@ -170,11 +170,8 @@ export default function Navbar({ onMenuClick }) {
     }
   };
 
-  // Determine navigation items based on role first, then designation_group
-  const isDoctor = user?.role?.toLowerCase() === "doctor" ||
-    (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist");
-
-  // Detect medical coder role (same logic as Sidebar.jsx)
+  // Detect medical coder role (same logic as Sidebar.jsx) — checked FIRST
+  // because backend may return designation_group "Doctor" for coder-role staff.
   const isCoderRole =
     user?.designation_group?.toLowerCase()?.includes("coder") ||
     user?.designation?.toLowerCase()?.includes("coder") ||
@@ -182,6 +179,12 @@ export default function Navbar({ onMenuClick }) {
       (typeof user?.role === "string" ? user.role.toLowerCase() : "") === r ||
       (Array.isArray(user?.roles) && user.roles.map(x => x.toLowerCase()).includes(r))
     );
+
+  // Only treat as doctor if not a coder — coder role takes priority
+  const isDoctor = !isCoderRole && (
+    user?.role?.toLowerCase() === "doctor" ||
+    (user?.designation_group?.toLowerCase() === "doctor" && user?.role?.toLowerCase() !== "receptionist")
+  );
 
   const filteredNavItems = isDoctor ? doctorNavItems : navigationItems;
 

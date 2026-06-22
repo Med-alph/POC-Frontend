@@ -89,10 +89,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         }
     });
     filteredNavItems = merged;
+  } else if (isCoderRole) {
+    // Coder check MUST come before hasDoctorRole — backend may return
+    // designation_group "Doctor" for coder-role staff; roles array wins.
+    filteredNavItems = navigationItems.filter(item => item.id === "medical-coding");
   } else if (hasDoctorRole && !isAdminRole) {
     filteredNavItems = doctorNavItems;
-  } else if (isCoderRole) {
-    filteredNavItems = navigationItems.filter(item => item.id === "medical-coding");
   } else {
     filteredNavItems = navigationItems;
   }
