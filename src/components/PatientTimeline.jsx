@@ -122,7 +122,8 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
 
             {/* Right side: coding badge + expand icon */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <CodingBadge status={c.coding_status} />
+              {/* Hide coding status badge on the currently-open card — "Currently Coding" pill already conveys the state */}
+              {!isCurrent && <CodingBadge status={c.coding_status} />}
               {isExpanded
                 ? <ChevronUp className="h-4 w-4 text-slate-400" />
                 : <ChevronDown className="h-4 w-4 text-slate-400" />}
