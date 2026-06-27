@@ -5,13 +5,32 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO: base description (page-level titles are set dynamically via usePageTitle hook) -->
+  <meta name="description" content="Medalph EMR — A modern electronic medical records platform for clinics and hospitals." />
+  <meta name="theme-color" content="#2563eb" />
+
+  <!-- Prevent search engines from indexing auth-protected pages -->
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- Content-Security-Policy (broad for multi-tenant SaaS; tighten per environment if needed) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' * blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: *; connect-src 'self' *; frame-src 'self' blob: *;">
+
   <title>Medalph</title>
 </head>
 
 <body>
   <div id="root"></div>
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <!--
+    Razorpay checkout is loaded asynchronously only when a payment action is triggered.
+    The script tag in PaymentTab.jsx and PatientDashboard.jsx dynamically injects the
+    Razorpay checkout script at runtime (loadRazorpay helper), so we do NOT preload
+    it here — that would waste bandwidth for non-billing users.
+
+    NOTE: window.Razorpay is populated by the dynamic script load. The CSP above
+    already whitelists checkout.razorpay.com for script-src.
+  -->
 
   <script type="module" src="/src/main.jsx"></script>
 </body>

@@ -6,8 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import pediatricsAPI from "../api/pediatricsapi";
 import toast from 'react-hot-toast';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// jsPDF and jspdf-autotable are loaded on-demand inside the download handler
+// so they don't bloat the initial JS bundle.
 
 const PatientVaccinePanel = ({ patient }) => {
     const [vaccines, setVaccines] = useState([]);
@@ -30,7 +30,10 @@ const PatientVaccinePanel = ({ patient }) => {
         }
     };
 
-    const downloadVaccineCard = () => {
+    const downloadVaccineCard = async () => {
+        // Dynamic import — loads jsPDF only when user clicks download
+        const { jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
         const doc = new jsPDF();
         
         // Header

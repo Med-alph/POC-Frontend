@@ -7,8 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import toast from 'react-hot-toast';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+// jsPDF and jspdf-autotable are loaded on-demand inside the download handler
+// so they don't bloat the initial JS bundle.
 import consultationsAPI from "../../api/consultationsapi";
 import dietAPI from "../../api/dietapi";
 import labOrdersAPI from "../../api/labordersapi";
@@ -322,7 +322,9 @@ const DoctorPatientRecord = () => {
         }
     };
 
-    const downloadAllSOAPNotes = () => {
+    const downloadAllSOAPNotes = async () => {
+        const { default: jsPDF } = await import('jspdf');
+        await import('jspdf-autotable');
         const doc = new jsPDF();
         const pageHeight = doc.internal.pageSize.getHeight();
         const bottomMargin = 56;

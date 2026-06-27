@@ -2,13 +2,14 @@ import React, { useEffect, useState, useMemo } from "react"
 import { useSelector } from "react-redux"
 import { useLocation } from "react-router-dom"
 import { useSubscription } from "../hooks/useSubscription"
+import usePageTitle from "../hooks/usePageTitle"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import toast, { Toaster } from "react-hot-toast"
-import * as XLSX from 'xlsx'
+// XLSX is loaded on-demand inside handleExport — not in the initial bundle
 import { format } from 'date-fns'
 import {
   Loader2, Search, CheckCircleIcon, XCircleIcon, Stethoscope, Plus, Edit as EditIcon,
@@ -39,6 +40,7 @@ import {
 import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip"
 
 export default function Appointments() {
+  usePageTitle('Appointments')
   const { hospitalInfo } = useHospital()
   const user = useSelector((state) => state.auth.user)
   const location = useLocation()
@@ -473,6 +475,8 @@ export default function Appointments() {
         };
       });
 
+      // Dynamic import — XLSX only loads when user clicks Export
+      const XLSX = await import('xlsx');
       const worksheet = XLSX.utils.json_to_sheet(dataToExport)
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments")

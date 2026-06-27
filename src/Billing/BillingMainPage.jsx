@@ -275,7 +275,7 @@ export default function BillingPage() {
           </div>
 
           <div className="bg-white p-4 rounded-2xl shadow-inner border-4 border-blue-50 mb-6">
-            <img src={qrUrl} alt="Payment QR" className="w-[220px] h-[220px]" />
+            <img src={qrUrl} alt="Payment QR" className="w-[220px] h-[220px]" loading="lazy" decoding="async" />
           </div>
 
           <div className="text-center space-y-2">

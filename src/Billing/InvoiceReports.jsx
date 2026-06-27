@@ -33,7 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import paymentsAPI from "../api/paymentsapi";
 import { format } from "date-fns";
-import * as XLSX from 'xlsx';
+// XLSX is loaded on-demand inside exportToExcel — not in the initial bundle
 import toast from "react-hot-toast";
 
 export default function InvoiceReports() {
@@ -124,7 +124,7 @@ export default function InvoiceReports() {
         }));
     };
 
-    const exportToExcel = () => {
+    const exportToExcel = async () => {
         if (reports.length === 0) {
             toast.error("No data to export");
             return;
@@ -142,6 +142,8 @@ export default function InvoiceReports() {
             "Created At": report.orderCreatedAt ? format(new Date(report.orderCreatedAt), "yyyy-MM-dd HH:mm") : 'N/A'
         }));
 
+        // Dynamic import — XLSX only loads when user clicks Export
+        const XLSX = await import('xlsx');
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Invoice Reports");

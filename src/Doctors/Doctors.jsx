@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { useDebounce } from "../hooks/useDebounce"
 import { useNavigate } from "react-router-dom"
-
 import { useSelector } from "react-redux"
+import usePageTitle from "../hooks/usePageTitle"
 
 import toast, { Toaster } from 'react-hot-toast'
-import * as XLSX from 'xlsx'
+// XLSX is loaded on-demand inside handleExport — not in the initial bundle
 import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -59,6 +59,7 @@ import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip"
 import { useSubscription } from "../hooks/useSubscription"
 
 export default function Doctors() {
+    usePageTitle('Doctors')
     const [doctors, setDoctors] = useState([])
     const [loading, setLoading] = useState(false)
     const { isReadOnly } = useSubscription()
@@ -270,6 +271,8 @@ export default function Doctors() {
                 };
             });
 
+            // Dynamic import — XLSX only loads when user clicks Export
+            const XLSX = await import('xlsx');
             const worksheet = XLSX.utils.json_to_sheet(dataToExport)
             const workbook = XLSX.utils.book_new()
             XLSX.utils.book_append_sheet(workbook, worksheet, "Doctors")

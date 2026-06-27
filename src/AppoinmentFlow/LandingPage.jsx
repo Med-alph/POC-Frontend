@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import toast from "react-hot-toast";
 import authAPI from "@/api/authapi";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import usePageTitle from "@/hooks/usePageTitle";
 
 const phoneDigitsOnly = (value) => value.replace(/[^0-9]/g, "").slice(0, 10);
 
@@ -23,6 +24,7 @@ const countries = [
 ];
 
 const LandingPage = () => {
+  usePageTitle('Book Appointment', true)
   const { hospitalInfo } = useHospital();
   const HOSPITAL_ID = hospitalInfo?.id || hospitalInfo?.hospital_id;
   const [phone, setPhone] = useState("");

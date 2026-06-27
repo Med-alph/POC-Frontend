@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { getGreeting } from '@/utils/dateUtils';
 import Navbar from "./Navbar";
 import toast, { Toaster } from 'react-hot-toast';
+import usePageTitle from "../hooks/usePageTitle";
 import { CalendarDays, Users, UserX, Stethoscope, TrendingUp, BarChart2, Clock, X, MessageSquare, ArrowRight } from "lucide-react";
 import { Line, Doughnut } from "react-chartjs-2";
 import {
@@ -127,6 +128,7 @@ function AppointmentsModal({ title, appointments, onClose }) {
 }
 
 export default function Dashboard() {
+  usePageTitle('Dashboard')
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
   const [appointmentsPerDept, setAppointmentsPerDept] = useState({});

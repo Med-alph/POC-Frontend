@@ -1,7 +1,14 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// jsPDF and html2canvas are loaded on-demand (dynamic import) so they are NOT
+// included in the initial JS bundle. They only download when the user actually
+// triggers a comparison report export.
 
 export const generateComparisonReport = async (patient, leftImages, rightImages, notes) => {
+  // Dynamically load heavy libs only when this function is called
+  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+    import('jspdf'),
+    import('html2canvas'),
+  ]);
+
   const pdf = new jsPDF('p', 'mm', 'a4');
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -83,7 +90,7 @@ export const generateComparisonReport = async (patient, leftImages, rightImages,
   pdf.setFont(undefined, 'normal');
   pdf.text(`LEFT Collection (Baseline): ${leftImages.length} image(s)`, margin, yPosition);
   yPosition += 6;
-  leftImages.forEach((img, idx) => {
+  leftImages.forEach((img) => {
     pdf.setFontSize(9);
     pdf.text(`  • ${img.date} - ${img.notes || 'No notes'}`, margin + 5, yPosition);
     yPosition += 5;
@@ -93,7 +100,7 @@ export const generateComparisonReport = async (patient, leftImages, rightImages,
   pdf.setFontSize(10);
   pdf.text(`RIGHT Collection (Current): ${rightImages.length} image(s)`, margin, yPosition);
   yPosition += 6;
-  rightImages.forEach((img, idx) => {
+  rightImages.forEach((img) => {
     pdf.setFontSize(9);
     pdf.text(`  • ${img.date} - ${img.notes || 'No notes'}`, margin + 5, yPosition);
     yPosition += 5;

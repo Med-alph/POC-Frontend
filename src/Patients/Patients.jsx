@@ -2,11 +2,12 @@ import React, { useState, useEffect, useMemo } from "react"
 import { useDebounce } from "../hooks/useDebounce"
 import { useNavigate } from "react-router-dom"
 import { useSubscription } from "../hooks/useSubscription"
+import usePageTitle from "../hooks/usePageTitle"
 
 import { patientsAPI } from "../api/patientsapi"
 import { appointmentsAPI } from "../api/appointmentsapi"
 import toast, { Toaster } from 'react-hot-toast'
-import * as XLSX from 'xlsx'
+// XLSX is loaded on-demand inside handleExport — not in the initial bundle
 import { format } from 'date-fns'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -54,6 +55,7 @@ import ConfirmationModal from "@/components/ui/confirmation-modal"
 import { ReadOnlyTooltip } from "@/components/ui/read-only-tooltip"
 
 export default function Patients() {
+    usePageTitle('Patients')
     const [patients, setPatients] = useState([])
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -329,6 +331,8 @@ export default function Patients() {
                 };
             })
 
+            // Dynamic import — XLSX only loads when user clicks Export
+            const XLSX = await import('xlsx');
             const worksheet = XLSX.utils.json_to_sheet(dataToExport)
             const workbook = XLSX.utils.book_new()
             XLSX.utils.book_append_sheet(workbook, worksheet, "Patients")

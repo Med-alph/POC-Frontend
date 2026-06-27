@@ -633,6 +633,8 @@ const DermImageComparison = ({ patient = dummyPatient, canManage = false }) => {
                                                                     src={img.imageUrl} 
                                                                     alt={`Image ${img.imageIndex + 1}`} 
                                                                     className="w-full h-20 object-cover"
+                                                                    loading="lazy"
+                                                                    decoding="async"
                                                                 />
                                                                 {/* Selection badges */}
                                                                 <div className="absolute top-1 right-1 flex gap-1">
