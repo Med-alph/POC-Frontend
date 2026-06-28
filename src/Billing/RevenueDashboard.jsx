@@ -35,7 +35,7 @@ ChartJS.register(
   Legend
 );
 
-import * as XLSX from "xlsx";
+// XLSX is loaded on-demand inside handleDownload — not in the initial bundle
 
 const RevenueDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -63,7 +63,7 @@ const RevenueDashboard = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!data) return;
     
     const fileName = `revenue_report_${format(new Date(), 'yyyy-MM-dd')}`;
@@ -77,6 +77,9 @@ const RevenueDashboard = () => {
       Doctor: tx.doctor,
       Date: format(new Date(tx.date), 'yyyy-MM-dd HH:mm')
     }));
+
+    // Dynamic import — XLSX only loads when user clicks Download
+    const XLSX = await import('xlsx');
 
     // 2. Create Sheet
     const ws = XLSX.utils.json_to_sheet(exportData);

@@ -180,7 +180,7 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
               <div className="flex gap-2 overflow-x-auto">
                 {leftImages.slice(0, 3).map((img, idx) => (
                   <div key={idx} className="flex-shrink-0">
-                    <img src={img.imageUrl} alt="" className="w-16 h-16 object-cover rounded border-2 border-blue-500" />
+                    <img src={img.imageUrl} alt="" className="w-16 h-16 object-cover rounded border-2 border-blue-500" loading="lazy" decoding="async" />
                     <p className="text-[10px] text-gray-600 mt-1">{img.date}</p>
                   </div>
                 ))}
@@ -196,7 +196,7 @@ const ComparisonNotesModal = ({ isOpen, onClose, onSave, existingNotes = '', lef
               <div className="flex gap-2 overflow-x-auto">
                 {rightImages.slice(0, 3).map((img, idx) => (
                   <div key={idx} className="flex-shrink-0">
-                    <img src={img.imageUrl} alt="" className="w-16 h-16 object-cover rounded border-2 border-green-500" />
+                    <img src={img.imageUrl} alt="" className="w-16 h-16 object-cover rounded border-2 border-green-500" loading="lazy" decoding="async" />
                     <p className="text-[10px] text-gray-600 mt-1">{img.date}</p>
                   </div>
                 ))}

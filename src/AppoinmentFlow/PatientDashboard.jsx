@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// jsPDF, jspdf-autotable and html2canvas are loaded on-demand (dynamic import)
+// so they don't bloat the initial JS bundle.
 import ReceiptTemplate from "../Billing/ReceiptTemplate";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useHospital } from "@/contexts/HospitalContext";
@@ -559,6 +558,10 @@ export default function PatientDashboard() {
       const details = await paymentsAPI.getInvoiceDetails(billId);
       
       toast.loading("Generating PDF...", { id: 'download' });
+
+      // Dynamic import — loads jsPDF only when user clicks download
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
 
       // Create PDF directly from data (No screenshot needed - avoids all CSS/oklch errors)
       const doc = new jsPDF();

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import pediatricsAPI from "../api/pediatricsapi";
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
+// XLSX is loaded on-demand inside the download/read handlers — not in the initial bundle
 
 const MasterVaccines = () => {
     const [vaccines, setVaccines] = useState([]);
@@ -149,10 +149,11 @@ const MasterVaccines = () => {
         }, 50);
     };
 
-    const onFileSelect = (e) => {
+    const onFileSelect = async (e) => {
         const file = e.target.files[0] || e.dataTransfer?.files[0];
         if (!file) return;
 
+        const XLSX = await import('xlsx');
         const reader = new FileReader();
         reader.onload = (evt) => {
             try {
@@ -196,7 +197,8 @@ const MasterVaccines = () => {
         setCsvImportMode('MERGE');
     };
 
-    const downloadTemplate = () => {
+    const downloadTemplate = async () => {
+        const XLSX = await import('xlsx');
         const data = [
             { name: 'BCG', dose_number: 'Dose 1', min_age_weeks: 0, min_interval_weeks: 0 },
             { name: 'OPV', dose_number: 'Dose 1', min_age_weeks: 6, min_interval_weeks: 4 },

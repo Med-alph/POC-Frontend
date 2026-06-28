@@ -17,8 +17,10 @@ import { Mail, Lock, Eye, EyeOff, Shield } from "lucide-react"
 import { useToast } from "@/components/ui/toast"; // ✅ shadcn 
 import { Link } from "react-router-dom"
 import { useHospital } from "../contexts/HospitalContext"
+import usePageTitle from "../hooks/usePageTitle"
 
 export default function Login() {
+  usePageTitle("Login")
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")

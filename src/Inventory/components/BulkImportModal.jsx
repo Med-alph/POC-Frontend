@@ -3,7 +3,7 @@ import { X, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, XCircle
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import inventoryAPI from '../../api/inventoryapi';
-import * as XLSX from 'xlsx';
+// XLSX is loaded on-demand inside the download/read handlers — not in the initial bundle
 import { 
   validateExcelFile, 
   normalizeInventoryData, 
@@ -22,7 +22,8 @@ const BulkImportModal = ({ isOpen, onClose, onSuccess }) => {
 
   const sampleData = generateSampleExcelData();
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(sampleData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Inventory Items");
@@ -48,8 +49,9 @@ const BulkImportModal = ({ isOpen, onClose, onSuccess }) => {
 
   const parseExcelFile = (file) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        const XLSX = await import('xlsx');
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
@@ -82,6 +84,7 @@ const BulkImportModal = ({ isOpen, onClose, onSuccess }) => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
+          const XLSX = await import('xlsx');
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];

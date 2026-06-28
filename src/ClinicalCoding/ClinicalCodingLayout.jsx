@@ -1,6 +1,8 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Code2, ClipboardList, BarChart3 } from 'lucide-react';
+// ClaimPreparation is registered as a nested route but does NOT appear in the tab bar —
+// the user arrives via the "Proceed to Claim" button in CodingWorkspace.
 
 const codingTabs = [
   { id: 'queue', label: 'Coding Queue', path: '/medical-coding/queue', icon: ClipboardList },
