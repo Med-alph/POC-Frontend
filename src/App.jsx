@@ -107,6 +107,7 @@ const PharmacyStats  = lazy(() => import("./Pharmacy/PharmacyStats"));
 const ClinicalCodingLayout = lazy(() => import("./ClinicalCoding/ClinicalCodingLayout"));
 const CodingQueue          = lazy(() => import("./ClinicalCoding/CodingQueue"));
 const CodingWorkspace      = lazy(() => import("./ClinicalCoding/CodingWorkspace"));
+const ClaimPreparation     = lazy(() => import("./ClinicalCoding/ClaimPreparation"));
 
 // ─── Page loading fallback ────────────────────────────────────────────────────
 function PageLoader() {
@@ -261,6 +262,7 @@ function HospitalApp() {
                       <Route index                              element={<CodingQueue />} />
                       <Route path="queue"                      element={<CodingQueue />} />
                       <Route path="workspace/:consultationId"  element={<CodingWorkspace />} />
+                      <Route path="claim/:consultationId"      element={<ClaimPreparation />} />
                     </Route>
 
                     {/* ── Doctor pages ── */}

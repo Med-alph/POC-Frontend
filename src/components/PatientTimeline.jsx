@@ -64,10 +64,7 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
   const hasDx   = c.diagnoses?.length > 0;
   const isCoder = mode === 'coder';
 
-  // brief summary line shown in collapsed state
-  const summary = isCoder
-    ? (hasDx ? c.diagnoses.slice(0, 2).map(d => d.icd_code).join(', ') : null)
-    : (c.assessment || c.subjective || null);
+  const summary = c.assessment || c.subjective || null;
 
   return (
     <div className={`relative flex gap-4 group ${isCurrent ? 'rounded-xl ring-2 ring-violet-300 ring-offset-1 bg-violet-50/30' : ''}`}>
@@ -149,7 +146,7 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
                   {c.diagnoses.length} dx
                 </span>
               )}
-              {!isCoder && hasRx && (
+              {hasRx && (
                 <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold px-2 py-0.5 rounded-full">
                   {c.prescriptions.length} rx
                 </span>
@@ -159,7 +156,7 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
                   {c.procedures.length} proc
                 </span>
               )}
-              {!isCoder && hasLabs && (
+              {hasLabs && (
                 <span className="text-[10px] bg-sky-50 text-sky-700 border border-sky-100 font-semibold px-2 py-0.5 rounded-full">
                   {c.lab_orders.length} labs
                 </span>
@@ -220,38 +217,8 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
               </div>
             )}
 
-            {/* Clinical context (coder mode: condensed, not full SOAP) */}
-            {isCoder && (c.assessment || c.subjective) && (
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
-                  <FileText className="h-3 w-3" /> Clinical Summary
-                </p>
-                {c.assessment && (
-                  <p className="text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100 leading-relaxed">
-                    <span className="font-semibold text-slate-500">Assessment: </span>
-                    {c.assessment}
-                  </p>
-                )}
-                {!c.assessment && c.subjective && (
-                  <p className="text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100 leading-relaxed line-clamp-3">
-                    {c.subjective}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Coder mode: clarification comments if present */}
-            {isCoder && c.coding_status === 'clarification_required' && c.coding_comments && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600 mb-1 flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" /> Clarification Note
-                </p>
-                <p className="text-xs text-orange-800 italic">"{c.coding_comments}"</p>
-              </div>
-            )}
-
-            {/* Doctor mode only: full SOAP notes */}
-            {!isCoder && (c.subjective || c.objective || c.assessment || c.plan) && (
+            {/* SOAP Notes — shown in both modes */}
+            {(c.subjective || c.objective || c.assessment || c.plan) && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
                   <FileText className="h-3 w-3" /> SOAP Notes
@@ -274,8 +241,8 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
               </div>
             )}
 
-            {/* Doctor mode only: prescriptions */}
-            {!isCoder && hasRx && (
+            {/* Prescriptions — shown in both modes */}
+            {hasRx && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
                   <Pill className="h-3 w-3" /> Prescriptions
@@ -299,8 +266,8 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
               </div>
             )}
 
-            {/* Doctor mode only: lab orders */}
-            {!isCoder && hasLabs && (
+            {/* Lab orders — shown in both modes */}
+            {hasLabs && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
                   <FlaskConical className="h-3 w-3" /> Lab Orders
@@ -316,8 +283,8 @@ function TimelineCard({ consultation, mode, isExpanded, onToggle, isFirst, isCur
               </div>
             )}
 
-            {/* Doctor mode only: follow-up indicator */}
-            {!isCoder && c.is_follow_up_required && c.follow_up_appointment && (
+            {/* Follow-up indicator — shown in both modes */}
+            {c.is_follow_up_required && c.follow_up_appointment && (
               <div className="flex items-center gap-2 text-xs text-indigo-700 bg-indigo-50 rounded-lg px-3 py-2 border border-indigo-100">
                 <CalendarCheck className="h-3.5 w-3.5 flex-shrink-0" />
                 Follow-up: {fmtDate(c.follow_up_appointment.appointment_date)}

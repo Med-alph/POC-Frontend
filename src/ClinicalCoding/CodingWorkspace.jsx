@@ -10,7 +10,7 @@ import {
   ArrowLeft, User, Stethoscope, ClipboardList, Code2,
   CheckCircle2, AlertTriangle, RefreshCw, Pill, FlaskConical,
   Search, X, Plus, Save, MessageSquare, ChevronDown, ChevronUp,
-  Loader2, FileText, Info, Sparkles
+  Loader2, FileText, Info, Sparkles, ArrowRight, FileCheck2
 } from 'lucide-react';
 import medicalCodingAPI from '../api/medicalcodingapi';
 import copilotAPI from '../api/copilotapi';
@@ -143,6 +143,9 @@ export default function CodingWorkspace() {
   const [pendingIcdSuggestions, setPendingIcdSuggestions] = useState([]);
   const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
 
+  // Post-coded state — shows "Proceed to Claim" banner instead of auto-navigating
+  const [codingComplete, setCodingComplete] = useState(false);
+
   const loadConsultation = useCallback(async () => {
     if (!consultationId) return;
     try {
@@ -158,6 +161,8 @@ export default function CodingWorkspace() {
         setTargetStatus(data.coding_status);
       } else if (data.coding_status === 'coded') {
         setTargetStatus('coded');
+        // If this consultation is already coded, show the proceed-to-claim banner immediately
+        setCodingComplete(true);
       } else {
         setTargetStatus('in_progress');
       }
@@ -333,7 +338,7 @@ Plan: ${plan}`.trim();
       await loadConsultation();
 
       if (saveStatus === 'coded') {
-        setTimeout(() => navigate('/medical-coding/queue'), 1500);
+        setCodingComplete(true);
       }
     } catch (err) {
       toast.error(`Failed to save: ${err.message}`);
@@ -521,7 +526,7 @@ Plan: ${plan}`.trim();
               <PatientTimeline
                 patientId={consultation.patient.id}
                 mode="coder"
-                limit={10}
+                limit={15}
                 currentConsultationId={consultation.id}
               />
             </div>
@@ -805,6 +810,43 @@ Plan: ${plan}`.trim();
                 Coded on {new Date(consultation.coding_completed_at).toLocaleString()} by{' '}
                 {consultation.coding_completed_by_staff?.staff_name || 'Medical Coder'}
               </span>
+            </div>
+          )}
+
+          {/* ── Coding Complete Banner — shown after "Mark as Coded" ── */}
+          {codingComplete && (
+            <div className="flex flex-col gap-3 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center flex-shrink-0">
+                  <FileCheck2 className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">
+                    Coding completed successfully
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-300 mt-0.5">
+                    ICD-10 and CPT codes have been saved. You can now prepare and submit the insurance claim.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1 h-9 rounded-xl font-bold text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm shadow-violet-200 gap-1.5"
+                  onClick={() => navigate(`/medical-coding/claim/${consultationId}`)}
+                >
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  Proceed to Claim
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 rounded-xl font-bold text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => navigate('/medical-coding/queue')}
+                >
+                  Back to Queue
+                </Button>
+              </div>
             </div>
           )}
         </div>
